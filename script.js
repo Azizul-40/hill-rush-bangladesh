@@ -47,6 +47,22 @@ resizeCanvas();
 // মোট level। 
 const TOTAL_LEVELS = 100;
 
+// ---------- FUEL ও ENDLESS MODE কনফিগ (Master Prompt ধাপ ২-৩ অনুযায়ী, একটা জায়গায় রাখা হয়েছে যাতে ব্যালেন্স করা সহজ হয়) ----------
+const FUEL_CONFIG = {
+  cap:100,                 // ট্যাংক পূর্ণ হলে কত
+  drainGas:1.9,            // প্রতি সেকেন্ডে খরচ (full throttle/gas চাপলে)
+  drainDrive:1.25,         // সাধারণ ডান-চাপ (right) চালানোয় খরচ
+  drainIdle:0.45,          // কিছু না চাপলেও/ব্রেক/বাঁয়ে সামান্য খরচ
+  lowThreshold:20,         // এর নিচে নামলে সতর্কবার্তা ও হলুদ/লাল গেজ
+  canRefill:45,            // একটা fuel can নিলে কত ফেরত পাওয়া যায়
+  minPowerAtEmpty:0.18     // ট্যাংক শূন্য হলে engine power/top speed এই ভগ্নাংশে নেমে আসে (হঠাৎ বন্ধ হয় না, ধীরে ধীরে কমে)
+};
+const BOOST_PICKUP_CONFIG = { refill:55 }; // boost pickup নিলে boostEnergy কত বাড়ে (১০০-এর বেশি না)
+let endlessMode=false;                 // true হলে ENDLESS/DISTANCE MODE চলছে
+const ENDLESS_LEVEL_SEED=70;           // terrain/difficulty-এর জন্য fixed "level" (মাঝারি-কঠিন, deterministic)
+const ENDLESS_LENGTH=58000;            // Endless রুটের মোট দৈর্ঘ্য—শেষ পর্যন্ত পৌঁছানো একটা বিরল কৃতিত্ব, বেশিরভাগ রান তার আগেই ক্র্যাশ/ফুয়েল শেষ হয়ে থামবে
+let endlessBestDistanceThisLoad=0;     // শুধু UI সুবিধার জন্য (persist হয় save.endlessBest-এ)
+
 // Save key। 
 const SAVE_KEY = "hillRushFinalSaveV1";
 
@@ -117,6 +133,8 @@ function normalizeSave(){
   if(typeof save.dailyClaimed!=="boolean") save.dailyClaimed=false;
   if(typeof save.dayKey!=="string") save.dayKey="";
   if(!Number.isFinite(Number(save.coinPackClaims))) save.coinPackClaims=0;
+  // Endless/Distance mode-এর local personal best (ম্যাপ অনুযায়ী আলাদা, মিটারে)।
+  if(typeof save.endlessBest!=="object"||save.endlessBest===null||Array.isArray(save.endlessBest)) save.endlessBest={};
   // সর্বশেষ যে level খেলা হয়েছিল (রিফ্রেশের পর এখান থেকেই চালু হবে)।
   // পুরনো save-এ না থাকলে সবচেয়ে এগিয়ে থাকা (unlocked) level ধরা হয়।
   if(!Number.isFinite(Number(save.lastLevel))) save.lastLevel=save.unlocked;
@@ -149,6 +167,10 @@ let particles = [];
 
 // Coin object array। 
 let levelCoins = [];
+
+// Fuel can ও boost pickup—প্রতি লেভেল/এন্ডলেস রান শুরুতে regenerate হয় (কয়েনের মতো persist হয় না, কারণ এগুলো পুরস্কার নয়, চালানোর রিসোর্স)।
+let levelFuelCans = [];
+let levelBoostCans = [];
 
 // Current level coin collection set। 
 let collectedSet = new Set();
@@ -907,10 +929,11 @@ function drawGaugeCluster(){
   const rpmVal=Math.min(1,Math.abs(truck.vx)/Math.max(1,maxSpeed));
   // BOOST gauge এখন সাজানো নয়—আসল boostEnergy (Nitro ট্যাংক) দেখায়, বাটন চাপলে কমবে, ছেড়ে দিলে আবার ভরবে।
   const boostVal=Math.max(0,Math.min(1,(truck.boostEnergy||0)/100));
-  const fuelVal=keys.gas?Math.min(1,.55+Math.abs(truck.vx)/Math.max(1,maxSpeed)*.45):.45;
+  // ধাপ ৩: এখন আসল fuel tank দেখানো হয় (আগে এটা সাজানো মান ছিল)।
+  const fuelVal=Math.max(0,Math.min(1,(truck.fuel===undefined?FUEL_CONFIG.cap:truck.fuel)/FUEL_CONFIG.cap));
   const cy=H-58,gap=86,r=34;
   drawGauge(W/2-gap,cy,r,rpmVal,"RPM","#e6493b");
-  drawGauge(W/2,cy,r*1.08,fuelVal,"FUEL","#79d94a");
+  drawGauge(W/2,cy,r*1.08,fuelVal,"FUEL",fuelVal<=FUEL_CONFIG.lowThreshold/FUEL_CONFIG.cap?"#ff5a3a":"#79d94a");
   drawGauge(W/2+gap,cy,r,boostVal,"BOOST",boostVal<=0?"#666":"#9b6bff");
 }
 
@@ -3328,13 +3351,18 @@ function crashSound(){tone(55,.42,.20,"sawtooth");noise(.35,.20);setTimeout(()=>
 function mapDifficulty(){return 1+(save.selectedMap||0)*.055;}
 // লেভেল যত বাড়বে, রাস্তার দূরত্ব (finish পর্যন্ত distance) তত বেশি বাড়বে—শুরুর দিকে লেভেল ছোট থাকবে,
 // কিন্তু পরের লেভেলগুলোতে অনেক বেশি লম্বা রাস্তা পাওয়া যাবে, যাতে প্রগ্রেশনটা realistic মনে হয়।
-function finishX(){return 3600+currentLevel*85+Math.floor(currentLevel/10)*70+(save.selectedMap||0)*180;}
+function finishX(){
+  // ধাপ ৩: Endless/Distance Mode-এ কোনো fixed finish নেই—অনেক লম্বা একটা দৈর্ঘ্য ব্যবহার হয়, বাস্তবে বেশিরভাগ রান তার অনেক আগেই শেষ হয়।
+  if(endlessMode) return ENDLESS_LENGTH;
+  return 3600+currentLevel*85+Math.floor(currentLevel/10)*70+(save.selectedMap||0)*180;
+}
 
 // Gap-এর finish-এর কাছে safe runway রাখা হচ্ছে।
 // terrainY() প্রতি ফ্রেমে বহুবার কল হয় বলে getGaps()-কে level অনুযায়ী cache করা হচ্ছে (perf)।
 let _gapsCache={key:null,gaps:null};
 function getGaps(){
-  const key=currentLevel+"_"+(save.selectedMap||0);
+  // Endless-এ truck এগিয়ে যেতে থাকে বলে cache-key-এ x-bucket যোগ করা হয়েছে, যাতে সামনের নতুন gap সময়মতো যোগ হয়।
+  const key=currentLevel+"_"+(save.selectedMap||0)+(endlessMode?("_e"+Math.floor((truck.x||0)/3000)):"");
   if(_gapsCache.key===key&&_gapsCache.gaps)return _gapsCache.gaps;
   const d=Math.min(1,(currentLevel-1)/99),base=[[1080,105+20*d],[1870,115+25*d],[2780,125+30*d],[3480,110+25*d]],extra=[];
   if(currentLevel>=10)extra.push([4200,120+30*d]);
@@ -3342,7 +3370,18 @@ function getGaps(){
   if(currentLevel>=38)extra.push([5950,145+38*d]);
   if(currentLevel>=58)extra.push([6900,155+42*d]);
   if(currentLevel>=78)extra.push([7900,165+45*d]);
-  const finish=finishX();const result=[...base,...extra].filter(g=>g[0]+g[1]<finish-360);
+  const finish=finishX();let result=[...base,...extra].filter(g=>g[0]+g[1]<finish-360);
+  // ধাপ ৩: Endless মোডে fixed তালিকার পর deterministic পর্যায়ক্রমিক gap যোগ হয়, যাতে লম্বা রুট জুড়ে একঘেয়ে ফাঁকা না থাকে।
+  if(endlessMode){
+    const aheadTo=Math.max(finish,(truck.x||0)+6000);
+    let gx=8800,i=0;
+    while(gx<aheadTo&&i<400){
+      const w=95+((Math.floor(gx*0.731)+i*53)%60);
+      result.push([gx,w]);
+      gx+=760+((Math.floor(gx*0.317))%260);
+      i++;
+    }
+  }
   _gapsCache={key,gaps:result};
   return result;
 }
@@ -3407,6 +3446,90 @@ function generateCoins(){
   levelCoins=[];const step=Math.max(125,150-(currentLevel%5)*4);
   for(let x=380;x<finishX()-180;x+=step){if(isGap(x))continue;levelCoins.push({x,y:terrainY(x)-62-Math.sin(x*.013)*8,r:16,phase:(x*.041)%6.28,taken:false});}
   const key=currentLevel+"_m"+(save.selectedMap||0),saved=save.collected[key]||[];saved.forEach(i=>{if(levelCoins[i])levelCoins[i].taken=true;});
+}
+
+// ---------- ধাপ ৩: FUEL CAN ও BOOST PICKUP জেনারেট করা ----------
+// কয়েনের চেয়ে অনেক কম ঘনত্বে, ন্যায্য দূরত্বে (gap-এর ভেতরে নয়) বসানো হয়—
+// যাতে স্বাভাবিক সতর্ক ড্রাইভিং-এ পরের fuel source পর্যন্ত পৌঁছানো যায়।
+function generateFuelCans(){
+  levelFuelCans=[];
+  const len=finishX()-600;
+  if(len<=0)return;
+  // লম্বা রুটে বেশি can দরকার—প্রতি ~২২০০px-এ একটা, কিন্তু খুব ছোট লেভেলে অন্তত একটাও না থাকতে পারে (দরকার নেই)।
+  const spacing=2200;
+  for(let x=1200;x<finishX()-400;x+=spacing){
+    // কাছাকাছি কোনো x যদি gap-এর ভেতরে পড়ে, একটু সরিয়ে নেওয়া হচ্ছে যাতে না-পাওয়া যায় এমন জায়গায় না বসে।
+    let px=x;let tries=0;
+    while(isGap(px)&&tries<12){px+=40;tries++;}
+    if(isGap(px))continue;
+    levelFuelCans.push({x:px,y:terrainY(px)-56,taken:false});
+  }
+}
+function generateBoostCans(){
+  levelBoostCans=[];
+  const spacing=3100; // boost pickup fuel-এর চেয়ে কম ঘন—বোনাস আইটেম, জরুরি না
+  for(let x=2100;x<finishX()-400;x+=spacing){
+    let px=x;let tries=0;
+    while(isGap(px)&&tries<12){px+=40;tries++;}
+    if(isGap(px))continue;
+    levelBoostCans.push({x:px,y:terrainY(px)-56,taken:false});
+  }
+}
+// Fuel can আঁকা—লাল জ্যারিক্যান, সাদা ফোঁটা চিহ্ন (কয়েনের গোল্ডেন রঙের থেকে স্পষ্ট আলাদা)।
+function drawFuelCans(){
+  const t=performance.now()/300;
+  levelFuelCans.forEach(c=>{
+    if(c.taken)return;
+    const x=c.x-camera.x;if(x<-40||x>W+40)return;
+    const y=c.y+Math.sin(t+c.x*.01)*4;
+    ctx.save();ctx.translate(x,y);
+    ctx.fillStyle="#ff2d2d55";ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#d81f1f";roundRect(-13,-15,26,28,4);ctx.fill();
+    ctx.fillStyle="#f4463a";roundRect(-9,-21,18,8,2);ctx.fill();
+    ctx.fillStyle="#fff";ctx.font="900 13px system-ui, sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("⛽",0,1);
+    ctx.restore();
+  });
+}
+// Boost pickup আঁকা—বেগুনি/নীল বিদ্যুৎ চিহ্ন (fuel বা coin থেকে দেখতে স্পষ্ট আলাদা)।
+function drawBoostCans(){
+  const t=performance.now()/300;
+  levelBoostCans.forEach(c=>{
+    if(c.taken)return;
+    const x=c.x-camera.x;if(x<-40||x>W+40)return;
+    const y=c.y+Math.sin(t+c.x*.017)*5;
+    ctx.save();ctx.translate(x,y);
+    ctx.fillStyle="#9b6bff55";ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#6a35d6";ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#f4ecff";ctx.font="900 17px system-ui, sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("⚡",0,1);
+    ctx.restore();
+  });
+}
+// প্রতি ফ্রেমে truck-এর কাছাকাছি fuel can থাকলে সেটা নেওয়া হবে—ট্যাংক cap-এর বেশি ওঠে না।
+function collectFuel(){
+  const tx=truck.x,ty=truck.y-30;
+  levelFuelCans.forEach(c=>{
+    if(c.taken)return;
+    if(Math.hypot(c.x-tx,c.y-ty)<50){
+      c.taken=true;
+      truck.fuel=Math.min(FUEL_CONFIG.cap,truck.fuel+FUEL_CONFIG.canRefill);
+      truck.fuelWarned=truck.fuel>=FUEL_CONFIG.lowThreshold?false:truck.fuelWarned;
+      coinBurst(c.x,c.y);coinSound();
+      spawnFloatText(c.x,c.y-30,"+ফুয়েল","#ff5a4a");
+    }
+  });
+}
+// প্রতি ফ্রেমে truck-এর কাছাকাছি boost pickup থাকলে সেটা নেওয়া হবে—boostEnergy cap-এর বেশি ওঠে না।
+function collectBoost(){
+  const tx=truck.x,ty=truck.y-30;
+  levelBoostCans.forEach(c=>{
+    if(c.taken)return;
+    if(Math.hypot(c.x-tx,c.y-ty)<50){
+      c.taken=true;
+      truck.boostEnergy=Math.min(100,(truck.boostEnergy||0)+BOOST_PICKUP_CONFIG.refill);
+      coinBurst(c.x,c.y);coinSound();
+      spawnFloatText(c.x,c.y-30,"+বুস্ট","#9b6bff");
+    }
+  });
 }
 // প্রতি ফ্রেমে truck-এর কাছাকাছি (৪৮px এর মধ্যে) কোনো কয়েন থাকলে সেটা collect করা হচ্ছে—
 // কয়েন নেওয়া হলে coins বাড়বে, save-এ record হবে (যাতে retry না করলে আবার না পাওয়া যায়), এবং spark/sound effect হবে।
@@ -3780,6 +3903,8 @@ document.getElementById("levelsBtn").onclick=()=>{resumeAudio();tone(480,.06,.05
 document.getElementById("mapsBtn").onclick=()=>{resumeAudio();tone(500,.06,.05);renderMaps();showScreen("mapsMenu");};
 document.getElementById("garageBtn").onclick=()=>{resumeAudio();tone(500,.06,.05);renderGarage();showScreen("garageMenu");};
 document.getElementById("storeBtn").onclick=()=>{resumeAudio();tone(500,.06,.05);renderStore();showScreen("storeMenu");};
+// ধাপ ৩: ENDLESS/DISTANCE MODE—সরাসরি সিলেক্টেড vehicle/map দিয়ে শুরু, finish নেই।
+document.getElementById("endlessBtn").onclick=()=>{resumeAudio();tone(460,.07,.06);startEndless();};
 
 // Back buttons।
 ["backLevelsBtn","backMapsBtn","backGarageBtn","backStoreBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.onclick=()=>{tone(330,.06,.05);goMain();};});
@@ -3802,6 +3927,8 @@ document.getElementById("retryCrashBtn").onclick=()=>startLevel(currentLevel);
 document.getElementById("crashLevelsBtn").onclick=()=>{state="levels";renderLevels();showScreen("levelMenu");};
 document.getElementById("nextLevelBtn").onclick=()=>{if(currentLevel<TOTAL_LEVELS)startLevel(currentLevel+1);else{renderLevels();showScreen("levelMenu");}};
 document.getElementById("completeLevelsBtn").onclick=()=>{state="levels";renderLevels();showScreen("levelMenu");};
+document.getElementById("endlessRetryBtn").onclick=()=>startEndless();
+document.getElementById("endlessMenuBtn").onclick=goMain;
 
 // Level page controls পুনরায় bind করা হচ্ছে।
 document.getElementById("prevPage").onclick=()=>{levelPage=Math.max(0,levelPage-1);renderLevels();tone(330,.05,.04);};
@@ -4331,6 +4458,10 @@ function resetTruck(){
   truck.airTime=0;truck.airRotation=0;truck.flipsThisAir=0;
   truck.lastGroundY=truck.y;
   truck.boostEnergy=100;
+  // --- ধাপ ৩: আসল fuel ট্যাংক—প্রতি attempt-এ পূর্ণ (১০০) থেকে শুরু। ---
+  truck.fuel=FUEL_CONFIG.cap;
+  truck.fuelWarned=false;
+  truck.fuelStallTime=0;
   // --- V30: combo/ghost-recording/impact-cooldown রিসেট। Vehicle condition এখানে রিসেট হয় না—
   // সেটা persistent থাকে, শুধু গ্যারেজে REPAIR করলেই ঠিক হবে (বাস্তবসম্মত)। ---
   comboCount=0;comboTimer=0;
@@ -4354,9 +4485,45 @@ function startLevel(id){
   weatherParticles=[];
   // আগের best-run ঘোস্ট (থাকলে) লোড করা হচ্ছে।
   loadGhostForLevel();
-  resetTruck();generateCoins();levelStart=performance.now();elapsed=0;hideScreens();
+  resetTruck();generateCoins();generateFuelCans();generateBoostCans();levelStart=performance.now();elapsed=0;hideScreens();
   document.getElementById("hud").classList.remove("hidden");document.getElementById("controls").classList.remove("hidden");
   resumeAudio();setAudioSuppressed(false);engineStart();updateHUD();updateWeatherBadge();updateDamageBarUI();
+}
+
+// ---------- ধাপ ৩: ENDLESS / DISTANCE MODE ----------
+// Level mode থেকে আলাদা: কোনো fixed finish/সময়ের র‍্যাংকিং নেই, শুধু কতদূর যাওয়া গেল তাই গণনা হয়—
+// local personal best (প্রতি ম্যাপে আলাদা) save.endlessBest-এ থাকে।
+function startEndless(){
+  endlessMode=true;
+  currentLevel=ENDLESS_LEVEL_SEED; // শুধু terrain/difficulty বাছাইয়ের জন্য একটা fixed, deterministic মান
+  checkDailyReset();
+  const coinKey=currentLevel+"_m"+(save.selectedMap||0);
+  if(save.collected[coinKey]) delete save.collected[coinKey];
+  state="play";
+  currentWeather=weatherForLevel();
+  weatherParticles=[];
+  ghostRecording=[];
+  resetTruck();generateCoins();generateFuelCans();generateBoostCans();levelStart=performance.now();elapsed=0;hideScreens();
+  document.getElementById("hud").classList.remove("hidden");document.getElementById("controls").classList.remove("hidden");
+  resumeAudio();setAudioSuppressed(false);engineStart();updateHUD();updateWeatherBadge();updateDamageBarUI();
+}
+// Endless রান শেষ—ক্র্যাশে, ফুয়েল ফুরিয়ে থেমে গেলে, বা (বিরল) পুরো রুট শেষ করলে কল হয়।
+function endEndlessRun(reason){
+  if(state!=="play") return;
+  state="complete";engineStop();
+  // ১০px = ১ মিটার ধরা হয়েছে (শুধু UI-তে দেখানোর একক)।
+  const distanceM=Math.max(0,Math.round((truck.x-250)/10));
+  const mapKey=String(save.selectedMap||0);
+  const prevBest=Number(save.endlessBest[mapKey])||0;
+  const isNewBest=distanceM>prevBest;
+  if(isNewBest) save.endlessBest[mapKey]=distanceM;
+  persist();
+  checkAchievements();
+  const reasonEl=document.getElementById("endlessReason");if(reasonEl)reasonEl.textContent=reason;
+  document.getElementById("endlessDistance").textContent=distanceM+" মিটার";
+  document.getElementById("endlessBestText").textContent=(isNewBest?"🏆 নতুন সেরা রেকর্ড!":"সেরা: "+Math.max(distanceM,prevBest)+" মিটার");
+  purchaseSound();showScreen("endlessMenu");
+  endlessMode=false;
 }
 
 // Level complete—আগের reward logic অপরিবর্তিত + ghost save + daily mission counter + achievement check।
@@ -4381,14 +4548,19 @@ function completeLevel(){
 // ক্র্যাশ—combo ভাঙা + impact damage যোগ করা হয়েছে, বাকি আগের মতোই।
 function crash(reason){
   if(state!=="play") return;
-  state="crash";
-  engineStop();
   crashSound();
   // ক্র্যাশ হলে combo স্বাভাবিকভাবেই ভেঙে যাবে।
   comboCount=0;comboTimer=0;
   // ক্র্যাশের ধরন অনুযায়ী আলাদা পরিমাণ damage (গ্যাপে পড়া/পাহাড় থেকে পড়া/রোলওভার)।
   const dmg=reason&&reason.indexOf("gap")>=0?20:reason&&reason.indexOf("mountain")>=0?24:14;
   applyImpactDamage(dmg,true);
+  if(endlessMode){
+    engineStop();
+    endEndlessRun(reason);
+    return;
+  }
+  state="crash";
+  engineStop();
   document.getElementById("crashText").textContent=reason;
   showScreen("crashMenu");
 }
@@ -4417,12 +4589,23 @@ function updatePhysics(dt){
   if(isBoosting&&!truck.wasBoosting){tone(180,.18,.14,"sawtooth");setTimeout(()=>tone(340,.14,.10,"sawtooth"),70);}
   truck.wasBoosting=isBoosting;
 
+  // --- ধাপ ৩: FUEL—আসল ট্যাংক, চালানোর ধরন অনুযায়ী খরচ, শেষ হলে হঠাৎ না থেমে ধীরে ধীরে দুর্বল হওয়া ---
+  if(truck.fuel===undefined) truck.fuel=FUEL_CONFIG.cap;
+  const fuelDrainRate=keys.gas?FUEL_CONFIG.drainGas:(keys.right?FUEL_CONFIG.drainDrive:FUEL_CONFIG.drainIdle);
+  truck.fuel=Math.max(0,truck.fuel-fuelDrainRate*dt);
+  if(truck.fuel<FUEL_CONFIG.lowThreshold&&!truck.fuelWarned){
+    truck.fuelWarned=true;
+    spawnFloatText(truck.x,truck.y-95,"⛽ FUEL কম!","#ff6a3a");
+  }
+  // শূন্য থেকে lowThreshold পর্যন্ত engine power/top speed সরলরেখায় কমে; তারপর স্বাভাবিক। হঠাৎ বন্ধ বা টেলিপোর্ট হয় না।
+  const fuelPower=truck.fuel<=0?FUEL_CONFIG.minPowerAtEmpty:(truck.fuel<FUEL_CONFIG.lowThreshold?(FUEL_CONFIG.minPowerAtEmpty+(1-FUEL_CONFIG.minPowerAtEmpty)*(truck.fuel/FUEL_CONFIG.lowThreshold)):1);
+
   // --- GAS/DRIVE/REVERSE/BRAKE ---
-  if(keys.right||keys.gas) truck.vx+=(keys.gas?900:690)*enginePower*v.speed*boost*boostMul*dt;
+  if(keys.right||keys.gas) truck.vx+=(keys.gas?900:690)*enginePower*fuelPower*v.speed*boost*boostMul*dt;
   if(keys.left) truck.vx-=520*enginePower*dt;
   if(keys.brake) truck.vx*=Math.pow(.035,dt);
   truck.vx*=Math.pow(.92,dt);
-  truck.vx=Math.max(-260,Math.min(maxSpeed*boostSpeedMul,truck.vx));
+  truck.vx=Math.max(-260,Math.min(maxSpeed*boostSpeedMul*fuelPower,truck.vx));
 
   // --- GRAVITY ---
   truck.vy+=1850/Math.max(.7,suspension)*dt;
@@ -4509,14 +4692,22 @@ function updatePhysics(dt){
   updateDamage(dt);
   recordGhostSample(dt);
 
-  collectCoins();updateCamera(dt);updateParticles(dt);
+  collectCoins();collectFuel();collectBoost();updateCamera(dt);updateParticles(dt);
+  // ধাপ ৩: ফুয়েল ফুরিয়ে গিয়ে truck প্রায় থেমে গেলে (স্থল-এ, কিছুক্ষণ ধরে) রান শেষ হবে—অনির্দিষ্টকাল আটকে থাকবে না।
+  if(truck.fuel<=0&&truck.onGround&&Math.abs(truck.vx)<12){truck.fuelStallTime=(truck.fuelStallTime||0)+dt;}else{truck.fuelStallTime=0;}
+  if(endlessMode&&truck.fuelStallTime>2.5){endEndlessRun("ফুয়েল ফুরিয়ে গাড়ি থেমে গেছে");return;}
   if(checkCrash()) return;
+  if(endlessMode){
+    // Endless mode-এ ফিক্সড finish নেই (দূরত্বই লক্ষ্য); রুটের একদম শেষ (বিরল) হলে একটা সফল সমাপ্তি হিসেবে গণ্য হবে।
+    if(truck.x>=finishX()) endEndlessRun("পুরো রুট শেষ করেছ! 🎉");
+    return;
+  }
   if(truck.x>=finishX()) completeLevel();
 }
 
 // পর্দায় আঁকার ক্রম—ghost truck-এর পরে আসল truck, তারপর আবহাওয়া/রাত-দৃশ্যমানতা overlay।
 function render(){
-  drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawParticles();
+  drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawFuelCans();drawBoostCans();drawParticles();
   drawGhost();
   drawTruck();
   drawWeather();
@@ -4543,7 +4734,7 @@ function updateCoinsUI(){
 
 // সব স্ক্রিন hide—এখন "missionsMenu"-ও তালিকায় যোগ করা হয়েছে।
 function hideScreens(){
-  ["mainMenu","levelMenu","mapsMenu","garageMenu","storeMenu","missionsMenu","pauseMenu","crashMenu","completeMenu","settingsMenu"].forEach(id=>{
+  ["mainMenu","levelMenu","mapsMenu","garageMenu","storeMenu","missionsMenu","pauseMenu","crashMenu","completeMenu","settingsMenu","endlessMenu"].forEach(id=>{
     const el=document.getElementById(id);
     if(el){el.classList.add("hidden");el.style.display="none";el.style.visibility="hidden";el.style.pointerEvents="none";}
   });
@@ -4556,7 +4747,7 @@ function showScreen(id){
   const menuScreens=["mainMenu","levelMenu","mapsMenu","garageMenu","storeMenu","missionsMenu"];
   const hud=document.getElementById("hud"),controls=document.getElementById("controls");
   if(menuScreens.includes(id)){hud.classList.add("hidden");controls.classList.add("hidden");}
-  else if(["pauseMenu","crashMenu","completeMenu"].includes(id)){hud.classList.remove("hidden");controls.classList.remove("hidden");}
+  else if(["pauseMenu","crashMenu","completeMenu","endlessMenu"].includes(id)){hud.classList.remove("hidden");controls.classList.remove("hidden");}
 }
 
 // গ্যারেজ—আগের সব logic অপরিবর্তিত + condition bar/REPAIR বাটন যোগ করা হয়েছে।

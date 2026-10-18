@@ -24,5 +24,32 @@
 - হোম পেজ: ১৯২০×৮৭০, ১৯২০×১০৮০, ১২৮০×৭২০, ১০২৪×৭৬৮, ৮৪৪×৩৯০ মাপে দেখা হয়েছে।
 - PLAY চাপলে মেনু লুকায় ও HUD দেখায়: পাস (প্রতিটা আপডেটের পর)।
 
+## স্বয়ংক্রিয় টেস্ট: Fuel/Boost/Endless (`tests/economy_fuel_boost_endless_test.js`)
+চালানো: ২০২৬-১০-১৯, Chromium (Playwright)। ২০টা assertion, সব পাস।
+
+| বিষয় | কী যাচাই হয়েছে | ফলাফল |
+|---|---|---|
+| Fuel drain | gas/drive/idle-এ আলাদা হারে fuel কমা | পাস |
+| Fuel pickup | fuel can-এর কাছে গেলে ট্যাংক ভরা | পাস |
+| Fuel empty | শূন্যে পাওয়ার কমে, হঠাৎ বন্ধ না হওয়া | পাস |
+| Boost pickup | boost can কুড়ালে energy বাড়া | পাস |
+| Boost negative control | দূরে থেকে `collectBoost()` কল করলে regen ছাড়া কোনো false-positive না হওয়া (`deltaE < 0.3`) | পাস |
+| Endless start/end | `startEndless()`/`endEndlessRun()` সঠিকভাবে state বদলানো, শেষে `endlessMode=false` রিসেট | পাস |
+| Endless crash/fuel-stall | crash বা ২.৫s fuel-stall-এ রান শেষ হওয়া | পাস |
+| Endless best distance | `save.endlessBest` প্রতি ম্যাপে আলাদা সংরক্ষণ | পাস |
+| Level mode regression | Endless রানের পর normal Level mode স্বাভাবিক চলা | পাস |
+
+## Coin economy পরিমাপ (`tests/economy_measure.js`)
+চালানো: ২০২৬-১০-১৯, full-throttle autoplay bot।
+
+| লেভেল | সময় | কয়েন |
+|---|---|---|
+| 1 | ৫.২s | ৫৭৫ |
+| 10 | ৬.৫s | ৬৫০ |
+| 25 | ৮.৪s | ৭৯৭ |
+| 50 | ১১.৮s | ১৫৪৬ |
+
+**সতর্কতা:** bot বারবার air-time/flip বোনাস পায়, যা সতর্ক মানুষের খেলার চেয়ে বেশি কয়েন দেখাতে পারে। এই সংখ্যা শুধু upper-bound measurement — বাস্তব মানুষ-খেলার ডেটা না থাকায় দাম/পুরস্কার *বদলানো হয়নি*।
+
 ## এখনো টেস্ট হয়নি (পরের ধাপে)
-কেনাকাটার যাচাই (দুবার ক্লিক, নেগেটিভ ব্যালেন্স), দৈনিক বোনাসের একবার-দাবি, মোবাইল touch control, দীর্ঘ রান-এ পারফরম্যান্স, ghost replay।
+কেনাকাটার যাচাই (দুবার ক্লিক, নেগেটিভ ব্যালেন্স), দৈনিক বোনাসের একবার-দাবি, মোবাইল touch control, দীর্ঘ রান-এ পারফরম্যান্স, ghost replay, Level mode leaderboard।

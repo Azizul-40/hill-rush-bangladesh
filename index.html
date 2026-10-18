@@ -84,6 +84,8 @@
       <button id="storeBtn" type="button" class="actionBtn">🛒 STORE</button>
       <!-- V30: Daily Missions + Achievements বাটন। -->
       <button id="missionsBtn" type="button" class="actionBtn">🏆 MISSIONS</button>
+      <!-- ধাপ ৩: ENDLESS/DISTANCE MODE—ফিক্সড লেভেল নয়, যতদূর সম্ভব যাওয়ার চেষ্টা। -->
+      <button id="endlessBtn" type="button" class="actionBtn">🏁 ENDLESS</button>
     </div>
 
     <!-- Version label। -->
@@ -286,6 +288,19 @@
       <p id="rewardText">+50 coins</p>
       <button id="nextLevelBtn" type="button" class="actionBtn primary">NEXT LEVEL ▶</button>
       <button id="completeLevelsBtn" type="button" class="actionBtn">▦ LEVELS</button>
+    </div>
+  </section>
+
+  <!-- ধাপ ৩: Endless/Distance Mode-এর ফলাফল। -->
+  <section id="endlessMenu" class="screen hidden">
+    <div class="modalCard">
+      <div class="modalIcon">🏁</div>
+      <h2>ENDLESS RUN</h2>
+      <p id="endlessReason" class="endlessReason">—</p>
+      <div id="endlessDistance" class="resultTime">0 মিটার</div>
+      <p id="endlessBestText">সেরা: 0 মিটার</p>
+      <button id="endlessRetryBtn" type="button" class="actionBtn primary">↻ আবার চালাও</button>
+      <button id="endlessMenuBtn" type="button" class="actionBtn menuBackAction">‹ MAIN MENU</button>
     </div>
   </section>
 
