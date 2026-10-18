@@ -3380,21 +3380,21 @@ body #mainMenu .developerPlaque .supervisorName{
   }
 }
 
-/* V12b — চওড়া স্ক্রিনে ছবি ১২% বড় (নিচ থেকে বসানো), তাই দুই পাশের বাড়তি অংশ কমে যায়।
-   কাটা পড়ে শুধু উপরের একটু আকাশ; নিচের ফিচার-স্ট্রিপ আর লোগোর লেখা পুরোটা থাকে। */
+/* V12b — চওড়া স্ক্রিনে ছবি পুরো স্ক্রিন জুড়ে (কোনো ঝাপসা পাশ নেই)।
+   ছবি ১২% বড় করে নিচ থেকে বসানো; স্ক্রিন যত চওড়া, ছবিও তত একটু চওড়া হয়ে পুরো স্ক্রিন ভরে।
+   বাটন, নামের বক্স আর সব লেখা কিন্তু স্বাভাবিক মাপেই থাকে (চওড়া হয় না)। */
 @media(orientation:landscape) and (min-aspect-ratio:17/10){
+  #mainMenu:after{display:none !important;}
   #mainMenu .menuStage{
-    width:calc(1.5*112vh) !important;
+    width:min(100vw,calc(1.5*1.35*112vh)) !important;
     height:112vh !important;
     top:auto !important;bottom:0 !important;
     left:50% !important;
     transform:translateX(-50%) !important;
     --sw:calc(1.5*112vh);
+    background:url("home_bg.jpg") center/100% 100% no-repeat !important;
   }
-  #mainMenu:after{
-    background:url("home_bg_wide.jpg") center bottom/auto 112vh no-repeat !important;
-  }
-  #mainMenu:before{ /* ছবির নিচের দিকের সাথে মিলিয়ে বেস লেয়ার */
+  #mainMenu:before{
     background:url("home_bg.jpg") center bottom/cover no-repeat !important;
   }
 }
