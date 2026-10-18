@@ -2267,6 +2267,19 @@ body{
   order:2 !important;
 }
 
+/* নতুন BOOST/NITRO বাটন—Drive আর Gas-এর পাশে, আলাদা বেগুনি/নীল রঙে যাতে বোঝা যায় এটা special। */
+#controls .controlRight .boostControl{
+  order:0 !important;
+}
+#controls .boostControl{
+  background:radial-gradient(circle at 38% 25%,#c07bff,#5a1fa8 72%) !important;
+  box-shadow:0 0 0 3px #7a3fd6,0 6px 14px rgba(90,31,168,.55) !important;
+}
+#controls .boostControl.pressed{
+  filter:brightness(1.35);
+  transform:scale(.94);
+}
+
 /* বাম পাশে শুধু Brake। */
 #controls .controlLeft{
   display:flex !important;

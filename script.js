@@ -398,8 +398,8 @@ function updateEngine(){
 // INPUT
 // ==============================
 
-// Keyboard state। 
-const keys={left:false,right:false,gas:false,brake:false};
+// Keyboard state। boost = নতুন Nitro/Boost বাটনের জন্য।
+const keys={left:false,right:false,gas:false,brake:false,boost:false};
 
 // Key down। 
 addEventListener("keydown",e=>{
@@ -414,20 +414,24 @@ addEventListener("keydown",e=>{
     keys.brake=true;
     e.preventDefault();
   }
-  // Pause। 
+  // Boost/Nitro—Shift চাপলে বুস্ট চালু হবে (যদি boost energy বাকি থাকে)।
+  if(e.key==="Shift"||e.key==="b"||e.key==="B") keys.boost=true;
+  // Pause।
   if(e.key==="p"||e.key==="P") togglePause();
 });
 
-// Key up। 
+// Key up।
 addEventListener("keyup",e=>{
-  // Release left। 
+  // Release left।
   if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A") keys.left=false;
-  // Release right। 
+  // Release right।
   if(e.key==="ArrowRight"||e.key==="d"||e.key==="D") keys.right=false;
-  // Release gas। 
+  // Release gas।
   if(e.key==="ArrowUp"||e.key==="w"||e.key==="W") keys.gas=false;
-  // Release brake। 
+  // Release brake।
   if(e.key==="ArrowDown"||e.key==="s"||e.key==="S"||e.key===" ") keys.brake=false;
+  // Release boost।
+  if(e.key==="Shift"||e.key==="b"||e.key==="B") keys.boost=false;
 });
 
 
@@ -787,6 +791,10 @@ function dust(x,y,count=3){
 function exhaustPuff(x,y){
   particles.push({type:"smoke",x:x+(Math.random()-.5)*8,y:y+(Math.random()-.5)*6,vx:-60-Math.random()*40,vy:-30-Math.random()*40,life:.5+Math.random()*.3,max:.8,size:4+Math.random()*5});
 }
+// Boost/Nitro flame—সাধারণ ধোঁয়ার চেয়ে বেশি উজ্জ্বল, নীল-বেগুনি রঙের, দ্রুত মিলিয়ে যাওয়া কণা।
+function boostFlame(x,y){
+  particles.push({type:"boost",x:x+(Math.random()-.5)*10,y:y+(Math.random()-.5)*8,vx:-140-Math.random()*90,vy:(Math.random()-.5)*50,life:.3+Math.random()*.2,max:.5,size:5+Math.random()*6});
+}
 
 // ---------- AIR TIME / FLIP বোনাস (Hill Climb Racing-এর মতো ভাসমান স্কোর টেক্সট) ----------
 let floatTexts=[];
@@ -855,12 +863,13 @@ function drawGaugeCluster(){
   if(state!=="play")return;
   const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],maxSpeed=430+v.speed*260+currentUpgrades().engine*18;
   const rpmVal=Math.min(1,Math.abs(truck.vx)/Math.max(1,maxSpeed));
-  const boostVal=Math.min(1,.35+Math.abs(truck.vx)/Math.max(1,maxSpeed)*.65);
+  // BOOST gauge এখন সাজানো নয়—আসল boostEnergy (Nitro ট্যাংক) দেখায়, বাটন চাপলে কমবে, ছেড়ে দিলে আবার ভরবে।
+  const boostVal=Math.max(0,Math.min(1,(truck.boostEnergy||0)/100));
   const fuelVal=keys.gas?Math.min(1,.55+Math.abs(truck.vx)/Math.max(1,maxSpeed)*.45):.45;
   const cy=H-58,gap=86,r=34;
   drawGauge(W/2-gap,cy,r,rpmVal,"RPM","#e6493b");
   drawGauge(W/2,cy,r*1.08,fuelVal,"FUEL","#79d94a");
-  drawGauge(W/2+gap,cy,r,boostVal,"BOOST","#4aa8ff");
+  drawGauge(W/2+gap,cy,r,boostVal,"BOOST",boostVal<=0?"#666":"#9b6bff");
 }
 
 // Coin spark।
@@ -2471,19 +2480,26 @@ function drawCoins(){
 
 // Particles। 
 function drawParticles(){
-  // Loop। 
+  // Loop।
   particles.forEach(p=>{
-    // Alpha। 
+    // Alpha।
     ctx.globalAlpha=Math.max(0,p.life/p.max);
-    // Color।
-    ctx.fillStyle=p.type==="coin"?"#ffd83a":p.type==="smoke"?"#5a5f66":"#d6ae88";
-    // Circle। 
+    // Color। boost কণার জন্য আলাদা glow সহ নীল-বেগুনি রঙ ব্যবহার হচ্ছে।
+    if(p.type==="boost"){
+      ctx.shadowColor="#9b6bff";ctx.shadowBlur=10;
+      ctx.fillStyle=Math.random()<.5?"#8f6bff":"#4fd1ff";
+    }else{
+      ctx.shadowBlur=0;
+      ctx.fillStyle=p.type==="coin"?"#ffd83a":p.type==="smoke"?"#5a5f66":"#d6ae88";
+    }
+    // Circle।
     ctx.beginPath();
     ctx.arc(p.x-camera.x,p.y,p.size,0,Math.PI*2);
     ctx.fill();
   });
+  ctx.shadowBlur=0;
 
-  // Reset alpha। 
+  // Reset alpha।
   ctx.globalAlpha=1;
 }
 
@@ -3231,13 +3247,20 @@ function applyAudioVolume(){if(!audio||!master)return;const target=(userMuted||a
 function resumeAudio(){if(!audioReady)initAudio();if(audio&&audio.state==="suspended")audio.resume();applyAudioVolume();}
 function engineStart(){if(!audioReady)return;const n=audio.currentTime;engineGain.gain.setTargetAtTime(.075,n,.08);engineNoiseGain.gain.setTargetAtTime(.018,n,.12);}
 function engineStop(){if(!audioReady)return;const n=audio.currentTime;engineGain.gain.setTargetAtTime(0,n,.08);engineNoiseGain&&engineNoiseGain.gain.setTargetAtTime(0,n,.08);}
+// প্রতি ফ্রেমে ইঞ্জিনের শব্দ (pitch/volume) truck-এর বর্তমান speed আর gas অনুযায়ী update করা হচ্ছে,
+// যাতে গতি বাড়লে ইঞ্জিনের আওয়াজও বাস্তবসম্মতভাবে চড়া/জোরালো শোনায়।
 function updateEngine(){
-  if(!audioReady||state!=="play")return;
+  if(!audioReady||state!=="play")return; // audio চালু না থাকলে বা game চলছে না—কিছু করার দরকার নেই
   const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],speed=Math.abs(truck.vx);
+  // rpm (ইঞ্জিনের ঘূর্ণন গতি)—base value + speed অনুযায়ী বাড়বে + gas চাপলে extra বাড়বে + vehicle-এর নিজস্ব speed stat যোগ হবে
   const rpm=58+speed*.22+(keys.gas?34:0)+v.speed*6;
+  // মূল ইঞ্জিন oscillator + harmonic (দ্বিগুণ পিচ, পুরু আওয়াজের জন্য) + sub (অর্ধেক পিচ, গভীর গুঞ্জনের জন্য)
   engineOsc.frequency.setTargetAtTime(rpm,audio.currentTime,.035);engineHarm.frequency.setTargetAtTime(rpm*2,audio.currentTime,.04);engineSub.frequency.setTargetAtTime(rpm*.5,audio.currentTime,.05);
+  // speed বাড়লে volume-ও কিছুটা বাড়বে (সর্বোচ্চ সীমা পর্যন্ত), gas চাপলে আরেকটু জোরে
   engineGain.gain.setTargetAtTime(.045+Math.min(.07,speed/700*.065)+(keys.gas?.025:0),audio.currentTime,.04);
+  // engine noise (ঘষা/rough আওয়াজ) speed অনুযায়ী বাড়বে
   engineNoiseGain.gain.setTargetAtTime(.012+speed/700*.025,audio.currentTime,.08);
+  // turbo/whine শব্দ speed-এর সাথে সাথে বাড়বে
   turboOsc.frequency.setTargetAtTime(320+speed*1.9,audio.currentTime,.06);
 }
 function tone(freq=500,duration=.1,volume=.12,type="square"){
@@ -3261,7 +3284,9 @@ function crashSound(){tone(55,.42,.20,"sawtooth");noise(.35,.20);setTimeout(()=>
 
 // ---------- SMOOTH TERRAIN ----------
 function mapDifficulty(){return 1+(save.selectedMap||0)*.055;}
-function finishX(){return 3600+currentLevel*44+(save.selectedMap||0)*160;}
+// লেভেল যত বাড়বে, রাস্তার দূরত্ব (finish পর্যন্ত distance) তত বেশি বাড়বে—শুরুর দিকে লেভেল ছোট থাকবে,
+// কিন্তু পরের লেভেলগুলোতে অনেক বেশি লম্বা রাস্তা পাওয়া যাবে, যাতে প্রগ্রেশনটা realistic মনে হয়।
+function finishX(){return 3600+currentLevel*85+Math.floor(currentLevel/10)*70+(save.selectedMap||0)*180;}
 
 // Gap-এর finish-এর কাছে safe runway রাখা হচ্ছে।
 // terrainY() প্রতি ফ্রেমে বহুবার কল হয় বলে getGaps()-কে level অনুযায়ী cache করা হচ্ছে (perf)।
@@ -3320,10 +3345,21 @@ function generateCoins(){
   for(let x=380;x<finishX()-180;x+=step){if(isGap(x))continue;levelCoins.push({x,y:terrainY(x)-62-Math.sin(x*.013)*8,r:16,phase:(x*.041)%6.28,taken:false});}
   const key=currentLevel+"_m"+(save.selectedMap||0),saved=save.collected[key]||[];saved.forEach(i=>{if(levelCoins[i])levelCoins[i].taken=true;});
 }
+// প্রতি ফ্রেমে truck-এর কাছাকাছি (৪৮px এর মধ্যে) কোনো কয়েন থাকলে সেটা collect করা হচ্ছে—
+// কয়েন নেওয়া হলে coins বাড়বে, save-এ record হবে (যাতে retry না করলে আবার না পাওয়া যায়), এবং spark/sound effect হবে।
 function collectCoins(){
-  const tx=truck.x,ty=truck.y-30;let changed=false;
-  levelCoins.forEach((c,i)=>{if(c.taken)return;const d=Math.hypot(c.x-tx,c.y-ty);if(d<48){c.taken=true;coins+=25;save.coins=coins;const key=currentLevel+"_m"+(save.selectedMap||0);if(!save.collected[key])save.collected[key]=[];if(!save.collected[key].includes(i))save.collected[key].push(i);coinBurst(c.x,c.y);coinSound();changed=true;}});
-  if(changed){persist();updateCoinsUI();}
+  const tx=truck.x,ty=truck.y-30;let changed=false; // ty-30: truck-এর একটু উপরে (driver seat বরাবর) থেকে দূরত্ব মাপা হচ্ছে
+  levelCoins.forEach((c,i)=>{
+    if(c.taken)return; // আগেই নেওয়া কয়েন বাদ
+    const d=Math.hypot(c.x-tx,c.y-ty); // truck আর কয়েনের মধ্যে দূরত্ব
+    if(d<48){ // কাছাকাছি চলে এলে কয়েন collect হবে
+      c.taken=true;coins+=25;save.coins=coins;
+      // এই level+map-এর জন্য কোন কোন কয়েন নেওয়া হয়েছে সেটা save-এ রাখা হচ্ছে (key = level_mMapIndex)
+      const key=currentLevel+"_m"+(save.selectedMap||0);if(!save.collected[key])save.collected[key]=[];if(!save.collected[key].includes(i))save.collected[key].push(i);
+      coinBurst(c.x,c.y);coinSound();changed=true;
+    }
+  });
+  if(changed){persist();updateCoinsUI();} // কিছু collect হলে তবেই save+UI update (perf-এর জন্য প্রতি ফ্রেমে না)
 }
 
 // ---------- PREMIUM WATER ----------
@@ -3490,6 +3526,8 @@ function resetTruck(){
   truck.airTime=0;truck.airRotation=0;truck.flipsThisAir=0;
   // gap-এ crash check করার জন্য শেষবার যেখানে solid ground-এ ছিল সেই height মনে রাখা হচ্ছে।
   truck.lastGroundY=truck.y;
+  // নতুন BOOST/NITRO ফিচার—শুরুতে ট্যাংক পুরো ভর্তি (১০০) থাকবে।
+  truck.boostEnergy=100;
 }
 
 // Control + vehicle stats physics।
@@ -3498,15 +3536,30 @@ function updatePhysics(dt){
   if(state!=="play")return;updateEngine();
   const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],up=currentUpgrades();
   const enginePower=1+(up.engine-1)*.10,grip=v.grip*(1+(up.tires-1)*.055),suspension=v.suspension*(1+(up.suspension-1)*.07),boost=v.boost*(1+(up.boost-1)*.08),maxSpeed=430+v.speed*260+up.engine*18;
-  if(keys.right||keys.gas)truck.vx+=(keys.gas?900:690)*enginePower*v.speed*boost*dt;
+  // --- নতুন BOOST/NITRO ফিচার: বাটন চাপলে ট্যাংক থাকা পর্যন্ত extra speed পাওয়া যাবে, ছাড়লে আস্তে আস্তে আবার ভরে যাবে। ---
+  const isBoosting=keys.boost&&truck.boostEnergy>0;
+  if(isBoosting){truck.boostEnergy=Math.max(0,truck.boostEnergy-46*dt);}else{truck.boostEnergy=Math.min(100,truck.boostEnergy+13*dt);}
+  const boostMul=isBoosting?1.65:1,boostSpeedMul=isBoosting?1.32:1;
+  // Nitro চালু হওয়ার মুহূর্তে একবার "হুশ" শব্দ আর নীল আগুনের কণা বের হবে।
+  if(isBoosting&&!truck.wasBoosting){tone(180,.18,.14,"sawtooth");setTimeout(()=>tone(340,.14,.10,"sawtooth"),70);}
+  truck.wasBoosting=isBoosting;
+  if(keys.right||keys.gas)truck.vx+=(keys.gas?900:690)*enginePower*v.speed*boost*boostMul*dt;
   if(keys.left)truck.vx-=520*enginePower*dt;
   if(keys.brake)truck.vx*=Math.pow(.035,dt);
-  truck.vx*=Math.pow(.92,dt);truck.vx=Math.max(-260,Math.min(maxSpeed,truck.vx));truck.vy+=1850/Math.max(.7,suspension)*dt;truck.x+=truck.vx*dt;if(truck.x<220){truck.x=220;truck.vx=0;}truck.y+=truck.vy*dt;truck.wheelSpin+=truck.vx*dt/truck.wheelR;
+  truck.vx*=Math.pow(.92,dt);truck.vx=Math.max(-260,Math.min(maxSpeed*boostSpeedMul,truck.vx));truck.vy+=1850/Math.max(.7,suspension)*dt;truck.x+=truck.vx*dt;if(truck.x<220){truck.x=220;truck.vx=0;}truck.y+=truck.vy*dt;truck.wheelSpin+=truck.vx*dt/truck.wheelR;
+  // Boost চালু থাকলে পেছন থেকে উজ্জ্বল নীল-বেগুনি আগুনের শিখা বের হবে (সাধারণ ধোঁয়ার চেয়ে বেশি আর রঙিন)।
+  if(isBoosting&&Math.random()<dt*55)boostFlame(truck.x-Math.cos(truck.angle)*48,truck.y+Math.sin(truck.angle)*48+8);
   const wasOnGround=truck.onGround;
   const rearX=truck.x-truck.wheelBase/2,frontX=truck.x+truck.wheelBase/2,rearGround=isGap(rearX)?Infinity:terrainY(rearX),frontGround=isGap(frontX)?Infinity:terrainY(frontX),rearContact=rearGround-truck.wheelR,frontContact=frontGround-truck.wheelR;
   if(Number.isFinite(rearContact)&&Number.isFinite(frontContact)){
     const targetY=(rearContact+frontContact)/2-25,targetAngle=Math.atan2(frontContact-rearContact,truck.wheelBase);
-    if(truck.y>=targetY&&truck.vy>=-150){if(!truck.onGround&&truck.vy>220){dust(truck.x,targetY+30,16);landSound();}truck.y=targetY;truck.vy*=-.08;truck.onGround=true;truck.lastGroundY=targetY;const diff=Math.atan2(Math.sin(targetAngle-truck.angle),Math.cos(targetAngle-truck.angle));truck.angVel+=diff*24*dt*grip;truck.angle+=truck.angVel*dt;truck.angVel*=Math.pow(.015,dt);if(Math.abs(truck.vx)>110&&Math.random()<dt*13)dust(rearX,rearContact+20,1);}
+    // বাগ ফিক্স: truck গ্যাপের ভেতরে অনেক নিচে পড়ে গিয়ে (fall অনেক গভীর), তারপর গ্যাপ পার হয়ে দুই চাকা-ই solid
+    // জমিতে পৌঁছালে, আগে এই rail-snap logic-টা truck-কে সাথে সাথে সেই জমির উচ্চতায় "টেলিপোর্ট" করে তুলে আনত—
+    // এতে মনে হতো "গ্যাপে পড়েও মরেনি, নিজে নিজে উঠে গেছে"। তাই fall-টা যদি (targetY-এর তুলনায়) অনেক বেশি গভীর হয়,
+    // তখন আর snap করে land করানো হবে না—truck airborne-ই থাকবে, ফলে হয় স্বাভাবিকভাবে নিচে পড়ে crash হবে,
+    // নয়তো সত্যিকারের কাছাকাছি কোনো solid ground পেলে ঠিকভাবে land করবে।
+    const fallGap=truck.y-targetY;
+    if(truck.y>=targetY&&truck.vy>=-150&&fallGap<230){if(!truck.onGround&&truck.vy>220){dust(truck.x,targetY+30,16);landSound();}truck.y=targetY;truck.vy*=-.08;truck.onGround=true;truck.lastGroundY=targetY;const diff=Math.atan2(Math.sin(targetAngle-truck.angle),Math.cos(targetAngle-truck.angle));truck.angVel+=diff*24*dt*grip;truck.angle+=truck.angVel*dt;truck.angVel*=Math.pow(.015,dt);if(Math.abs(truck.vx)>110&&Math.random()<dt*13)dust(rearX,rearContact+20,1);}
     else{if(truck.onGround&&truck.vy>200)jumpSound();truck.onGround=false;if(keys.left)truck.angVel-=7.5*dt*grip;if(keys.right)truck.angVel+=7.5*dt*grip;truck.angVel*=Math.pow(.89,dt);truck.angle+=truck.angVel*dt;}
   }else{truck.onGround=false;if(keys.left)truck.angVel-=7.5*dt*grip;if(keys.right)truck.angVel+=7.5*dt*grip;truck.angVel*=Math.pow(.90,dt);truck.angle+=truck.angVel*dt;}
   // --- Hill Climb Racing-এর মতো প্রতিটা চাকা independently suspension-এ ওঠানামা করবে (body/design অপরিবর্তিত, শুধু চাকার movement আলাদা)। ---
@@ -3622,12 +3675,18 @@ function startLevel(id){
 }
 
 // Level complete reward এখন predictable এবং persist হবে।
+// truck finish line পার হলে এই function কল হয়—time রেকর্ড করা, পরের level unlock করা, কয়েন রিওয়ার্ড দেওয়া,
+// আর "LEVEL COMPLETE" স্ক্রিন দেখানো—সবকিছু এখানেই হয়।
 function completeLevel(){
-  if(state!=="play")return;
-  state="complete";engineStop();elapsed=(performance.now()-levelStart)/1000;
+  if(state!=="play")return; // ইতিমধ্যে complete/crash হয়ে থাকলে আবার চালানো যাবে না (duplicate আটকানো)
+  state="complete";engineStop();elapsed=(performance.now()-levelStart)/1000; // মোট সময় হিসাব
+  // best time (personal record) হলে সেটাই নতুন best হিসেবে save হবে
   const old=save.best[currentLevel];if(!old||elapsed<old)save.best[currentLevel]=elapsed;
+  // এই level "সম্পন্ন" হিসেবে মার্ক হবে, আর পরের level unlock হবে (শেষ level না হলে)
   save.completed[currentLevel]=true;if(currentLevel<TOTAL_LEVELS)save.unlocked=Math.max(save.unlocked,currentLevel+1);
+  // level যত বড় আর map যত পরের দিকের (কঠিন), reward তত বেশি
   const reward=75+Math.floor(currentLevel*3)+(save.selectedMap||0)*10;coins+=reward;save.coins=coins;persist();
+  // সময়ের ওপর ভিত্তি করে ৩/২/১ তারা (star rating) দেখানো হচ্ছে
   document.getElementById("resultTime").textContent=formatTime(elapsed);document.getElementById("rewardText").textContent=`+${reward} coins`;document.getElementById("resultStars").textContent=elapsed<42?"★★★":elapsed<70?"★★☆":"★☆☆";
   purchaseSound();showScreen("completeMenu");
 }
