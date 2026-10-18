@@ -3359,3 +3359,23 @@ body #mainMenu .developerPlaque .supervisorName{
     font-size:10px !important;left:50% !important;transform:translateX(-50%) !important;bottom:2.5% !important;
   }
 }
+
+/* ============================================================
+   V12 — ওয়াইড স্ক্রিনে ছবি পুরো স্ক্রিন জুড়ে
+   home_bg_wide.jpg = মূল ব্যানার ঠিক মাঝখানে, দুই পাশে ছবিরই স্বাভাবিক বাড়ানো অংশ।
+   ফলে ওয়াইড স্ক্রিনে দুই পাশে আর ফাঁকা/ঝাপসা বক্স দেখা যায় না, আর মাঝের ছবি কাটাও পড়ে না।
+   ============================================================ */
+@media(orientation:landscape){
+  #mainMenu:after{
+    content:"" !important;
+    display:block !important;
+    position:absolute !important;
+    inset:0 !important;
+    width:auto !important;height:auto !important;
+    background:url("home_bg_wide.jpg") center/auto 100% no-repeat !important;
+    opacity:1 !important;animation:none !important;
+    clip-path:none !important;border:0 !important;box-shadow:none !important;
+    pointer-events:none !important;
+    z-index:1 !important;
+  }
+}
