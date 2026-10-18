@@ -3377,7 +3377,9 @@ function updatePhysics(dt){
 // Gap-এ পড়লে crash state হবে; কোনো auto respawn নেই।
 function checkCrash(){
   const rearX=truck.x-truck.wheelBase/2,frontX=truck.x+truck.wheelBase/2,centerGap=isGap(truck.x),bothGap=isGap(rearX)&&isGap(frontX);
-  if((centerGap||bothGap)&&truck.y>H*.42){crash("You fell into the gap!");return true;}
+  // আগে truck.y>H*.42 থ্রেশহোল্ডে crash হতো, যা মাটির স্বাভাবিক উচ্চতার প্রায় সমান—ফলে gap-এর উপর দিয়ে জাম্প করার সাথে সাথেই crash হয়ে যেত,
+  // gap পার হওয়াই অসম্ভব ছিল। এখন truck সত্যিকারে অনেক নিচে (ground strip-এর কাছাকাছি) পড়ে গেলেই crash হবে, জাম্প করে পার হওয়া গেলে crash হবে না।
+  if((centerGap||bothGap)&&truck.y>H-170){crash("You fell into the gap!");return true;}
   if(truck.y>H+30){crash("You fell off the mountain!");return true;}
   const a=Math.atan2(Math.sin(truck.angle),Math.cos(truck.angle));
   if(truck.x>500&&!truck.onGround&&Math.abs(a)>2.55&&truck.y>H*.35){crash("The truck rolled over!");return true;}

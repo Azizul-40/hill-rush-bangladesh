@@ -2962,3 +2962,28 @@ body{
 }
 #mainMenu .developerPlaque .devRockL{left:6px !important;box-shadow:22px 3px 0 -2px #b7c2c9,-14px 5px 0 -4px #9aa6ad !important;}
 #mainMenu .developerPlaque .devRockR{right:6px !important;box-shadow:-22px 3px 0 -2px #b7c2c9,14px 5px 0 -4px #9aa6ad !important;}
+
+/* ============================================================
+   V28 — STORE: ONE-SCREEN COMPACT LAYOUT (no scrollbar)
+   ============================================================ */
+#storeMenu{overflow-y:auto !important;overflow-x:hidden !important;}
+#storeMenu::-webkit-scrollbar{display:none !important;}
+#storeMenu{scrollbar-width:none !important;}
+#storeMenu .storeHeader{margin-bottom:8px !important;}
+#storeMenu .storeGrid{
+  width:min(1200px,96vw) !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  gap:12px !important;
+  max-height:calc(100vh - 100px) !important;
+}
+#storeMenu .storeCard{padding:12px 10px !important;border-radius:16px !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;}
+#storeMenu .storeIcon{font-size:34px !important;line-height:1 !important;}
+#storeMenu .storeCard h3{font-size:14px !important;margin:4px 0 2px !important;}
+#storeMenu .storeCard p{font-size:10px !important;min-height:0 !important;margin-bottom:6px !important;line-height:1.25 !important;}
+#storeMenu .storeCard .actionBtn{min-height:32px !important;font-size:11px !important;padding:0 8px !important;}
+@media(max-width:900px){
+  #storeMenu .storeGrid{grid-template-columns:repeat(2,1fr) !important;max-height:none !important;}
+}
+@media(max-width:560px){
+  #storeMenu .storeGrid{grid-template-columns:1fr !important;}
+}
