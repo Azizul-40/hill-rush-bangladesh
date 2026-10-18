@@ -3264,14 +3264,20 @@ function mapDifficulty(){return 1+(save.selectedMap||0)*.055;}
 function finishX(){return 3600+currentLevel*44+(save.selectedMap||0)*160;}
 
 // Gap-এর finish-এর কাছে safe runway রাখা হচ্ছে।
+// terrainY() প্রতি ফ্রেমে বহুবার কল হয় বলে getGaps()-কে level অনুযায়ী cache করা হচ্ছে (perf)।
+let _gapsCache={key:null,gaps:null};
 function getGaps(){
+  const key=currentLevel+"_"+(save.selectedMap||0);
+  if(_gapsCache.key===key&&_gapsCache.gaps)return _gapsCache.gaps;
   const d=Math.min(1,(currentLevel-1)/99),base=[[1080,105+20*d],[1870,115+25*d],[2780,125+30*d],[3480,110+25*d]],extra=[];
   if(currentLevel>=10)extra.push([4200,120+30*d]);
   if(currentLevel>=22)extra.push([5050,130+35*d]);
   if(currentLevel>=38)extra.push([5950,145+38*d]);
   if(currentLevel>=58)extra.push([6900,155+42*d]);
   if(currentLevel>=78)extra.push([7900,165+45*d]);
-  const finish=finishX();return [...base,...extra].filter(g=>g[0]+g[1]<finish-360);
+  const finish=finishX();const result=[...base,...extra].filter(g=>g[0]+g[1]<finish-360);
+  _gapsCache={key,gaps:result};
+  return result;
 }
 function isGap(x){if(x<450)return false;const finish=finishX();if(x>finish-330&&x<finish+120)return false;return getGaps().some(([a,b])=>x>=a&&x<=a+b);}
 // একটা x-range এর কোনো অংশ gap-এর ভেতরে পড়ে কিনা—rock/pillar যেন gap-এর ভেতরে overlap করে না আঁকে।
@@ -3286,7 +3292,25 @@ function terrainY(x){
   if(local>650&&local<1060){const t=(local-650)/410;y-=(85+levelD*60)*Math.sin(t*Math.PI);}
   if(local>1060&&local<1190){const t=(local-1060)/130;y-=Math.sin(t*Math.PI)*(20+levelD*16);}
   if(x<560){const starter=H*.61-Math.sin(x*.0052)*9,t=Math.max(0,Math.min(1,(x-260)/300)),s=t*t*(3-2*t);y=starter*(1-s)+y*s;}
-  return Math.max(H*.14,Math.min(H*.80,y));
+  // প্রতিটা gap-এর ঠিক আগে একটা ছোট launch-ramp guarantee করা হচ্ছে—আগে gap-এর position টেরেইনের hill-phase-এর
+  // উপর নির্ভরশীল ছিল বলে অনেক সময় downhill-এর মাঝখানে gap পড়ে যেত (truck আগে থেকেই নামছে, jump করার সুযোগ নেই)
+  // আর সেই কারণেই gap পার হওয়া যাচ্ছিল না। এখন gap শুরুর ঠিক আগে জমি সবসময় উপরের দিকে উঠবে, যাতে truck সবসময়
+  // solid ground থেকে ভালো height নিয়ে gap-টা পার হতে পারে, level/map যাই হোক না কেন।
+  {
+    const rampLen=170,rampLift=95;
+    const gaps=getGaps();
+    for(let i=0;i<gaps.length;i++){
+      const gStart=gaps[i][0];
+      if(x>=gStart-rampLen&&x<=gStart){
+        const t=(x-(gStart-rampLen))/rampLen,s=t*t*(3-2*t);
+        y-=s*rampLift;
+        break;
+      }
+    }
+  }
+  // valley খুব বেশি গভীর হলে truck অনেকক্ষণ ধরে বাতাসে "ভাসতে" থাকে (physics ধরতে পারে না) এবং তখন কাছাকাছি
+  // কোনো gap পড়লে অন্যায়ভাবে crash হয়ে যায়—তাই lower clamp আগের মতো খুব গভীর না রেখে একটু টাইট করা হলো।
+  return Math.max(H*.14,Math.min(H*.72,y));
 }
 function terrainSlope(x){return Math.atan2(terrainY(x+5)-terrainY(x-5),10);}
 
@@ -3464,6 +3488,8 @@ function resetTruck(){
   truck.rearSusp=0;truck.frontSusp=0;truck.rearSuspV=0;truck.frontSuspV=0;
   // Air-time ও flip বোনাস স্কোরিং-এর জন্য state।
   truck.airTime=0;truck.airRotation=0;truck.flipsThisAir=0;
+  // gap-এ crash check করার জন্য শেষবার যেখানে solid ground-এ ছিল সেই height মনে রাখা হচ্ছে।
+  truck.lastGroundY=truck.y;
 }
 
 // Control + vehicle stats physics।
@@ -3475,14 +3501,14 @@ function updatePhysics(dt){
   if(keys.right||keys.gas)truck.vx+=(keys.gas?900:690)*enginePower*v.speed*boost*dt;
   if(keys.left)truck.vx-=520*enginePower*dt;
   if(keys.brake)truck.vx*=Math.pow(.035,dt);
-  truck.vx*=Math.pow(.92,dt);truck.vx=Math.max(-260,Math.min(maxSpeed,truck.vx));truck.vy+=1500/Math.max(.7,suspension)*dt;truck.x+=truck.vx*dt;if(truck.x<220){truck.x=220;truck.vx=0;}truck.y+=truck.vy*dt;truck.wheelSpin+=truck.vx*dt/truck.wheelR;
+  truck.vx*=Math.pow(.92,dt);truck.vx=Math.max(-260,Math.min(maxSpeed,truck.vx));truck.vy+=1850/Math.max(.7,suspension)*dt;truck.x+=truck.vx*dt;if(truck.x<220){truck.x=220;truck.vx=0;}truck.y+=truck.vy*dt;truck.wheelSpin+=truck.vx*dt/truck.wheelR;
   const wasOnGround=truck.onGround;
   const rearX=truck.x-truck.wheelBase/2,frontX=truck.x+truck.wheelBase/2,rearGround=isGap(rearX)?Infinity:terrainY(rearX),frontGround=isGap(frontX)?Infinity:terrainY(frontX),rearContact=rearGround-truck.wheelR,frontContact=frontGround-truck.wheelR;
   if(Number.isFinite(rearContact)&&Number.isFinite(frontContact)){
     const targetY=(rearContact+frontContact)/2-25,targetAngle=Math.atan2(frontContact-rearContact,truck.wheelBase);
-    if(truck.y>=targetY&&truck.vy>=-150){if(!truck.onGround&&truck.vy>220){dust(truck.x,targetY+30,16);landSound();}truck.y=targetY;truck.vy*=-.08;truck.onGround=true;const diff=Math.atan2(Math.sin(targetAngle-truck.angle),Math.cos(targetAngle-truck.angle));truck.angVel+=diff*24*dt*grip;truck.angle+=truck.angVel*dt;truck.angVel*=Math.pow(.015,dt);if(Math.abs(truck.vx)>110&&Math.random()<dt*13)dust(rearX,rearContact+20,1);}
-    else{if(truck.onGround&&truck.vy>200)jumpSound();truck.onGround=false;if(keys.left)truck.angVel-=4*dt*grip;if(keys.right)truck.angVel+=4*dt*grip;truck.angVel*=Math.pow(.89,dt);truck.angle+=truck.angVel*dt;}
-  }else{truck.onGround=false;if(keys.left)truck.angVel-=4*dt*grip;if(keys.right)truck.angVel+=4*dt*grip;truck.angVel*=Math.pow(.90,dt);truck.angle+=truck.angVel*dt;}
+    if(truck.y>=targetY&&truck.vy>=-150){if(!truck.onGround&&truck.vy>220){dust(truck.x,targetY+30,16);landSound();}truck.y=targetY;truck.vy*=-.08;truck.onGround=true;truck.lastGroundY=targetY;const diff=Math.atan2(Math.sin(targetAngle-truck.angle),Math.cos(targetAngle-truck.angle));truck.angVel+=diff*24*dt*grip;truck.angle+=truck.angVel*dt;truck.angVel*=Math.pow(.015,dt);if(Math.abs(truck.vx)>110&&Math.random()<dt*13)dust(rearX,rearContact+20,1);}
+    else{if(truck.onGround&&truck.vy>200)jumpSound();truck.onGround=false;if(keys.left)truck.angVel-=7.5*dt*grip;if(keys.right)truck.angVel+=7.5*dt*grip;truck.angVel*=Math.pow(.89,dt);truck.angle+=truck.angVel*dt;}
+  }else{truck.onGround=false;if(keys.left)truck.angVel-=7.5*dt*grip;if(keys.right)truck.angVel+=7.5*dt*grip;truck.angVel*=Math.pow(.90,dt);truck.angle+=truck.angVel*dt;}
   // --- Hill Climb Racing-এর মতো প্রতিটা চাকা independently suspension-এ ওঠানামা করবে (body/design অপরিবর্তিত, শুধু চাকার movement আলাদা)। ---
   {
     const ca=Math.cos(truck.angle),sa=Math.sin(truck.angle);
@@ -3505,11 +3531,17 @@ function updatePhysics(dt){
 // Gap-এ পড়লে crash state হবে; কোনো auto respawn নেই।
 function checkCrash(){
   const rearX=truck.x-truck.wheelBase/2,frontX=truck.x+truck.wheelBase/2,centerGap=isGap(truck.x),bothGap=isGap(rearX)&&isGap(frontX);
-  // Gap-এর ওপর দিয়ে জাম্প করলে crash হবে না, কিন্তু সত্যিকারে গর্তের ভেতরে (virtual ground level-এর অনেক নিচে) পড়ে গেলে crash হবে।
-  // virtual ground = gap না থাকলে এখানে মাটি যত উঁচু হতো (terrainY নিজেই isGap চেক করে না, তাই এই reference height পাওয়া যায়)।
+  // Gap-এর ওপর দিয়ে জাম্প করলে crash হবে না, কিন্তু সত্যিকারে গর্তের ভেতরে পড়ে গেলে crash হবে।
+  // reference হিসেবে truck-এর lastGroundY বা current x-এর virtual terrainY ব্যবহার করলে, truck অনেক আগে
+  // (গর্তের সাথে সম্পর্কহীন কোনো বড় পাহাড় থেকে) অনেকক্ষণ ধরে বাতাসে থাকলে ভুলভাবে crash দেখাত।
+  // তাই এখন প্রতিটা নির্দিষ্ট gap-এর নিজের "lip" height (gap শুরুর ঠিক আগের, launch-ramp সহ, স্থির height)-এর
+  // সাথে তুলনা করা হচ্ছে—এটা truck কতক্ষণ ধরে বাতাসে ছিল তার ওপর নির্ভর করে না, শুধু ওই gap-টার জন্য fair।
   if(centerGap||bothGap){
-    const groundRef=terrainY(truck.x);
-    if(truck.y>groundRef+85){crash("You fell into the gap!");return true;}
+    const gaps=getGaps();
+    let lip=null;
+    for(let i=0;i<gaps.length;i++){const gStart=gaps[i][0],gEnd=gStart+gaps[i][1];if(truck.x>=gStart-5&&truck.x<=gEnd+5){lip=terrainY(gStart);break;}}
+    if(lip===null)lip=truck.lastGroundY;
+    if(truck.y>lip+150){crash("You fell into the gap!");return true;}
   }
   if(truck.y>H+30){crash("You fell off the mountain!");return true;}
   const a=Math.atan2(Math.sin(truck.angle),Math.cos(truck.angle));
@@ -3517,7 +3549,7 @@ function checkCrash(){
   // বড় পাহাড়ের কারণে বাতাসে (jump-এ) truck স্বাভাবিকভাবেই অনেকটা ঘুরে যেতে পারে—সেটা crash না, তাই airborne threshold লেনিয়েন্ট রাখা হয়েছে;
   // আসল crash হবে যখন truck মাটিতে নেমে (onGround) উল্টে থাকা অবস্থায় body দিয়ে ধাক্কা খায়।
   if(truck.x>500&&!truck.onGround&&Math.abs(a)>2.75&&truck.y>H*.5){crash("The truck rolled over!");return true;}
-  if(truck.onGround&&Math.abs(a)>1.55&&Math.abs(truck.vx)>90){crash("The truck rolled over!");return true;}
+  if(truck.onGround&&Math.abs(a)>1.85&&Math.abs(truck.vx)>90){crash("The truck rolled over!");return true;}
   return false;
 }
 
