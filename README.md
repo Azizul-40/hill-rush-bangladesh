@@ -17,3 +17,6 @@ See [CHANGELOG.md](CHANGELOG.md). Each version is a git tag (v1, v2, v3 ...).
 
 ## License
 Copyright (c) 2026 Azizul and Habiba. All Rights Reserved. See [LICENSE](LICENSE).
+
+## ডকুমেন্টেশন
+`docs/` ফোল্ডারে: `PROJECT_VISION.md`, `GAME_DESIGN.md`, `TECHNICAL_NOTES.md`, `TEST_PLAN.md`, `DEVELOPMENT_LOG.md`, `ASSET_CREDITS.md`, `NEXT_LEVEL_PLAN.md`। সেভ সিস্টেমের টেস্ট: `tests/save_test.js`।

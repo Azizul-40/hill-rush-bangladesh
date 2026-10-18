@@ -85,14 +85,49 @@ if(!save){
 // Save function। 
 function persist(){
   // localStorage-এ JSON save করা হচ্ছে। 
-  localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+  // storage বন্ধ/ভর্তি থাকলেও গেম যেন না থামে—error ধরে একবার সতর্কবার্তা দেওয়া হয়।
+  try{
+    save.saveVersion=SAVE_VERSION;
+    localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+  }catch(e){
+    if(!window.__saveWarned){
+      window.__saveWarned=true;
+      console.warn("Hill Rush: progress save করা গেল না (browser storage বন্ধ বা ভর্তি). গেম চলবে, কিন্তু রিফ্রেশে progress হারাতে পারে।");
+    }
+  }
 }
 
 // Coin variable save থেকে নেওয়া হচ্ছে। 
-let coins = Number(save.coins || 250);
+const SAVE_VERSION = 2;
+
+// পুরনো/অসম্পূর্ণ/নষ্ট save-কে নিরাপদ মানে ঠিক করা (valid progress কখনো মুছে ফেলা হয় না)।
+function normalizeSave(){
+  if(typeof save!=="object"||save===null||Array.isArray(save)) save={};
+  save.coins = Number.isFinite(Number(save.coins)) ? Math.max(0,Math.floor(Number(save.coins))) : 250;
+  save.unlocked = Number.isFinite(Number(save.unlocked)) ? Math.max(1,Math.min(TOTAL_LEVELS,Math.floor(Number(save.unlocked)))) : 1;
+  if(!Array.isArray(save.ownedVehicles)||!save.ownedVehicles.length) save.ownedVehicles=[0];
+  if(!Number.isFinite(Number(save.selectedVehicle))||!save.ownedVehicles.includes(Number(save.selectedVehicle))) save.selectedVehicle=0;
+  if(typeof save.upgrades!=="object"||save.upgrades===null) save.upgrades={};
+  for(let i=0;i<4;i++){
+    const u=save.upgrades[i];
+    if(typeof u!=="object"||u===null) save.upgrades[i]={engine:1,tires:1,suspension:1,boost:1};
+    else{ for(const k of ["engine","tires","suspension","boost"]) if(!Number.isFinite(Number(u[k]))||u[k]<1) u[k]=1; }
+  }
+  for(const k of ["best","collected","completed"]) if(typeof save[k]!=="object"||save[k]===null||Array.isArray(save[k])) save[k]={};
+  if(typeof save.dailyClaimed!=="boolean") save.dailyClaimed=false;
+  if(typeof save.dayKey!=="string") save.dayKey="";
+  if(!Number.isFinite(Number(save.coinPackClaims))) save.coinPackClaims=0;
+  // সর্বশেষ যে level খেলা হয়েছিল (রিফ্রেশের পর এখান থেকেই চালু হবে)।
+  // পুরনো save-এ না থাকলে সবচেয়ে এগিয়ে থাকা (unlocked) level ধরা হয়।
+  if(!Number.isFinite(Number(save.lastLevel))) save.lastLevel=save.unlocked;
+  save.lastLevel=Math.max(1,Math.min(save.unlocked,Math.floor(Number(save.lastLevel))));
+  save.saveVersion=SAVE_VERSION;
+}
+normalizeSave();
+let coins = save.coins;
 
 // Current level। 
-let currentLevel = 1;
+let currentLevel = save.lastLevel; // রিফ্রেশের পর সর্বশেষ খেলা level (আগে সবসময় Level 1 হয়ে যেত)
 
 // Current page। 
 let levelPage = 0;
@@ -4306,6 +4341,8 @@ function resetTruck(){
 // Level শুরু—weather বাছাই, ghost লোড, daily reset চেক।
 function startLevel(id){
   currentLevel=Math.max(1,Math.min(TOTAL_LEVELS,id));
+  // রিফ্রেশের পরেও এই level মনে থাকবে।
+  save.lastLevel=Math.min(currentLevel,save.unlocked);persist();
   // মাঝ-সেশনে মধ্যরাত পার হলেও মিশন ঠিকভাবে রিসেট হবে।
   checkDailyReset();
   const coinKey=currentLevel+"_m"+(save.selectedMap||0);
@@ -4328,6 +4365,8 @@ function completeLevel(){
   state="complete";engineStop();elapsed=(performance.now()-levelStart)/1000;
   const old=save.best[currentLevel];if(!old||elapsed<old) save.best[currentLevel]=elapsed;
   save.completed[currentLevel]=true;if(currentLevel<TOTAL_LEVELS) save.unlocked=Math.max(save.unlocked,currentLevel+1);
+  // শেষ করার পর রিফ্রেশ দিলে পরের level থেকে চালু হবে।
+  save.lastLevel=Math.min(currentLevel+1,save.unlocked,TOTAL_LEVELS);
   const reward=75+Math.floor(currentLevel*3)+(save.selectedMap||0)*10;coins+=reward;save.coins=coins;
   // --- V30: দৈনিক মিশন কাউন্টার + ghost best-run save + achievement check ---
   ensureV30Save();
