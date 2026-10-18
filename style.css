@@ -2537,7 +2537,7 @@ body{
 /* Garage-এ actual CSS monster truck preview। */
 .garageVehicle{font-size:0 !important;position:relative !important;width:270px !important;height:150px !important;display:flex !important;align-items:center !important;justify-content:center !important;}
 .miniTruck{position:relative;width:235px;height:115px;filter:drop-shadow(0 14px 8px #001c2d55);transform:rotate(-2deg);}
-.miniTruck .miniBody{position:absolute;left:35px;top:39px;width:170px;height:48px;border-radius:20px 30px 13px 15px;border:4px solid #402508;background:var(--truck-color);box-shadow:inset 0 7px #ffffff28;}
+.miniTruck .miniBody{position:absolute;left:35px;top:39px;width:170px;height:48px;border-radius:20px 30px 13px 15px;border:4px solid #402508;background:linear-gradient(180deg,color-mix(in srgb,var(--truck-color) 75%,#fff) 0%,var(--truck-color) 45%,color-mix(in srgb,var(--truck-color) 75%,#000) 100%);box-shadow:inset 0 7px #ffffff28;}
 .miniTruck .miniCab{position:absolute;left:77px;top:8px;width:88px;height:48px;border:4px solid #402508;border-bottom:0;border-radius:22px 22px 0 0;background:var(--truck-color);}
 .miniTruck .miniWindow{position:absolute;left:89px;top:15px;width:31px;height:26px;border:3px solid #2e4250;border-radius:6px;background:linear-gradient(135deg,#dff8ff,#63b8db);}
 .miniTruck .miniWindow.w2{left:124px;}
@@ -2885,31 +2885,31 @@ body{
   gap:12px !important;
   max-height:calc(100vh - 110px) !important;
 }
-#garageMenu .vehiclePreview{padding:14px !important;}
-#garageMenu .garageVehicle{font-size:clamp(64px,7vw,92px) !important;}
-#garageMenu .vehicleName{font-size:16px !important;margin:2px 0 !important;}
-#garageMenu .vehicleDesc{font-size:11px !important;margin-bottom:6px !important;}
-#garageMenu .vehicleStats{margin:6px 0 10px !important;gap:5px !important;}
-#garageMenu .statBar{padding:4px 3px !important;font-size:9px !important;}
-#garageMenu #selectVehicleBtn{min-height:34px !important;font-size:13px !important;padding:0 12px !important;}
+#garageMenu .vehiclePreview{padding:16px !important;}
+#garageMenu .garageVehicle{font-size:clamp(70px,7.5vw,98px) !important;}
+#garageMenu .vehicleName{font-size:21px !important;margin:3px 0 !important;}
+#garageMenu .vehicleDesc{font-size:13px !important;margin-bottom:7px !important;}
+#garageMenu .vehicleStats{margin:7px 0 11px !important;gap:6px !important;}
+#garageMenu .statBar{padding:5px 4px !important;font-size:11px !important;}
+#garageMenu #selectVehicleBtn{min-height:38px !important;font-size:15px !important;padding:0 14px !important;}
 #garageMenu .vehicleList{
   grid-template-columns:repeat(4,1fr) !important;
-  gap:8px !important;
+  gap:10px !important;
   align-content:start !important;
 }
-#garageMenu .vehicleCard{min-height:0 !important;padding:8px !important;border-radius:12px !important;}
-#garageMenu .vehicleEmoji{height:58px !important;overflow:hidden !important;}
-#garageMenu .vehicleCard .vehicleMini{transform:scale(.4) !important;transform-origin:top center !important;top:4px !important;left:50% !important;margin-left:-117.5px !important;}
-#garageMenu .vehicleCard h3{font-size:11px !important;margin:4px 0 2px !important;}
-#garageMenu .vehicleCard p{font-size:8.5px !important;line-height:1.25 !important;margin:2px 0 !important;}
-#garageMenu .vehicleCard button{min-height:24px !important;font-size:9.5px !important;padding:0 4px !important;}
-#garageMenu .upgradePanel{width:min(1250px,96vw) !important;margin-top:8px !important;padding:10px 14px !important;}
-#garageMenu .upgradeTitle{font-size:13px !important;margin-bottom:6px !important;}
-#garageMenu .upgradeGrid{gap:8px !important;}
-#garageMenu .upgradeCard{padding:7px !important;gap:1px !important;}
-#garageMenu .upgradeCard span{font-size:18px !important;}
-#garageMenu .upgradeCard b{font-size:10px !important;}
-#garageMenu .upgradeCard small,#garageMenu .upgradeCard em{font-size:8.5px !important;}
+#garageMenu .vehicleCard{min-height:0 !important;padding:10px !important;border-radius:13px !important;}
+#garageMenu .vehicleEmoji{height:68px !important;overflow:hidden !important;}
+#garageMenu .vehicleCard .vehicleMini{transform:scale(.46) !important;transform-origin:top center !important;top:4px !important;left:50% !important;margin-left:-117.5px !important;}
+#garageMenu .vehicleCard h3{font-size:14px !important;margin:4px 0 3px !important;}
+#garageMenu .vehicleCard p{font-size:10.5px !important;line-height:1.3 !important;margin:2px 0 !important;}
+#garageMenu .vehicleCard button{min-height:30px !important;font-size:12px !important;padding:0 6px !important;}
+#garageMenu .upgradePanel{width:min(1250px,96vw) !important;margin-top:10px !important;padding:12px 16px !important;}
+#garageMenu .upgradeTitle{font-size:16px !important;margin-bottom:8px !important;}
+#garageMenu .upgradeGrid{gap:10px !important;}
+#garageMenu .upgradeCard{padding:9px !important;gap:2px !important;}
+#garageMenu .upgradeCard span{font-size:21px !important;}
+#garageMenu .upgradeCard b{font-size:12px !important;}
+#garageMenu .upgradeCard small,#garageMenu .upgradeCard em{font-size:10px !important;}
 #garageMenu::-webkit-scrollbar{display:none !important;}
 #garageMenu{scrollbar-width:none !important;}
 @media(max-width:900px){
@@ -2969,18 +2969,43 @@ body{
 #storeMenu{overflow-y:auto !important;overflow-x:hidden !important;}
 #storeMenu::-webkit-scrollbar{display:none !important;}
 #storeMenu{scrollbar-width:none !important;}
-#storeMenu .storeHeader{margin-bottom:8px !important;}
+#storeMenu .storeHeader{margin-bottom:14px !important;}
 #storeMenu .storeGrid{
-  width:min(1200px,96vw) !important;
+  width:min(1250px,96vw) !important;
   grid-template-columns:repeat(3,1fr) !important;
-  gap:12px !important;
+  gap:20px !important;
   max-height:calc(100vh - 100px) !important;
 }
-#storeMenu .storeCard{padding:12px 10px !important;border-radius:16px !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;}
-#storeMenu .storeIcon{font-size:34px !important;line-height:1 !important;}
-#storeMenu .storeCard h3{font-size:14px !important;margin:4px 0 2px !important;}
-#storeMenu .storeCard p{font-size:10px !important;min-height:0 !important;margin-bottom:6px !important;line-height:1.25 !important;}
-#storeMenu .storeCard .actionBtn{min-height:32px !important;font-size:11px !important;padding:0 8px !important;}
+#storeMenu .storeCard{
+  padding:22px 16px 20px !important;
+  border-radius:20px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  border-top:5px solid var(--card-accent,#2e9ee0) !important;
+  box-shadow:0 12px 28px #06344e44 !important;
+}
+#storeMenu .storeCard:nth-child(1){--card-accent:#3ddc55;}
+#storeMenu .storeCard:nth-child(2){--card-accent:#ffc93d;}
+#storeMenu .storeCard:nth-child(3){--card-accent:#a25bff;}
+#storeMenu .storeCard:nth-child(4){--card-accent:#2ec6d6;}
+#storeMenu .storeCard:nth-child(5){--card-accent:#4a90ff;}
+#storeMenu .storeCard:nth-child(6){--card-accent:#ff9f2e;}
+#storeMenu .storeIcon{
+  font-size:46px !important;
+  line-height:1 !important;
+  width:74px !important;height:74px !important;
+  display:flex !important;align-items:center !important;justify-content:center !important;
+  border-radius:50% !important;
+  background:radial-gradient(circle at 35% 30%,#ffffff,#e4f3fb) !important;
+  box-shadow:inset 0 0 0 3px var(--card-accent,#2e9ee0),0 4px 10px #06344e33 !important;
+  margin-bottom:6px !important;
+}
+#storeMenu .storeCard h3{font-size:18px !important;margin:6px 0 3px !important;color:#123c59 !important;letter-spacing:.5px !important;}
+#storeMenu .storeCard p{font-size:13px !important;min-height:0 !important;margin-bottom:10px !important;line-height:1.35 !important;color:#4a6373 !important;}
+#storeMenu .storeCard .actionBtn{min-height:42px !important;font-size:14px !important;padding:0 14px !important;background:linear-gradient(180deg,var(--card-accent,#2e9ee0),#0a3150) !important;}
+#storeMenu .storeCard:nth-child(1) .actionBtn{background:linear-gradient(180deg,#4be566,#1a9c33) !important;}
 @media(max-width:900px){
   #storeMenu .storeGrid{grid-template-columns:repeat(2,1fr) !important;max-height:none !important;}
 }

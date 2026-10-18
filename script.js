@@ -783,6 +783,12 @@ function dust(x,y,count=3){
 }
 
 // Coin spark। 
+// Exhaust smoke—গ্যাস চাপলে truck-এর পেছন থেকে ধোঁয়ার কুণ্ডলী বের হবে (আরও jীবন্ত/animated দেখাতে)।
+function exhaustPuff(x,y){
+  particles.push({type:"smoke",x:x+(Math.random()-.5)*8,y:y+(Math.random()-.5)*6,vx:-60-Math.random()*40,vy:-30-Math.random()*40,life:.5+Math.random()*.3,max:.8,size:4+Math.random()*5});
+}
+
+// Coin spark।
 function coinBurst(x,y){
   // Spark loop। 
   for(let i=0;i<10;i++){
@@ -2372,8 +2378,8 @@ function drawParticles(){
   particles.forEach(p=>{
     // Alpha। 
     ctx.globalAlpha=Math.max(0,p.life/p.max);
-    // Color। 
-    ctx.fillStyle=p.type==="coin"?"#ffd83a":"#d6ae88";
+    // Color।
+    ctx.fillStyle=p.type==="coin"?"#ffd83a":p.type==="smoke"?"#5a5f66":"#d6ae88";
     // Circle। 
     ctx.beginPath();
     ctx.arc(p.x-camera.x,p.y,p.size,0,Math.PI*2);
@@ -3341,9 +3347,10 @@ function drawTerrain(){
   ctx.strokeStyle=m.grass;ctx.lineWidth=16;ctx.lineCap="round";ctx.beginPath();
   {let started=false;for(let x=start;x<=end;x+=10){if(isGap(x)){started=false;continue;}const y=terrainY(x);if(!started){ctx.moveTo(x-camera.x,y);started=true;}else ctx.lineTo(x-camera.x,y);}}
   ctx.stroke();
-  ctx.strokeStyle=themeGrassDark(m.theme);ctx.lineWidth=3;ctx.setLineDash([3,6]);ctx.beginPath();
+  // dashed track লাইনে animation—performance.now() দিয়ে dash offset বদলাচ্ছে, তাই মনে হয় রাস্তাটা প্রবাহিত হচ্ছে (moving road feel)।
+  ctx.strokeStyle=themeGrassDark(m.theme);ctx.lineWidth=3;ctx.setLineDash([3,6]);ctx.lineDashOffset=-(performance.now()*.03)%9;ctx.beginPath();
   {let started=false;for(let x=start;x<=end;x+=16){if(isGap(x)){started=false;continue;}const y=terrainY(x)-1;if(!started){ctx.moveTo(x-camera.x,y);started=true;}else ctx.lineTo(x-camera.x,y);}}
-  ctx.stroke();ctx.setLineDash([]);
+  ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;
   // Cliff support— gap-এর ভেতরে/কাছাকাছি pillar না বসিয়ে শুধু solid ground-এর নিচে বসানো হচ্ছে।
   for(let x=Math.floor(start/110)*110;x<end;x+=110){if(spanHasGap(x-14,x+14))continue;const y=terrainY(x);ctx.strokeStyle="#c47766";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-camera.x,y+6);ctx.lineTo(x-camera.x,Math.min(waterY,y+175));ctx.stroke();ctx.fillStyle="#df927d";ctx.fillRect(x-camera.x-12,y+2,24,12);}
   // Rocks— rock-এর পুরো span (প্রায় ৮৮px চওড়া) gap-এর সাথে না মিলিয়ে বসানো হচ্ছে যাতে kখনো gap-এর উপর ভেসে না থাকে।
@@ -3371,15 +3378,20 @@ function updatePhysics(dt){
     if(truck.y>=targetY&&truck.vy>=-150){if(!truck.onGround&&truck.vy>220){dust(truck.x,targetY+30,16);landSound();}truck.y=targetY;truck.vy*=-.08;truck.onGround=true;const diff=Math.atan2(Math.sin(targetAngle-truck.angle),Math.cos(targetAngle-truck.angle));truck.angVel+=diff*24*dt*grip;truck.angle+=truck.angVel*dt;truck.angVel*=Math.pow(.015,dt);if(Math.abs(truck.vx)>110&&Math.random()<dt*13)dust(rearX,rearContact+20,1);}
     else{if(truck.onGround&&truck.vy>200)jumpSound();truck.onGround=false;if(keys.left)truck.angVel-=4*dt*grip;if(keys.right)truck.angVel+=4*dt*grip;truck.angVel*=Math.pow(.89,dt);truck.angle+=truck.angVel*dt;}
   }else{truck.onGround=false;if(keys.left)truck.angVel-=4*dt*grip;if(keys.right)truck.angVel+=4*dt*grip;truck.angVel*=Math.pow(.90,dt);truck.angle+=truck.angVel*dt;}
+  // Gas চাপলে exhaust pipe থেকে ধোঁয়া বের হবে (truck-এর পেছনের নিচের দিকে, facing অনুযায়ী)।
+  if(keys.gas&&Math.random()<dt*22)exhaustPuff(truck.x-Math.cos(truck.angle)*45,truck.y+Math.sin(truck.angle)*45+8);
   collectCoins();updateCamera(dt);updateParticles(dt);if(checkCrash())return;if(truck.x>=finishX())completeLevel();
 }
 
 // Gap-এ পড়লে crash state হবে; কোনো auto respawn নেই।
 function checkCrash(){
   const rearX=truck.x-truck.wheelBase/2,frontX=truck.x+truck.wheelBase/2,centerGap=isGap(truck.x),bothGap=isGap(rearX)&&isGap(frontX);
-  // আগে truck.y>H*.42 থ্রেশহোল্ডে crash হতো, যা মাটির স্বাভাবিক উচ্চতার প্রায় সমান—ফলে gap-এর উপর দিয়ে জাম্প করার সাথে সাথেই crash হয়ে যেত,
-  // gap পার হওয়াই অসম্ভব ছিল। এখন truck সত্যিকারে অনেক নিচে (ground strip-এর কাছাকাছি) পড়ে গেলেই crash হবে, জাম্প করে পার হওয়া গেলে crash হবে না।
-  if((centerGap||bothGap)&&truck.y>H-170){crash("You fell into the gap!");return true;}
+  // Gap-এর ওপর দিয়ে জাম্প করলে crash হবে না, কিন্তু সত্যিকারে গর্তের ভেতরে (virtual ground level-এর অনেক নিচে) পড়ে গেলে crash হবে।
+  // virtual ground = gap না থাকলে এখানে মাটি যত উঁচু হতো (terrainY নিজেই isGap চেক করে না, তাই এই reference height পাওয়া যায়)।
+  if(centerGap||bothGap){
+    const groundRef=terrainY(truck.x);
+    if(truck.y>groundRef+85){crash("You fell into the gap!");return true;}
+  }
   if(truck.y>H+30){crash("You fell off the mountain!");return true;}
   const a=Math.atan2(Math.sin(truck.angle),Math.cos(truck.angle));
   if(truck.x>500&&!truck.onGround&&Math.abs(a)>2.55&&truck.y>H*.35){crash("The truck rolled over!");return true;}
@@ -3387,12 +3399,23 @@ function checkCrash(){
   return false;
 }
 
+// hex রং-কে হালকা/গাঢ় করার helper—truck body-কে gradient দিয়ে আরও 3D দেখানোর জন্য।
+function shadeColor(hex,percent){
+  const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.max(0,Math.min(255,Math.round(r+(percent<0?r:255-r)*percent)));
+  g=Math.max(0,Math.min(255,Math.round(g+(percent<0?g:255-g)*percent)));
+  b=Math.max(0,Math.min(255,Math.round(b+(percent<0?b:255-b)*percent)));
+  return "#"+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
 // ---------- ACTUAL MONSTER TRUCK DRAW ----------
 function drawTruck(){
   const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0];ctx.save();ctx.translate(truck.x-camera.x,truck.y);ctx.rotate(truck.angle);ctx.translate(0,-(truck.onGround?Math.sin(performance.now()*.012)*1.1:0));
   ctx.fillStyle="rgba(0,0,0,.24)";ctx.beginPath();ctx.ellipse(0,45,72,11,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle="#141b22";roundRect(-66,2,124,18,7);ctx.fill();ctx.strokeStyle="#9b4324";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-42,13);ctx.lineTo(-35,30);ctx.moveTo(42,13);ctx.lineTo(38,29);ctx.stroke();
-  ctx.fillStyle=v.color;ctx.strokeStyle="#4a2a08";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-61,-22);ctx.lineTo(-45,-51);ctx.lineTo(10,-57);ctx.lineTo(45,-42);ctx.lineTo(62,-7);ctx.lineTo(50,10);ctx.lineTo(-51,12);ctx.lineTo(-64,-4);ctx.closePath();ctx.fill();ctx.stroke();
+  // Roll-cage bar—পেছনে একটা monster-truck স্টাইল সেফটি বার।
+  ctx.strokeStyle="#20262c";ctx.lineWidth=6;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-58,-18);ctx.lineTo(-58,-66);ctx.lineTo(-30,-72);ctx.stroke();ctx.lineWidth=3;ctx.strokeStyle="#454e56";ctx.beginPath();ctx.moveTo(-58,-42);ctx.lineTo(-40,-46);ctx.stroke();
+  const bodyGrad=ctx.createLinearGradient(0,-57,0,12);bodyGrad.addColorStop(0,shadeColor(v.color,.32));bodyGrad.addColorStop(.55,v.color);bodyGrad.addColorStop(1,shadeColor(v.color,-.28));
+  ctx.fillStyle=bodyGrad;ctx.strokeStyle="#4a2a08";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-61,-22);ctx.lineTo(-45,-51);ctx.lineTo(10,-57);ctx.lineTo(45,-42);ctx.lineTo(62,-7);ctx.lineTo(50,10);ctx.lineTo(-51,12);ctx.lineTo(-64,-4);ctx.closePath();ctx.fill();ctx.stroke();
   ctx.fillStyle=v.accent;ctx.globalAlpha=.58;ctx.beginPath();ctx.moveTo(-43,-44);ctx.lineTo(4,-50);ctx.lineTo(28,-39);ctx.lineTo(-35,-33);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
   ctx.fillStyle=v.color;ctx.strokeStyle="#43280b";ctx.beginPath();ctx.moveTo(-29,-50);ctx.lineTo(-17,-77);ctx.lineTo(18,-80);ctx.lineTo(38,-51);ctx.closePath();ctx.fill();ctx.stroke();
   ctx.fillStyle="#bfeefa";ctx.beginPath();ctx.moveTo(-11,-72);ctx.lineTo(-5,-73);ctx.lineTo(0,-55);ctx.lineTo(-23,-55);ctx.closePath();ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(4,-74);ctx.lineTo(17,-75);ctx.lineTo(30,-54);ctx.lineTo(5,-55);ctx.closePath();ctx.fill();ctx.stroke();
