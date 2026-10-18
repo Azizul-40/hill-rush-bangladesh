@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HILL RUSH — Monster Truck</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- মূল game canvas। -->
+  <canvas id="game"></canvas>
+
+  <!-- Gameplay HUD। -->
+  <div id="hud" class="hidden">
+
+    <!-- Reference-এর মতো pause button। -->
+    <button id="pauseBtn" type="button" class="hudIcon pauseHud">Ⅱ</button>
+
+    <!-- Reference-এর মতো compact timer block। -->
+    <div class="timerPanel">
+      <div class="timerMain"><span class="timerIcon">⏱</span> <span id="timer">00:00.00</span></div>
+      <div class="bestLine"><span class="crownIcon">♛</span> BEST: <span id="best">--:--.--</span></div>
+    </div>
+
+    <!-- Level progress panel। -->
+    <div class="topProgress">
+      <div class="levelCaption">LEVEL <b id="hudLevel">1</b> — <span id="hudName">GREEN HILLS</span></div>
+      <div class="progressTrack">
+        <div id="progressFill"></div>
+        <div id="progressTruck">🚙</div>
+        <div class="flag">🏁</div>
+      </div>
+    </div>
+
+    <!-- Reference-এর মতো coin counter। -->
+    <div class="coinPanel">
+      <span class="coinIcon">★</span>
+      <b id="coins">250</b>
+      <button class="coinPlus" type="button">+</button>
+    </div>
+
+    <!-- Reference-এর মতো settings button। -->
+    <button id="settingsBtn" class="hudIcon settingsHud">⚙</button>
+  </div>
+
+  <!-- Settings modal। -->
+  <section id="settingsMenu" class="settingsOverlay hidden">
+    <div class="settingsCard">
+      <div class="settingsTitle">⚙ SETTINGS</div>
+      <div class="settingsRow">
+        <span>🔊 VOLUME</span>
+        <strong id="volumeValue">55%</strong>
+      </div>
+      <input id="volumeSlider" class="volumeSlider" type="range" min="0" max="100" value="55">
+      <label class="muteRow"><input id="muteToggle" type="checkbox"> <span>🔇 MUTE SOUND</span></label>
+      <button id="closeSettingsBtn" class="settingsCloseBtn" type="button" aria-label="Close settings">×</button>
+    </div>
+  </section>
+
+  <!-- Main menu। -->
+  <section id="mainMenu" class="screen">
+
+    <!-- Menu decorative layer। -->
+    <div class="menuAtmosphere"></div>
+
+    <!-- Menu logo। -->
+    <div class="brand">
+      <div class="brandSmall">MONSTER TRUCK</div>
+      <div class="brandHill">HILL</div>
+      <div class="brandRush">RUSH</div>
+      <div class="brandTag">EXTREME MOUNTAIN DRIVE</div>
+    </div>
+
+    <!-- Main menu vehicle। -->
+    <div class="menuVehicle">🚙</div>
+
+    <!-- Main menu actions। -->
+    <div class="mainActions">
+      <button id="playBtn" class="actionBtn primary" type="button">▶ PLAY</button>
+      <button id="levelsBtn" type="button" class="actionBtn">▦ LEVELS</button>
+      <button id="mapsBtn" type="button" class="actionBtn">🗺️ MAPS</button>
+      <button id="garageBtn" type="button" class="actionBtn">🚙 GARAGE</button>
+      <button id="storeBtn" type="button" class="actionBtn">🛒 STORE</button>
+    </div>
+
+    <!-- Main menu coin balance। -->
+    <div class="menuCoin">🪙 <span id="menuCoins">250</span></div>
+
+    <!-- Version label। -->
+    <div class="version">HILL RUSH • FINAL BUILD</div>
+
+    <!-- Developer credit — main menu-এর ভেতরে পরিষ্কারভাবে দেখানো হবে। -->
+    <div class="developerPlaque">
+      <span class="devLeaf devLeafL"></span><span class="devLeaf devLeafR"></span>
+      <span class="devRock devRockL"></span><span class="devRock devRockR"></span>
+      <div class="developerSmall">DEVELOPED BY</div>
+      <div class="developerName"><span class="azizulName">Habiba</span> <span class="amp">&amp;</span> <span class="habibaName">Azizul</span></div>
+    </div>
+  </section>
+
+  <!-- Level selector। -->
+  <section id="levelMenu" class="screen hidden">
+
+    <!-- Sticky level header। -->
+    <div class="levelHeader">
+      <button id="backLevelsBtn" type="button" class="backBtn">‹ MENU</button>
+      <div class="headerTitle">
+        <span>HILL RUSH</span>
+        <strong>LEVEL SELECT</strong>
+      </div>
+      <div class="headerCoin">🪙 <span id="levelCoins">250</span></div>
+    </div>
+
+    <!-- 1-20, 21-40... selector। -->
+    <div id="rangeTabs" class="rangeTabs"></div>
+
+    <!-- Level cards। -->
+    <div id="levelGrid" class="levelGrid"></div>
+
+    <!-- Page navigation। -->
+    <div class="levelPager">
+      <button id="prevPage" type="button" class="roundNav">‹</button>
+      <div id="pageText">1 / 5</div>
+      <button id="nextPage" type="button" class="roundNav">›</button>
+    </div>
+  </section>
+
+
+  <!-- Map selector। -->
+  <section id="mapsMenu" class="screen hidden">
+    <div class="levelHeader mapHeader">
+      <button id="backMapsBtn" type="button" class="backBtn">‹ MENU</button>
+      <div class="headerTitle">
+        <span>HILL RUSH</span>
+        <strong>MAP GARAGE</strong>
+      </div>
+      <div class="headerCoin">🪙 <span id="mapCoins">250</span></div>
+    </div>
+    <div class="mapGrid" id="mapGrid"></div>
+  </section>
+
+  <!-- Garage। -->
+  <section id="garageMenu" class="screen hidden">
+    <div class="garageHeader">
+      <button id="backGarageBtn" type="button" class="backBtn">‹ MENU</button>
+      <div>
+        <span>HILL RUSH</span>
+        <strong>GARAGE</strong>
+      </div>
+      <div class="headerCoin">🪙 <span id="garageCoins">250</span></div>
+    </div>
+
+    <div class="garageLayout">
+      <div class="vehiclePreview">
+        <div id="garageVehicle" class="garageVehicle">🚙</div>
+        <div id="garageVehicleName" class="vehicleName">TRAIL BLAZER</div>
+        <div id="garageVehicleDesc" class="vehicleDesc">Balanced starter truck.</div>
+        <button id="selectVehicleBtn" type="button" class="actionBtn primary">SELECT</button>
+      </div>
+
+      <div class="vehicleList" id="vehicleList"></div>
+    </div>
+
+    <div class="upgradePanel">
+      <div class="upgradeTitle">🔧 UPGRADES</div>
+      <div class="upgradeGrid">
+        <button class="upgradeCard" data-upgrade="engine">
+          <span>⚡</span><b>ENGINE</b><small id="engineLevel">LV 1</small><em id="engineCost">50 🪙</em>
+        </button>
+        <button class="upgradeCard" data-upgrade="tires">
+          <span>🛞</span><b>TIRES</b><small id="tiresLevel">LV 1</small><em id="tiresCost">50 🪙</em>
+        </button>
+        <button class="upgradeCard" data-upgrade="suspension">
+          <span>🛠️</span><b>SUSPENSION</b><small id="suspensionLevel">LV 1</small><em id="suspensionCost">50 🪙</em>
+        </button>
+        <button class="upgradeCard" data-upgrade="boost">
+          <span>🚀</span><b>BOOST</b><small id="boostLevel">LV 1</small><em id="boostCost">50 🪙</em>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Store। -->
+  <section id="storeMenu" class="screen hidden">
+    <div class="storeHeader">
+      <button id="backStoreBtn" type="button" class="backBtn">‹ MENU</button>
+      <div>
+        <span>HILL RUSH</span>
+        <strong>STORE</strong>
+      </div>
+      <div class="headerCoin">🪙 <span id="storeCoins">250</span></div>
+    </div>
+
+    <div class="storeGrid">
+      <div class="storeCard">
+        <div class="storeIcon">🎁</div>
+        <h3>DAILY BONUS</h3>
+        <p>Collect a free coin pack.</p>
+        <button id="dailyBtn" type="button" class="actionBtn primary">CLAIM +100</button>
+      </div>
+      <div class="storeCard">
+        <div class="storeIcon">🪙</div>
+        <h3>COIN PACK</h3>
+        <p>Get a small starter pack.</p>
+        <button id="coinPackBtn" type="button" class="actionBtn">GET +500</button>
+      </div>
+      <div class="storeCard">
+        <div class="storeIcon">🚀</div>
+        <h3>BOOST PACK</h3>
+        <p>Instant boost upgrade token.</p>
+        <button id="boostPackBtn" type="button" class="actionBtn">BUY 150</button>
+      </div>
+      <div class="storeCard">
+        <div class="storeIcon">🗺️</div>
+        <h3>MAP BUNDLE</h3>
+        <p id="mapBundleDesc">Unlock every remaining map at once, discounted.</p>
+        <button id="mapBundleBtn" type="button" class="actionBtn">BUY BUNDLE</button>
+      </div>
+      <div class="storeCard">
+        <div class="storeIcon">🚙</div>
+        <h3>VEHICLE BUNDLE</h3>
+        <p id="vehicleBundleDesc">Unlock every remaining truck at once, discounted.</p>
+        <button id="vehicleBundleBtn" type="button" class="actionBtn">BUY BUNDLE</button>
+      </div>
+      <div class="storeCard">
+        <div class="storeIcon">⭐</div>
+        <h3>VIP UPGRADE</h3>
+        <p>One-time boost to ALL upgrades (+1 level).</p>
+        <button id="vipUpgradeBtn" type="button" class="actionBtn">BUY 1200</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pause। -->
+  <section id="pauseMenu" class="screen hidden">
+    <div class="modalCard">
+      <div class="modalIcon">Ⅱ</div>
+      <h2>PAUSED</h2>
+      <button id="resumeBtn" type="button" class="actionBtn primary">▶ RESUME</button>
+      <button id="pauseLevelsBtn" type="button" class="actionBtn">▦ LEVELS</button>
+      <button id="pauseMenuBtn" type="button" class="actionBtn menuBackAction">‹ MAIN MENU</button>
+    </div>
+  </section>
+
+  <!-- Crash। -->
+  <section id="crashMenu" class="screen hidden">
+    <div class="modalCard">
+      <div class="modalIcon">💥</div>
+      <h2>CRASH!</h2>
+      <p id="crashText">The truck crashed.</p>
+      <button id="retryCrashBtn" type="button" class="actionBtn primary">↻ RETRY</button>
+      <button id="crashLevelsBtn" type="button" class="actionBtn">▦ LEVELS</button>
+    </div>
+  </section>
+
+  <!-- Complete। -->
+  <section id="completeMenu" class="screen hidden">
+    <div class="modalCard">
+      <div class="modalIcon">🏁</div>
+      <h2>LEVEL COMPLETE</h2>
+      <div id="resultTime" class="resultTime">00:00.00</div>
+      <div id="resultStars" class="resultStars">★★★</div>
+      <p id="rewardText">+50 coins</p>
+      <button id="nextLevelBtn" type="button" class="actionBtn primary">NEXT LEVEL ▶</button>
+      <button id="completeLevelsBtn" type="button" class="actionBtn">▦ LEVELS</button>
+    </div>
+  </section>
+
+  <!-- Mobile controls। -->
+  <div id="controls" class="hidden">
+
+    <!-- বাম পাশে শুধু Brake থাকবে। -->
+    <div class="controlSide controlLeft">
+      <button class="driveControl brakeControl" data-key="brake">■<span>BRAKE</span></button>
+      <button class="driveControl reverseControl" data-key="left">◀<span>REVERSE</span></button>
+    </div>
+
+    <!-- ডান পাশে Drive + Gas। -->
+    <div class="controlSide controlRight">
+      <button class="driveControl driveButton" data-key="right">▶<span>DRIVE</span></button>
+      <button class="driveControl gasControl" data-key="gas">▲<span>GAS</span></button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
