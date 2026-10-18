@@ -3441,3 +3441,27 @@ body #mainMenu .developerPlaque .supervisorName{
     bottom:calc(100% + max(4px,calc(4.8vh - 30px))) !important;
   }
 }
+
+/* V12e — বাটন প্যানেল একটু নিচে নামানো; কয়েন আগের মতো একদম উপরেই থাকে। */
+@media(orientation:landscape) and (min-height:521px){
+  #mainMenu .menuStage .mainActions{top:31% !important;}
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(6px,calc(min(100vh,66.667vw)*0.31 - 52px))) !important;
+  }
+}
+@media(orientation:landscape) and (min-height:521px) and (min-aspect-ratio:17/10){
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(6px,calc(22.72vh - 52px))) !important;
+  }
+}
+@media(orientation:landscape) and (max-height:520px){
+  #mainMenu .menuStage .mainActions{top:19% !important;}
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(4px,calc(min(100vh,66.667vw)*0.19 - 30px))) !important;
+  }
+}
+@media(orientation:landscape) and (max-height:520px) and (min-aspect-ratio:17/10){
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(4px,calc(9.28vh - 30px))) !important;
+  }
+}
