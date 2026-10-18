@@ -51,7 +51,14 @@ const TOTAL_LEVELS = 100;
 const SAVE_KEY = "hillRushFinalSaveV1";
 
 // আগের save পড়া হচ্ছে। 
-let save = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+let save;
+try{
+  save = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+}catch(e){
+  // localStorage-এর ডেটা করাপ্টেড (invalid JSON) হলে আগে পুরো script crash করত (সাদা স্ক্রিন)।
+  // এখন সেটা ধরে null হিসেবে treat করা হচ্ছে, যাতে নিচের কোড নতুন default profile বানিয়ে নেয়।
+  save = null;
+}
 
 // Save না থাকলে default profile তৈরি হচ্ছে। 
 if(!save){
@@ -3333,6 +3340,27 @@ function terrainY(x){
       }
     }
   }
+  // V30 বাগ-ফিক্স (বট দিয়ে সব ম্যাপ/লেভেল টেস্ট করে ধরা পড়েছে): gap-এর ঠিক পরের landing zone মাঝেমাঝে
+  // টেক-অফ পয়েন্টের চেয়েও উঁচুতে উঠে যেত (sine wave-এর নির্দিষ্ট phase-এ, বিশেষ করে level>=22-এর extra
+  // gap-গুলোতে)। ফলে truck লাফিয়ে ওঠার আগেই ল্যান্ডিং জোন আরও উঁচুতে চলে যেত আর জাম্পটা অন্যায়ভাবে
+  // কঠিন/অসম্ভব হয়ে "You fell into the gap!" crash হতো, এমনকি ঠিকভাবে জাম্প করলেও। তাই এখন gap-এর পরেও
+  // একইভাবে guarantee করা হচ্ছে—landing zone কখনো টেক-অফ পয়েন্ট (lip)-এর চেয়ে উঁচু হবে না, ধীরে ধীরে
+  // স্বাভাবিক wave-এ মিলিয়ে যাবে।
+  {
+    const landLen=170;
+    const gaps=getGaps();
+    for(let i=0;i<gaps.length;i++){
+      const gStart=gaps[i][0],gEnd=gStart+gaps[i][1];
+      if(x>gEnd&&x<=gEnd+landLen){
+        const lipY=terrainY(gStart);
+        if(y<lipY){
+          const t=(x-gEnd)/landLen,s=t*t*(3-2*t);
+          y=lipY*(1-s)+y*s;
+        }
+        break;
+      }
+    }
+  }
   // valley খুব বেশি গভীর হলে truck অনেকক্ষণ ধরে বাতাসে "ভাসতে" থাকে (physics ধরতে পারে না) এবং তখন কাছাকাছি
   // কোনো gap পড়লে অন্যায়ভাবে crash হয়ে যায়—তাই lower clamp আগের মতো খুব গভীর না রেখে একটু টাইট করা হলো।
   return Math.max(H*.14,Math.min(H*.72,y));
@@ -3777,4 +3805,826 @@ updateCoinsUI();renderGarage();renderMaps();showScreen("mainMenu");
 // pouchanor age e thamiye dito. Ekhon protita button e directly
 // onclick bind kora ache (EVENT REBIND section, upore), tai alada
 // router er dorkar nei.
+// ============================================================
+
+
+// ============================================================
+// HILL RUSH V30 — ফাইনাল অ্যাডভান্সড প্যাচ
+// (Mouse-first control panel + Biome physics + Ghost Racing +
+//  Stunt & Combo + Dynamic Weather + Daily Missions/Achievements
+//  + Damage & Repair + audit fixes)
+// প্রতিটা লাইনের পাশে বাংলা কমেন্টে বোঝানো আছে কোন লাইন কী করছে এবং কেন।
+// ============================================================
+
+// ---------- SAVE SCHEMA SELF-HEALING ----------
+// পুরোনো/করাপ্টেড save-এ নতুন ফিচারের ফিল্ড না থাকলে নিরাপদভাবে default বসানো হচ্ছে।
+// এটা idempotent—যতবার কল হোক, ক্ষতি নেই, তাই যেকোনো নতুন function-এর শুরুতে নিশ্চিন্তে কল করা যায়।
+function ensureV30Save(){
+  // Ghost racing-এর best-run ডেটা রাখার জায়গা।
+  if(!save.ghosts) save.ghosts={};
+  // কোন কোন achievement আগেই claim হয়ে গেছে তার তালিকা।
+  if(!save.achClaimed) save.achClaimed=[];
+  // Lifetime (সারাজীবনের) পরিসংখ্যান—achievement check করার জন্য দরকার।
+  if(!save.lifetime) save.lifetime={stuntsTotal:0};
+  // stuntsTotal সংখ্যা না থাকলে/ভুল হলে ০ থেকে শুরু।
+  if(!Number.isFinite(save.lifetime.stuntsTotal)) save.lifetime.stuntsTotal=0;
+  // আজকের দৈনিক কাউন্টার (level/distance/stunt)—প্রতিদিন রিসেট হবে।
+  if(!save.daily) save.daily={dayKey:"",coinsToday:0,distanceToday:0,stuntsToday:0,levelsToday:0};
+  // আজকের ৩টা মিশনের তালিকা—না থাকলে খালি array।
+  if(!save.missions||!Array.isArray(save.missions.items)) save.missions={dayKey:"",items:[]};
+  // প্রতিটা ভেহিকেলের condition/damage (০-১০০)—না থাকলে খালি object (লাগলে getCondition lazily ১০০ বসাবে)।
+  if(!save.vehicleCondition) save.vehicleCondition={};
+}
+
+// ---------- RUN-ONLY / মডিউল স্টেট ----------
+// এগুলো সব var দিয়ে ঘোষণা করা হয়েছে (let/const নয়) ইচ্ছাকৃতভাবে—কারণ script-এর অনেক উপরের দিকে
+// (৩১৬২ ও ৩৭৬৯ নম্বর লাইনের কাছাকাছি STARTUP কলগুলোতে) আগে থেকেই updateCoinsUI()/renderGarage()
+// কল হয়, যেগুলো এই নিচের নতুন কোডের ওপর নির্ভর করে। var hoist হয়ে undefined নিয়ে শুরু হয়, তাই
+// সেই আগের কলগুলোতে কোনো ReferenceError (TDZ ক্র্যাশ) হবে না—গার্ড চেক (Array.isArray ইত্যাদি) নিরাপদে false হবে।
+var MISSION_POOL=[
+  // প্রতিদিন এই pool থেকে deterministic ভাবে ৩টা মিশন বাছাই হয় (তারিখ অনুযায়ী—তাই সবার জন্য একই দিনে একই মিশন)।
+  {id:"m_levels2",desc:"আজ ২টি লেভেল সম্পন্ন করো",type:"levels",target:2,reward:100},
+  {id:"m_levels4",desc:"আজ ৪টি লেভেল সম্পন্ন করো",type:"levels",target:4,reward:180},
+  {id:"m_distance3000",desc:"আজ মোট ৩০০০ দূরত্ব অতিক্রম করো",type:"distance",target:3000,reward:90},
+  {id:"m_distance6000",desc:"আজ মোট ৬০০০ দূরত্ব অতিক্রম করো",type:"distance",target:6000,reward:160},
+  {id:"m_stunts2",desc:"আজ ২টি নিরাপদ স্টান্ট ফ্লিপ করো",type:"stunts",target:2,reward:110},
+  {id:"m_stunts5",desc:"আজ ৫টি নিরাপদ স্টান্ট ফ্লিপ করো",type:"stunts",target:5,reward:200}
+];
+// স্থায়ী (lifetime) achievement তালিকা—একবার claim হলে আর কখনো আবার দেওয়া হবে না।
+var ACHIEVEMENTS=[
+  {id:"ach_levels10",desc:"১০টি লেভেল সম্পন্ন করো",reward:300,check:s=>Object.keys(s.completed||{}).length>=10},
+  {id:"ach_levels50",desc:"৫০টি লেভেল সম্পন্ন করো",reward:1000,check:s=>Object.keys(s.completed||{}).length>=50},
+  {id:"ach_coins3000",desc:"একসাথে ৩০০০ কয়েন জমাও",reward:400,check:s=>(s.coins||0)>=3000},
+  {id:"ach_stunts50",desc:"মোট ৫০টি স্টান্ট ফ্লিপ ল্যান্ড করো",reward:350,check:s=>((s.lifetime&&s.lifetime.stuntsTotal)||0)>=50},
+  {id:"ach_vehicles3",desc:"৩টি ভেহিকেল আনলক করো",reward:250,check:s=>(s.ownedVehicles||[]).length>=3},
+  {id:"ach_maps3",desc:"৩টি ম্যাপ আনলক করো",reward:250,check:s=>(s.ownedMaps||[]).length>=3}
+];
+// বর্তমান লেভেলের আবহাওয়া ("clear"/"rain"/"snow"/"wind"/"sandstorm")।
+var currentWeather="clear";
+// আবহাওয়ার কণা (বৃষ্টি/তুষার/বালি/বাতাস)।
+var weatherParticles=[];
+// Stunt combo গোনা ও তার টাইমার (কতক্ষণের মধ্যে পরের ফ্লিপ করলে combo বাড়বে)।
+var comboCount=0,comboTimer=0;
+// Ghost racing: playback (আগের best run) ও বর্তমান run রেকর্ডিং।
+var ghostPlayback=null,ghostRecording=[],ghostRecordTimer=0;
+// একটানা একই সংঘর্ষে বারবার damage না কাটার জন্য cooldown টাইমার।
+var impactCooldown=0;
+
+// স্ক্রিপ্ট লোড হওয়ার সাথে সাথেই একবার save self-heal ও দৈনিক মিশন ঠিক করা হচ্ছে।
+ensureV30Save();
+
+// ---------- DAILY MISSIONS: রোজ নতুন করে রিসেট ----------
+// তারিখ (local date string) থেকে deterministic hash বানিয়ে pool থেকে ৩টা মিশন বাছাই করা হচ্ছে।
+function pickDailyMissions(dayStr){
+  // Pool খালি/না থাকলে কিছু করার নেই।
+  if(!Array.isArray(MISSION_POOL)) return [];
+  // সাধারণ string hash (deterministic—একই তারিখে সবসময় একই ফলাফল)।
+  let h=0;
+  for(let i=0;i<dayStr.length;i++) h=(h*31+dayStr.charCodeAt(i))>>>0;
+  // মূল pool-এর একটা কপি, যাতে আসল array পরিবর্তন না হয়।
+  const pool=MISSION_POOL.slice(),chosen=[];
+  // পরপর ৩টা ভিন্ন মিশন তুলে আনা হচ্ছে।
+  for(let i=0;i<3&&pool.length;i++){
+    // LCG-স্টাইল hash advance (deterministic pseudo-random)।
+    h=(h*1103515245+12345)>>>0;
+    // Pool-এর কোন index বাছাই হবে।
+    const idx=h%pool.length;
+    // সেই entry সরিয়ে আনা হচ্ছে যাতে দ্বিতীয়বার আবার না আসে।
+    const picked=pool.splice(idx,1)[0];
+    // তাজা claimed:false সহ নতুন instance তৈরি (পুরোনো দিনের claimed state যেন বহন না করে)।
+    chosen.push({id:picked.id,desc:picked.desc,type:picked.type,target:picked.target,reward:picked.reward,claimed:false});
+  }
+  // চূড়ান্ত ৩টা মিশন।
+  return chosen;
+}
+// আজকের তারিখ আগের save-এর তারিখ থেকে আলাদা হলে—দৈনিক কাউন্টার ও মিশন রিসেট।
+function checkDailyReset(){
+  // সবার আগে schema নিরাপদ করা হচ্ছে।
+  ensureV30Save();
+  // আজকের local date string।
+  const today=new Date().toDateString();
+  // তারিখ বদলে গেলে (বা প্রথমবার) রিসেট।
+  if(save.daily.dayKey!==today){
+    // দৈনিক কাউন্টার শূন্য থেকে শুরু।
+    save.daily={dayKey:today,coinsToday:0,distanceToday:0,stuntsToday:0,levelsToday:0};
+    // নতুন ৩টা মিশন বাছাই।
+    save.missions={dayKey:today,items:pickDailyMissions(today)};
+    // সেভ করা হচ্ছে।
+    persist();
+  }
+}
+// স্ক্রিপ্ট লোডের সাথে সাথেই একবার চেক করা হচ্ছে (মিশন স্ক্রিন প্রথমবার খোলার আগেই যেন ডেটা প্রস্তুত থাকে)।
+checkDailyReset();
+
+// ---------- DAMAGE & REPAIR ----------
+// নির্দিষ্ট vehicle-এর বর্তমান condition (০-১০০, ১০০=সম্পূর্ণ ঠিক) পড়া হচ্ছে, না থাকলে লেজিলি ১০০ বসানো হচ্ছে।
+function getCondition(id){
+  // Object না থাকলে তৈরি (করাপ্টেড save হ্যান্ডলিং)।
+  if(!save.vehicleCondition) save.vehicleCondition={};
+  // সংখ্যা না হলে (প্রথমবার/করাপ্টেড) ১০০% থেকে শুরু।
+  if(!Number.isFinite(save.vehicleCondition[id])) save.vehicleCondition[id]=100;
+  // মান রিটার্ন।
+  return save.vehicleCondition[id];
+}
+// Condition-কে ০-১০০ এর মধ্যে clamp করে বসানো হচ্ছে।
+function setCondition(id,val){
+  // Object নিরাপদ করা।
+  if(!save.vehicleCondition) save.vehicleCondition={};
+  // Clamp করে বসানো।
+  save.vehicleCondition[id]=Math.max(0,Math.min(100,val));
+}
+// প্রতি ফ্রেমে cooldown timer কমানো হচ্ছে (একই সংঘর্ষে বারবার damage আটকাতে)।
+function updateDamage(dt){
+  // Cooldown চললে কমতে থাকবে।
+  if(impactCooldown>0) impactCooldown-=dt;
+}
+// হার্ড ল্যান্ডিং/রোলওভার ক্র্যাশে vehicle-এর condition কমানো হচ্ছে।
+function applyImpactDamage(amount,force){
+  // Cooldown চলাকালীন (এবং force না দেওয়া হলে) একই সংঘর্ষের জন্য আবার damage হবে না।
+  if(impactCooldown>0&&!force) return;
+  // পরের ০.৬ সেকেন্ড আর damage প্রযোজ্য হবে না (একই impact-এর multi-frame ড্যামেজ আটকাতে)।
+  impactCooldown=.6;
+  // বর্তমান নির্বাচিত vehicle।
+  const id=save.selectedVehicle;
+  // Condition কমানো।
+  setCondition(id,getCondition(id)-amount);
+  // সেভ।
+  persist();
+}
+// HUD-এর damage bar আপডেট করা হচ্ছে (রং সহ—সবুজ/হলুদ/লাল)।
+function updateDamageBarUI(){
+  // DOM element।
+  const bar=document.getElementById("damageBar");
+  // না থাকলে কিছু করার নেই।
+  if(!bar) return;
+  // বর্তমান condition।
+  const val=getCondition(save.selectedVehicle);
+  // Width পার্সেন্ট হিসেবে।
+  bar.style.width=Math.max(0,val)+"%";
+  // Threshold অনুযায়ী CSS class।
+  bar.className="damageBar"+(val<35?" crit":val<70?" warn":"");
+}
+
+// ---------- BIOME-ভিত্তিক PHYSICS (grip/visibility) ----------
+// প্রতিটা ম্যাপের theme অনুযায়ী আলাদা grip multiplier—বরফে পিচ্ছিল, মরুভূমিতে ঢিলেঢালা, পাহাড়ে রুক্ষ।
+function themeGripMul(theme){
+  // ICE VALLEY—সবচেয়ে পিচ্ছিল।
+  if(theme==="ice") return .78;
+  // DESERT STORM—ঢিলেঢালা বালি, কম grip।
+  if(theme==="desert") return .86;
+  // VOLCANO RIDGE—রুক্ষ পাথুরে জমি, সামান্য কম grip।
+  if(theme==="volcano") return .92;
+  // বাকি সব biome স্বাভাবিক grip।
+  return 1;
+}
+// Night City মানচিত্রে কম দৃশ্যমানতা—truck-এর চারপাশে একটা "headlight" radius বাদে বাকি স্ক্রিন অন্ধকার।
+function drawNightOverlay(){
+  // শুধু খেলার মধ্যে দেখানো হবে।
+  if(state!=="play") return;
+  // বর্তমান ম্যাপ।
+  const m=maps[save.selectedMap]||maps[0];
+  // শুধু night theme-এ কাজ করবে।
+  if(m.theme!=="night") return;
+  // Headlight-এর কেন্দ্র—truck-এর একটু সামনে (drive direction অনুযায়ী ডানদিকে)।
+  const sx=truck.x-camera.x+40,sy=truck.y-20;
+  // গতি বাড়লে visibility radius একটু বাড়বে (বাস্তবসম্মত হেডলাইট থ্রো)।
+  const r=Math.max(220,Math.min(420,220+Math.abs(truck.vx)*.35));
+  ctx.save();
+  // কেন্দ্র থেকে বাইরের দিকে স্বচ্ছ → গাঢ় অন্ধকার gradient।
+  const grad=ctx.createRadialGradient(sx,sy,r*.25,sx,sy,r);
+  grad.addColorStop(0,"rgba(0,0,0,0)");
+  grad.addColorStop(1,"rgba(2,6,14,.82)");
+  ctx.fillStyle=grad;
+  // পুরো স্ক্রিনে overlay বসানো।
+  ctx.fillRect(0,0,W,H);
+  ctx.restore();
+}
+
+// ---------- DYNAMIC WEATHER ----------
+// Deterministic pseudo-random hash (০-১ এর মধ্যে), শুধু আবহাওয়া বাছাইয়ের জন্য ব্যবহৃত।
+function hashSeed(n){
+  const v=Math.sin(n*12.9898)*43758.5453;
+  return v-Math.floor(v);
+}
+// Level+Map অনুযায়ী deterministic আবহাওয়া বাছাই—একই level/map-এ সবসময় একই আবহাওয়া থাকবে, finish distance/terrain বদলায় না।
+function weatherForLevel(){
+  // বর্তমান ম্যাপ।
+  const m=maps[save.selectedMap]||maps[0];
+  // Biome অনুযায়ী সম্ভাব্য আবহাওয়ার pool সীমিত করা হচ্ছে (বাস্তবসম্মত—মরুভূমিতে বরফ পড়বে না)।
+  let pool=["clear","wind"];
+  if(m.theme==="ice") pool=["snow","clear","wind"];
+  else if(m.theme==="desert") pool=["sandstorm","clear","wind"];
+  else if(m.theme==="jungle"||m.theme==="hills"||m.theme==="canyon"||m.theme==="autumn") pool=["clear","rain","wind"];
+  else if(m.theme==="night") pool=["clear","rain"];
+  else if(m.theme==="volcano") pool=["clear","wind"];
+  // Level+Map থেকে deterministic seed।
+  const h=hashSeed(currentLevel*131.7+(save.selectedMap||0)*977.3);
+  // Pool থেকে একটা বাছাই।
+  const idx=Math.min(pool.length-1,Math.floor(h*pool.length));
+  return pool[idx];
+}
+// আবহাওয়া অনুযায়ী grip multiplier (traction প্রভাব)।
+function weatherGripMul(){
+  return {clear:1,rain:.90,snow:.78,wind:.97,sandstorm:.88}[currentWeather]||1;
+}
+// বাতাস/বালির ঝড়ে airborne অবস্থায় হালকা পিছনের দিকে ধাক্কা (challenge বাড়ানোর জন্য, deterministic—র‍্যান্ডম না)।
+function weatherSideForce(){
+  return (currentWeather==="wind"||currentWeather==="sandstorm")?-26:0;
+}
+// প্রতি ফ্রেমে নতুন আবহাওয়া কণা তৈরি+movement+cleanup (performance cap সহ)।
+function updateWeather(dt){
+  // Array নিরাপদ করা (early-call safety)।
+  if(!weatherParticles) weatherParticles=[];
+  // খেলা না চললে কণা তৈরি করার দরকার নেই।
+  if(state!=="play") return;
+  // প্রতিটা আবহাওয়ার জন্য সর্বোচ্চ কণা সংখ্যা (performance limit)।
+  const caps={clear:0,rain:140,snow:90,wind:40,sandstorm:110};
+  const max=caps[currentWeather]||0;
+  // ক্যাপের নিচে থাকলে এবং দৈব সময়ে নতুন কণা যোগ।
+  if(max>0&&weatherParticles.length<max&&Math.random()<dt*max*.9){
+    if(currentWeather==="rain") weatherParticles.push({x:camera.x+Math.random()*W,y:-20,vx:-40,vy:620,life:2,type:"rain"});
+    else if(currentWeather==="snow") weatherParticles.push({x:camera.x+Math.random()*W,y:-20,vx:(Math.random()-.5)*30,vy:60+Math.random()*40,life:4,type:"snow",size:2+Math.random()*3,sway:Math.random()*6.28});
+    else if(currentWeather==="wind") weatherParticles.push({x:camera.x+W+20,y:Math.random()*H,vx:-220-Math.random()*80,vy:0,life:2,type:"wind"});
+    else if(currentWeather==="sandstorm") weatherParticles.push({x:camera.x+W+20,y:Math.random()*H,vx:-260-Math.random()*120,vy:(Math.random()-.5)*30,life:2,type:"sand",size:2+Math.random()*4});
+  }
+  // প্রতিটা কণা move করা হচ্ছে।
+  weatherParticles.forEach(p=>{
+    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    // তুষার হালকা দুলতে দুলতে পড়বে।
+    if(p.type==="snow") p.x+=Math.sin(performance.now()*.002+(p.sway||0))*12*dt;
+    p.life-=dt;
+  });
+  // মৃত/দূরের কণা বাদ (performance)।
+  weatherParticles=weatherParticles.filter(p=>p.life>0&&p.x>camera.x-80&&p.x<camera.x+W+80);
+  // Hard cap—কোনোভাবে বেশি জমে গেলেও সীমিত রাখা।
+  if(weatherParticles.length>260) weatherParticles.length=260;
+}
+// আবহাওয়ার কণা + হালকা haze overlay আঁকা হচ্ছে।
+function drawWeather(){
+  // কিছু না থাকলে/clear হলে আঁকার দরকার নেই।
+  if(!weatherParticles||currentWeather==="clear") return;
+  ctx.save();
+  weatherParticles.forEach(p=>{
+    // Screen-space x।
+    const sx=p.x-camera.x;
+    if(p.type==="rain"){ctx.strokeStyle="rgba(190,220,255,.55)";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,p.y);ctx.lineTo(sx-10,p.y-26);ctx.stroke();}
+    else if(p.type==="snow"){ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(sx,p.y,p.size||3,0,Math.PI*2);ctx.fill();}
+    else if(p.type==="wind"){ctx.strokeStyle="rgba(255,255,255,.18)";ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(sx,p.y);ctx.lineTo(sx+26,p.y);ctx.stroke();}
+    else if(p.type==="sand"){ctx.fillStyle="rgba(214,180,120,.5)";ctx.beginPath();ctx.arc(sx,p.y,p.size||3,0,Math.PI*2);ctx.fill();}
+  });
+  // পুরো স্ক্রিনে হালকা haze (আবহাওয়ার mood)।
+  const haze={rain:"rgba(60,90,130,.10)",snow:"rgba(255,255,255,.10)",sandstorm:"rgba(200,150,70,.18)",wind:"rgba(255,255,255,.04)"}[currentWeather];
+  if(haze){ctx.fillStyle=haze;ctx.fillRect(0,0,W,H);}
+  ctx.restore();
+}
+// HUD-এ আবহাওয়ার আইকন আপডেট।
+function updateWeatherBadge(){
+  const el=document.getElementById("weatherBadge");
+  if(!el) return;
+  const icon={clear:"☀",rain:"🌧",snow:"❄",wind:"💨",sandstorm:"🏜"}[currentWeather]||"☀";
+  el.textContent=icon;
+}
+
+// ---------- GHOST RACING ----------
+// বর্তমান level+map-এর জন্য unique key (best-run ঘোস্ট এই key দিয়ে save হয়)।
+function ghostKey(){
+  return currentLevel+"_m"+(save.selectedMap||0);
+}
+// প্রতি ~০.১ সেকেন্ডে truck-এর অবস্থান রেকর্ড করা হচ্ছে (প্রতি ফ্রেমে না, storage/perf বাঁচাতে)।
+function recordGhostSample(dt){
+  ghostRecordTimer=(ghostRecordTimer||0)+dt;
+  if(ghostRecordTimer>=.1){
+    ghostRecordTimer=0;
+    ghostRecording.push([elapsed,truck.x,truck.y,truck.angle]);
+    // খুব দীর্ঘ রান হলেও memory নিয়ন্ত্রণে রাখা হচ্ছে।
+    if(ghostRecording.length>3000) ghostRecording.shift();
+  }
+}
+// Level শেষ হলে—এই রানটা আগের best-run থেকে ভালো হলে (অথবা প্রথমবার) ঘোস্ট হিসেবে save করা হচ্ছে।
+function saveGhostIfBest(){
+  ensureV30Save();
+  const key=ghostKey();
+  const prev=save.ghosts[key];
+  // কমপক্ষে কয়েকটা sample থাকতে হবে, এবং আগের চেয়ে দ্রুত/প্রথম হতে হবে।
+  if(ghostRecording.length>1&&(!prev||elapsed<prev.time)){
+    save.ghosts[key]={time:elapsed,samples:ghostRecording.slice()};
+  }
+}
+// Level শুরু হওয়ার সময় আগের best-run ঘোস্ট (থাকলে) লোড করা হচ্ছে।
+function loadGhostForLevel(){
+  ensureV30Save();
+  const g=save.ghosts[ghostKey()];
+  // অন্তত ২টা sample না থাকলে ঘোস্ট দেখানো হবে না (অর্থহীন হবে)।
+  ghostPlayback=(g&&Array.isArray(g.samples)&&g.samples.length>1)?{samples:g.samples,idx:0}:null;
+}
+// নির্দিষ্ট সময় t-এ ঘোস্টের অবস্থান interpolate করে বের করা হচ্ছে।
+function sampleGhostAt(t){
+  if(!ghostPlayback) return null;
+  const s=ghostPlayback.samples;
+  if(!s||!s.length) return null;
+  // শুরুর আগে হলে প্রথম sample।
+  if(t<=s[0][0]) return s[0];
+  const last=s[s.length-1];
+  // ঘোস্টের রান শেষ হয়ে গেলে আর দেখানো হবে না (অসম্পূর্ণ loop এড়াতে)।
+  if(t>=last[0]) return null;
+  // আগের ইনডেক্স থেকে এগিয়ে scan (বেশিরভাগ সময় caching-এর মতো দ্রুত হবে)।
+  let i=Math.min(ghostPlayback.idx,s.length-2);
+  // Level restart হলে (t ছোট হয়ে গেলে) আবার শুরু থেকে scan।
+  if(i>0&&s[i][0]>t) i=0;
+  while(i<s.length-2&&s[i+1][0]<t) i++;
+  ghostPlayback.idx=i;
+  const a=s[i],b=s[i+1];
+  const span=Math.max(1e-4,b[0]-a[0]),frac=Math.max(0,Math.min(1,(t-a[0])/span));
+  // Linear interpolation—x,y,angle তিনটাই smooth ভাবে মিশিয়ে দেওয়া হচ্ছে।
+  return [t,a[1]+(b[1]-a[1])*frac,a[2]+(b[2]-a[2])*frac,a[3]+(b[3]-a[3])*frac];
+}
+// স্বচ্ছ (translucent) ঘোস্ট truck আঁকা হচ্ছে—এটা শুধু visual, কোনো collision/physics নেই।
+function drawGhost(){
+  if(state!=="play"||!ghostPlayback) return;
+  const sample=sampleGhostAt(elapsed);
+  if(!sample) return;
+  const gx=sample[1],gy=sample[2],ga=sample[3];
+  const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0];
+  ctx.save();
+  // স্বচ্ছ করে আঁকা হচ্ছে যাতে আসল truck থেকে আলাদা বোঝা যায়।
+  ctx.globalAlpha=.30;
+  ctx.translate(gx-camera.x,gy);
+  ctx.rotate(ga);
+  // সরলীকৃত body সিলুয়েট (পুরো ডিটেইল আঁকার দরকার নেই—ঘোস্ট শুধু reference)।
+  ctx.fillStyle=v.color;
+  ctx.beginPath();
+  ctx.moveTo(-61,-22);ctx.lineTo(-45,-51);ctx.lineTo(10,-57);ctx.lineTo(45,-42);ctx.lineTo(62,-7);ctx.lineTo(50,10);ctx.lineTo(-51,12);ctx.lineTo(-64,-4);ctx.closePath();
+  ctx.fill();
+  // একই monster wheel helper পুনর্ব্যবহার করা হচ্ছে।
+  drawMonsterWheel(-39,32,27,truck.wheelSpin);
+  drawMonsterWheel(43,28,30,truck.wheelSpin);
+  ctx.restore();
+}
+
+// ---------- STUNT & COMBO (চূড়ান্ত সংস্করণ—আগের awardAirBonus-কে combo যোগ করে replace করা হচ্ছে) ----------
+// Combo টাইমার কমছে, সময় ফুরালে combo ভেঙে যাবে।
+function updateCombo(dt){
+  if(comboTimer>0){
+    comboTimer-=dt;
+    if(comboTimer<=0){comboTimer=0;comboCount=0;}
+  }
+}
+// Truck মাটিতে (নিরাপদে) ল্যান্ড করার মুহূর্তে air-time/flip হিসাব করে কয়েন বোনাস দেওয়া হচ্ছে।
+function awardAirBonus(){
+  ensureV30Save();
+  // কতগুলো সম্পূর্ণ ঘূর্ণন (flip) হয়েছে বাতাসে।
+  const flips=Math.floor(truck.airRotation/(Math.PI*2));
+  let bonusCoins=0,label="",color="#ffd83a";
+  if(flips>=1){
+    // Ground rotation বা বারবার একই stunt গোনা এড়াতে: এই branch শুধু landing-এর মুহূর্তে একবারই চলে
+    // (এই function-ই কল হয় শুধু onGround transition-এ, updatePhysics থেকে—তাই duplicate counting হয় না)।
+    comboCount=(comboCount||0)+1;
+    // পরের ৩.২ সেকেন্ডের মধ্যে আরেকটা স্টান্ট করলে combo বাড়বে, নাহলে ভেঙে যাবে।
+    comboTimer=3.2;
+    // Combo multiplier—সর্বোচ্চ x3 পর্যন্ত (অতিরিক্ত exploit আটকাতে limit)।
+    const comboMul=1+Math.min(4,comboCount-1)*.5;
+    bonusCoins=Math.round((flips*120+Math.floor(truck.airTime*30))*comboMul);
+    label=(flips>=2?("FLIP x"+flips):"FLIP!")+(comboCount>1?(" COMBO x"+comboCount):"")+" +"+bonusCoins;
+    color="#ff6fae";
+    // Lifetime ও দৈনিক স্টান্ট কাউন্টার (achievement/mission-এর জন্য)।
+    save.lifetime.stuntsTotal=(save.lifetime.stuntsTotal||0)+1;
+    save.daily.stuntsToday=(save.daily.stuntsToday||0)+1;
+  }else if(truck.airTime>0.4){
+    // শুধু বাতাসে ভেসে থাকা (flip ছাড়া) হলে ছোট bonus, combo বাড়বে না।
+    bonusCoins=Math.floor(truck.airTime*45);
+    label="AIR TIME +"+bonusCoins;
+    color="#ffd83a";
+  }
+  if(bonusCoins>0){
+    // বাগ ফিক্স: আগে এখানে শুধু save.coins বাড়ত কিন্তু global `coins` variable sync হতো না,
+    // ফলে পরে কোনো coin pickup হলে (যেটা coins+=25;save.coins=coins; করে) সেই stunt bonus হারিয়ে যেতে পারত।
+    // তাই এখন প্রথমে save.coins বাড়িয়ে তারপর global coins-কে সেটার সাথে sync করা হচ্ছে।
+    save.coins=(save.coins||0)+bonusCoins;
+    coins=save.coins;
+    updateCoinsUI();
+    coinSound();
+    persist();
+    spawnFloatText(truck.x,truck.y-95,label,color);
+  }
+  // Air-time/rotation রিসেট পরের জাম্পের জন্য।
+  truck.airTime=0;truck.airRotation=0;
+}
+
+// ---------- MISSIONS / ACHIEVEMENTS UI ----------
+// মিশন ক্লেইম করা হচ্ছে (target পূরণ হলে এবং আগে claim না হলে)।
+function claimMission(id){
+  ensureV30Save();
+  const item=(save.missions.items||[]).find(m=>m.id===id);
+  if(!item||item.claimed) return;
+  const progress=save.daily[item.type+"Today"]||0;
+  // টার্গেট পূরণ না হলে claim করা যাবে না (ডাবল-ক্লিক/রিফ্রেশ exploit আটকানো)।
+  if(progress<item.target) return;
+  item.claimed=true;
+  coins+=item.reward;save.coins=coins;persist();
+  purchaseSound();updateCoinsUI();renderMissions();
+}
+// Achievement-গুলো স্বয়ংক্রিয়ভাবে (claim বাটন ছাড়াই) একবার পূরণ হলেই পুরস্কার দেওয়া হচ্ছে।
+function checkAchievements(){
+  // Data এখনো তৈরি না হলে (খুব early call) কিছু করার দরকার নেই।
+  if(!Array.isArray(ACHIEVEMENTS)) return;
+  ensureV30Save();
+  let any=false;
+  ACHIEVEMENTS.forEach(a=>{
+    // আগে claim হয়নি এবং শর্ত পূরণ হয়েছে—তবেই পুরস্কার।
+    if(!save.achClaimed.includes(a.id)&&a.check(save)){
+      save.achClaimed.push(a.id);
+      coins+=a.reward;save.coins=coins;any=true;
+      // শুধু খেলার মধ্যে থাকলে floating notification দেখানো হবে (মেনুতে থাকলে truck position অর্থহীন)।
+      if(state==="play") spawnFloatText(truck.x,truck.y-130,"🏆 +"+a.reward,"#ffd34e");
+    }
+  });
+  if(any){
+    persist();
+    // এখানে সরাসরি updateCoinsUI() কল না করে (সেটা নিজেই checkAchievements কল করে, infinite loop এড়াতে)
+    // সরাসরি সব coin-display element আপডেট করা হচ্ছে।
+    document.getElementById("menuCoins").textContent=coins;
+    document.getElementById("coins").textContent=coins;
+    document.getElementById("levelCoins").textContent=coins;
+    document.getElementById("garageCoins").textContent=coins;
+    document.getElementById("storeCoins").textContent=coins;
+    const mc2=document.getElementById("mapCoins");if(mc2)mc2.textContent=coins;
+    const msc2=document.getElementById("missionsCoins");if(msc2)msc2.textContent=coins;
+    renderMissions();
+  }
+}
+// মিশন ও অ্যাচিভমেন্ট স্ক্রিন রেন্ডার করা হচ্ছে।
+function renderMissions(){
+  ensureV30Save();
+  const list=document.getElementById("missionsList");
+  // স্ক্রিন এখনো DOM-এ না থাকলে (হবে না, তবুও safety) কিছু করার দরকার নেই।
+  if(!list) return;
+  const mc=document.getElementById("missionsCoins");if(mc) mc.textContent=coins;
+  list.innerHTML="";
+  (save.missions.items||[]).forEach(item=>{
+    const progress=Math.min(item.target,save.daily[item.type+"Today"]||0);
+    const pct=Math.round((progress/item.target)*100);
+    const ready=progress>=item.target&&!item.claimed;
+    const div=document.createElement("div");
+    div.className="missionItem"+(item.claimed?" claimed":"");
+    div.innerHTML=`<div class="missionInfo"><div class="missionDesc">${item.desc}</div><div class="missionProgressTrack"><div class="missionProgressFill" style="width:${pct}%"></div></div><div class="missionReward">${progress}/${item.target} • reward ${item.reward} 🪙</div></div><button type="button" class="claimBtn${ready?" ready":""}" ${(item.claimed||!ready)?"disabled":""}>${item.claimed?"✓ DONE":"CLAIM"}</button>`;
+    if(ready){
+      const btn=div.querySelector(".claimBtn");
+      btn.onclick=()=>claimMission(item.id);
+    }
+    list.appendChild(div);
+  });
+  const achListEl=document.getElementById("achievementsList");
+  if(achListEl&&Array.isArray(ACHIEVEMENTS)){
+    achListEl.innerHTML="";
+    ACHIEVEMENTS.forEach(a=>{
+      const done=save.achClaimed.includes(a.id);
+      const div=document.createElement("div");
+      div.className="achItem"+(done?" done":"");
+      div.innerHTML=`<div class="achIcon">${done?"🏆":"🔒"}</div><div class="achInfo"><div class="achDesc">${a.desc}</div><div class="missionReward">reward ${a.reward} 🪙${done?" • claimed":""}</div></div>`;
+      achListEl.appendChild(div);
+    });
+  }
+}
+
+// ---------- PHYSICS/RESET/START/COMPLETE/RENDER — চূড়ান্ত সংস্করণ (সব নতুন সিস্টেম হুক করা) ----------
+
+// Truck reset—আগের সব logic অপরিবর্তিত + নতুন সিস্টেমের run-only state reset।
+function resetTruck(){
+  truck.x=250;truck.vx=0;truck.vy=0;truck.angle=terrainSlope(truck.x);truck.angVel=0;truck.wheelSpin=0;truck.onGround=true;
+  const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0];truck.wheelR=27+Math.min(4,(v.suspension-1)*12);truck.wheelBase=92;truck.y=terrainY(truck.x)-truck.wheelR-31;camera.x=0;
+  truck.rearSusp=0;truck.frontSusp=0;truck.rearSuspV=0;truck.frontSuspV=0;
+  truck.airTime=0;truck.airRotation=0;truck.flipsThisAir=0;
+  truck.lastGroundY=truck.y;
+  truck.boostEnergy=100;
+  // --- V30: combo/ghost-recording/impact-cooldown রিসেট। Vehicle condition এখানে রিসেট হয় না—
+  // সেটা persistent থাকে, শুধু গ্যারেজে REPAIR করলেই ঠিক হবে (বাস্তবসম্মত)। ---
+  comboCount=0;comboTimer=0;
+  ghostRecording=[];ghostRecordTimer=0;
+  impactCooldown=0;
+}
+
+// Level শুরু—weather বাছাই, ghost লোড, daily reset চেক।
+function startLevel(id){
+  currentLevel=Math.max(1,Math.min(TOTAL_LEVELS,id));
+  // মাঝ-সেশনে মধ্যরাত পার হলেও মিশন ঠিকভাবে রিসেট হবে।
+  checkDailyReset();
+  const coinKey=currentLevel+"_m"+(save.selectedMap||0);
+  if(save.collected[coinKey]) delete save.collected[coinKey];
+  state="play";
+  // এই level+map-এর জন্য deterministic আবহাওয়া বাছাই (একই level/map সবসময় একই আবহাওয়া)।
+  currentWeather=weatherForLevel();
+  // আগের level-এর আবহাওয়া কণা মুছে ফেলা হচ্ছে।
+  weatherParticles=[];
+  // আগের best-run ঘোস্ট (থাকলে) লোড করা হচ্ছে।
+  loadGhostForLevel();
+  resetTruck();generateCoins();levelStart=performance.now();elapsed=0;hideScreens();
+  document.getElementById("hud").classList.remove("hidden");document.getElementById("controls").classList.remove("hidden");
+  resumeAudio();setAudioSuppressed(false);engineStart();updateHUD();updateWeatherBadge();updateDamageBarUI();
+}
+
+// Level complete—আগের reward logic অপরিবর্তিত + ghost save + daily mission counter + achievement check।
+function completeLevel(){
+  if(state!=="play") return;
+  state="complete";engineStop();elapsed=(performance.now()-levelStart)/1000;
+  const old=save.best[currentLevel];if(!old||elapsed<old) save.best[currentLevel]=elapsed;
+  save.completed[currentLevel]=true;if(currentLevel<TOTAL_LEVELS) save.unlocked=Math.max(save.unlocked,currentLevel+1);
+  const reward=75+Math.floor(currentLevel*3)+(save.selectedMap||0)*10;coins+=reward;save.coins=coins;
+  // --- V30: দৈনিক মিশন কাউন্টার + ghost best-run save + achievement check ---
+  ensureV30Save();
+  save.daily.levelsToday=(save.daily.levelsToday||0)+1;
+  saveGhostIfBest();
+  persist();
+  checkAchievements();
+  document.getElementById("resultTime").textContent=formatTime(elapsed);document.getElementById("rewardText").textContent=`+${reward} coins`;document.getElementById("resultStars").textContent=elapsed<42?"★★★":elapsed<70?"★★☆":"★☆☆";
+  purchaseSound();showScreen("completeMenu");
+}
+
+// ক্র্যাশ—combo ভাঙা + impact damage যোগ করা হয়েছে, বাকি আগের মতোই।
+function crash(reason){
+  if(state!=="play") return;
+  state="crash";
+  engineStop();
+  crashSound();
+  // ক্র্যাশ হলে combo স্বাভাবিকভাবেই ভেঙে যাবে।
+  comboCount=0;comboTimer=0;
+  // ক্র্যাশের ধরন অনুযায়ী আলাদা পরিমাণ damage (গ্যাপে পড়া/পাহাড় থেকে পড়া/রোলওভার)।
+  const dmg=reason&&reason.indexOf("gap")>=0?20:reason&&reason.indexOf("mountain")>=0?24:14;
+  applyImpactDamage(dmg,true);
+  document.getElementById("crashText").textContent=reason;
+  showScreen("crashMenu");
+}
+
+// মূল physics loop—বায়োম/আবহাওয়া/condition grip, ghost রেকর্ডিং, combo, distance ট্র্যাকিং সব হুক করা হয়েছে।
+function updatePhysics(dt){
+  // ভাসমান bonus টেক্সট সবসময় update হবে (pause/menu থাকলেও সমস্যা নেই, নিজে থেকেই life শেষ হলে বন্ধ হয়ে যায়)।
+  updateFloatTexts(dt);
+  // খেলা চলছে না হলে বাকি কিছু করার দরকার নেই।
+  if(state!=="play") return;
+  updateEngine();
+  const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],up=currentUpgrades();
+  // বর্তমান ম্যাপ (biome)।
+  const m=maps[save.selectedMap]||maps[0];
+  // Vehicle condition (damage) অনুযায়ী performance factor—পুরো ভাঙা truck ধীরে চলবে/কম grip পাবে।
+  const conditionFactor=.65+.35*(getCondition(save.selectedVehicle)/100);
+  const enginePower=(1+(up.engine-1)*.10)*conditionFactor;
+  // Grip: vehicle base × tire upgrade × biome grip × আবহাওয়া grip × condition।
+  const grip=v.grip*(1+(up.tires-1)*.055)*themeGripMul(m.theme)*weatherGripMul()*conditionFactor;
+  const suspension=v.suspension*(1+(up.suspension-1)*.07),boost=v.boost*(1+(up.boost-1)*.08),maxSpeed=430+v.speed*260+up.engine*18;
+
+  // --- BOOST/NITRO ---
+  const isBoosting=keys.boost&&truck.boostEnergy>0;
+  if(isBoosting){truck.boostEnergy=Math.max(0,truck.boostEnergy-46*dt);}else{truck.boostEnergy=Math.min(100,truck.boostEnergy+13*dt);}
+  const boostMul=isBoosting?1.65:1,boostSpeedMul=isBoosting?1.32:1;
+  if(isBoosting&&!truck.wasBoosting){tone(180,.18,.14,"sawtooth");setTimeout(()=>tone(340,.14,.10,"sawtooth"),70);}
+  truck.wasBoosting=isBoosting;
+
+  // --- GAS/DRIVE/REVERSE/BRAKE ---
+  if(keys.right||keys.gas) truck.vx+=(keys.gas?900:690)*enginePower*v.speed*boost*boostMul*dt;
+  if(keys.left) truck.vx-=520*enginePower*dt;
+  if(keys.brake) truck.vx*=Math.pow(.035,dt);
+  truck.vx*=Math.pow(.92,dt);
+  truck.vx=Math.max(-260,Math.min(maxSpeed*boostSpeedMul,truck.vx));
+
+  // --- GRAVITY ---
+  truck.vy+=1850/Math.max(.7,suspension)*dt;
+
+  // --- আবহাওয়ার সাইড-ফোর্স: বাতাসে/বালির ঝড়ে airborne অবস্থায় হালকা পিছনে ধাক্কা (challenge) ---
+  if(!truck.onGround) truck.vx+=weatherSideForce()*dt;
+
+  // --- অবস্থান আপডেট ---
+  const prevX=truck.x;
+  truck.x+=truck.vx*dt;
+  if(truck.x<220){truck.x=220;truck.vx=0;}
+  truck.y+=truck.vy*dt;
+  truck.wheelSpin+=truck.vx*dt/truck.wheelR;
+
+  // --- দূরত্ব ট্র্যাকিং (Missions/Achievements)—শুধু সামনের movement গণনা হবে ---
+  const movedForward=Math.max(0,truck.x-prevX);
+  if(movedForward>0){
+    save.daily.distanceToday=(save.daily.distanceToday||0)+movedForward;
+    save.lifetime.distanceTotal=(save.lifetime.distanceTotal||0)+movedForward;
+  }
+
+  // --- Boost flame particle ---
+  if(isBoosting&&Math.random()<dt*55) boostFlame(truck.x-Math.cos(truck.angle)*48,truck.y+Math.sin(truck.angle)*48+8);
+
+  const wasOnGround=truck.onGround;
+  const rearX=truck.x-truck.wheelBase/2,frontX=truck.x+truck.wheelBase/2,rearGround=isGap(rearX)?Infinity:terrainY(rearX),frontGround=isGap(frontX)?Infinity:terrainY(frontX),rearContact=rearGround-truck.wheelR,frontContact=frontGround-truck.wheelR;
+
+  if(Number.isFinite(rearContact)&&Number.isFinite(frontContact)){
+    const targetY=(rearContact+frontContact)/2-25,targetAngle=Math.atan2(frontContact-rearContact,truck.wheelBase);
+    // আগের session-এ ফিক্স করা "গ্যাপে পড়েও মরে না" বাগের গার্ড—fall অনেক গভীর হলে snap করানো হবে না।
+    // V30 বাগ-ফিক্স: বট দিয়ে সব ম্যাপ/লেভেল টেস্ট করার সময় ধরা পড়েছে—যদি truck কোনো বড় পাহাড়ের চূড়া থেকে
+    // (কোনো gap-এর সাথে সম্পর্কহীনভাবে) অনেকক্ষণ ধরে পড়তে থাকে এবং পড়তে পড়তে ঠিক একটা gap-এর ঠিক পরেই
+    // সম্পূর্ণ শক্ত (solid) জমিতে এসে পড়ে, তাহলে fallGap (পতনের গভীরতা) ২৩০-এর বেশি হয়ে যেত এবং এই গার্ড
+    // ভুলভাবে catch আটকে দিত—ফলে truck সম্পূর্ণ শক্ত রাস্তার উপর দিয়েও ভুতুড়েভাবে পড়তে থাকত এবং শেষে
+    // "You fell off the mountain!" বলে অন্যায়ভাবে crash হতো, যদিও আসল কোনো gap-এর সাথে এর সম্পর্কই ছিল না।
+    // তাই এখন fallGap-ভিত্তিক এই নিষেধাজ্ঞা শুধু তখনই কাজ করবে যখন truck-এর বর্তমান চাকার আশেপাশে
+    // সত্যিই কোনো gap আছে (spanHasGap দিয়ে চেক করা)—তাহলেই এটা "গ্যাপ থেকে auto-climb" exploit ধরবে,
+    // আর সাধারণ গভীর (কিন্তু gap-সম্পর্কহীন) পতনে truck স্বাভাবিকভাবেই ঠিকমতো land করবে।
+    const fallGap=truck.y-targetY;
+    // মার্জিন ছোট রাখা হয়েছে (শুধু gap-এর ঠিক কিনারা পর্যন্ত + সামান্য বাফার)—বড় মার্জিন দিলে truck
+    // gap পার হয়ে অনেকদূর সত্যিকারের শক্ত জমিতে চলে যাওয়ার পরেও ভুলভাবে catch আটকে দিচ্ছিল (উপরের নোট দ্রষ্টব্য)।
+    const nearGapExploit=fallGap>=230&&spanHasGap(rearX-15,frontX+15);
+    if(truck.y>=targetY&&truck.vy>=-150&&!nearGapExploit){
+      if(!truck.onGround&&truck.vy>220){dust(truck.x,targetY+30,16);landSound();}
+      // হার্ড ল্যান্ডিং (খুব জোরে পড়া) হলে vehicle condition কিছুটা কমবে (Damage & Repair ফিচার)।
+      if(!truck.onGround&&truck.vy>480) applyImpactDamage(Math.min(14,(truck.vy-480)/60));
+      truck.y=targetY;truck.vy*=-.08;truck.onGround=true;truck.lastGroundY=targetY;
+      const diff=Math.atan2(Math.sin(targetAngle-truck.angle),Math.cos(targetAngle-truck.angle));
+      truck.angVel+=diff*24*dt*grip;truck.angle+=truck.angVel*dt;truck.angVel*=Math.pow(.015,dt);
+      if(Math.abs(truck.vx)>110&&Math.random()<dt*13) dust(rearX,rearContact+20,1);
+    }else{
+      if(truck.onGround&&truck.vy>200) jumpSound();truck.onGround=false;
+      if(keys.left) truck.angVel-=7.5*dt*grip;if(keys.right) truck.angVel+=7.5*dt*grip;
+      truck.angVel*=Math.pow(.89,dt);truck.angle+=truck.angVel*dt;
+    }
+  }else{
+    truck.onGround=false;
+    if(keys.left) truck.angVel-=7.5*dt*grip;if(keys.right) truck.angVel+=7.5*dt*grip;
+    truck.angVel*=Math.pow(.90,dt);truck.angle+=truck.angVel*dt;
+  }
+
+  // --- স্বাধীন চাকা suspension (অপরিবর্তিত) ---
+  {
+    const ca=Math.cos(truck.angle),sa=Math.sin(truck.angle);
+    const rearRigidY=truck.y+(-39*sa+32*ca),frontRigidY=truck.y+(43*sa+28*ca);
+    const rearRaw=Number.isFinite(rearContact)?(rearContact-rearRigidY):22,frontRaw=Number.isFinite(frontContact)?(frontContact-frontRigidY):22;
+    const rearTarget=Math.max(-14,Math.min(22,rearRaw)),frontTarget=Math.max(-14,Math.min(22,frontRaw));
+    const susK=95,susD=13;
+    truck.rearSuspV+=((rearTarget-truck.rearSusp)*susK-truck.rearSuspV*susD)*dt;truck.rearSusp+=truck.rearSuspV*dt;
+    truck.frontSuspV+=((frontTarget-truck.frontSusp)*susK-truck.frontSuspV*susD)*dt;truck.frontSusp+=truck.frontSuspV*dt;
+    truck.rearSusp=Math.max(-14,Math.min(22,truck.rearSusp));truck.frontSusp=Math.max(-14,Math.min(22,truck.frontSusp));
+  }
+
+  // --- Air Time / Flip / Combo ---
+  if(!truck.onGround){truck.airTime+=dt;truck.airRotation+=Math.abs(truck.angVel*dt);}
+  if(truck.onGround&&!wasOnGround) awardAirBonus();
+  updateCombo(dt);
+
+  // --- exhaust ---
+  if(keys.gas&&Math.random()<dt*22) exhaustPuff(truck.x-Math.cos(truck.angle)*45,truck.y+Math.sin(truck.angle)*45+8);
+
+  // --- নতুন সিস্টেম আপডেট: আবহাওয়া কণা, damage cooldown, ghost রেকর্ডিং ---
+  updateWeather(dt);
+  updateDamage(dt);
+  recordGhostSample(dt);
+
+  collectCoins();updateCamera(dt);updateParticles(dt);
+  if(checkCrash()) return;
+  if(truck.x>=finishX()) completeLevel();
+}
+
+// পর্দায় আঁকার ক্রম—ghost truck-এর পরে আসল truck, তারপর আবহাওয়া/রাত-দৃশ্যমানতা overlay।
+function render(){
+  drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawParticles();
+  drawGhost();
+  drawTruck();
+  drawWeather();
+  drawNightOverlay();
+  drawFloatTexts();drawGaugeCluster();
+  if(state==="play"){
+    elapsed=(performance.now()-levelStart)/1000;
+    document.getElementById("timer").textContent=formatTime(elapsed);
+    updateHUD();updateWeatherBadge();updateDamageBarUI();
+  }
+}
+
+// Coin UI আপডেট + achievement check (এখানে হুক করা হয়েছে কারণ এই function প্রায় প্রতিটা coin-change event-এ কল হয়)।
+function updateCoinsUI(){
+  document.getElementById("menuCoins").textContent=coins;
+  document.getElementById("coins").textContent=coins;
+  document.getElementById("levelCoins").textContent=coins;
+  document.getElementById("garageCoins").textContent=coins;
+  document.getElementById("storeCoins").textContent=coins;
+  const mc=document.getElementById("mapCoins");if(mc) mc.textContent=coins;
+  const msc=document.getElementById("missionsCoins");if(msc) msc.textContent=coins;
+  checkAchievements();
+}
+
+// সব স্ক্রিন hide—এখন "missionsMenu"-ও তালিকায় যোগ করা হয়েছে।
+function hideScreens(){
+  ["mainMenu","levelMenu","mapsMenu","garageMenu","storeMenu","missionsMenu","pauseMenu","crashMenu","completeMenu","settingsMenu"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.add("hidden");el.style.display="none";el.style.visibility="hidden";el.style.pointerEvents="none";}
+  });
+}
+// নির্দিষ্ট স্ক্রিন দেখানো—"missionsMenu"-ও menu-screen তালিকায় যোগ (HUD/controls hide হবে)।
+function showScreen(id){
+  hideScreens();
+  const el=document.getElementById(id);
+  if(el){el.classList.remove("hidden");el.style.display="";el.style.visibility="visible";el.style.pointerEvents="auto";}
+  const menuScreens=["mainMenu","levelMenu","mapsMenu","garageMenu","storeMenu","missionsMenu"];
+  const hud=document.getElementById("hud"),controls=document.getElementById("controls");
+  if(menuScreens.includes(id)){hud.classList.add("hidden");controls.classList.add("hidden");}
+  else if(["pauseMenu","crashMenu","completeMenu"].includes(id)){hud.classList.remove("hidden");controls.classList.remove("hidden");}
+}
+
+// গ্যারেজ—আগের সব logic অপরিবর্তিত + condition bar/REPAIR বাটন যোগ করা হয়েছে।
+function renderGarage(){
+  document.getElementById("garageCoins").textContent=coins;
+  const selected=Math.max(0,Math.min(vehiclesV22.length-1,Number(save.selectedVehicle)||0));
+  save.selectedVehicle=selected;
+  const v=vehiclesV22[selected];
+  const preview=document.getElementById("garageVehicle");
+  preview.innerHTML=miniTruckMarkup(v);
+  document.getElementById("garageVehicleName").textContent=v.name;
+  document.getElementById("garageVehicleDesc").textContent=v.desc;
+  document.getElementById("selectVehicleBtn").textContent="✓ SELECTED";
+
+  let stats=document.getElementById("garageStats");
+  if(!stats){stats=document.createElement("div");stats.id="garageStats";stats.className="vehicleStats";preview.parentElement.insertBefore(stats,document.getElementById("selectVehicleBtn"));}
+  const up=currentUpgrades();
+  const stat=(label,val)=>`<div class="statBar">${label}<i style="--stat:${Math.min(100,val*72)}%"></i></div>`;
+  stats.innerHTML=stat("SPEED",v.speed+up.engine*.018)+stat("GRIP",v.grip+up.tires*.012)+stat("POWER",v.boost+up.boost*.015);
+
+  // --- V30: Vehicle condition bar + REPAIR বাটন (Damage & Repair ফিচার) ---
+  let cond=document.getElementById("garageCondition");
+  if(!cond){cond=document.createElement("div");cond.id="garageCondition";cond.className="garageCondition";stats.insertAdjacentElement("afterend",cond);}
+  const conditionVal=getCondition(selected);
+  const condClass=conditionVal<35?"crit":conditionVal<70?"warn":"";
+  const repairCost=Math.round((100-conditionVal)*3);
+  cond.innerHTML=`<div class="condLabel"><span>🔧 CONDITION</span><span>${Math.round(conditionVal)}%</span></div><div class="condTrack"><div class="condFill ${condClass}" style="width:${conditionVal}%"></div></div><button type="button" class="repairBtn" ${conditionVal>=100?"disabled":""}>${conditionVal>=100?"FULL CONDITION":`🔧 REPAIR — ${repairCost} 🪙`}</button>`;
+  const repairBtn=cond.querySelector(".repairBtn");
+  if(repairBtn&&conditionVal<100){
+    repairBtn.onclick=()=>{
+      resumeAudio();
+      // ব্যালেন্স যথেষ্ট না থাকলে—negative coin আটকানো ও toast দেখানো।
+      if(coins<repairCost){notEnoughCoins();return;}
+      coins-=repairCost;save.coins=coins;setCondition(selected,100);persist();purchaseSound();updateCoinsUI();renderGarage();
+    };
+  }
+
+  const list=document.getElementById("vehicleList");list.innerHTML="";
+  vehiclesV22.forEach((vehicle,id)=>{
+    const owned=save.ownedVehicles.includes(id),selectedNow=selected===id;
+    const card=document.createElement("div");card.className="vehicleCard"+(selectedNow?" selected":"");
+    card.innerHTML=`<div class="vehicleEmoji">${miniTruckMarkup(vehicle,"vehicleMini")}</div><h3>${vehicle.name}</h3><p>⚡ ${Math.round(vehicle.speed*100)}% · 🛞 ${Math.round(vehicle.grip*100)}% · 🚀 ${Math.round(vehicle.boost*100)}%</p><button type="button">${selectedNow?"SELECTED":owned?"SELECT":`BUY ${vehicle.price} 🪙`}</button>`;
+    card.querySelector("button").onclick=e=>{
+      e.stopPropagation();resumeAudio();
+      if(selectedNow){tone(520,.05,.04);return;}
+      if(owned){save.selectedVehicle=id;persist();selectSound();renderGarage();return;}
+      if(coins<vehicle.price){notEnoughCoins();return;}
+      coins-=vehicle.price;save.coins=coins;save.ownedVehicles.push(id);save.selectedVehicle=id;persist();purchaseSound();updateCoinsUI();renderGarage();
+    };
+    list.appendChild(card);
+  });
+  renderUpgrades();
+}
+
+// ---------- মাউস-ফার্স্ট কন্ট্রোল প্যানেল: PAUSE/RESTART/MUTE বাটন ওয়্যারিং ----------
+// এই তিনটা বাটনে ইচ্ছাকৃতভাবে ".driveControl" class দেওয়া হয়নি (index.html দেখুন), কারণ সেই class-এর
+// সব element-এ আগে থেকেই keys[...]=true/false সেট করার pointerdown/up লজিক বাঁধা আছে (gas/brake/drive-এর জন্য)—
+// সেটা এই action-বাটনগুলোর সাথে মিশে গেলে click আচরণ অনির্দিষ্ট হয়ে যেত। তাই এগুলো শুধু সাধারণ click বাটন।
+(function wireV30ControlButtons(){
+  const missionsBtnEl=document.getElementById("missionsBtn");
+  if(missionsBtnEl) missionsBtnEl.onclick=()=>{resumeAudio();tone(500,.06,.05);checkDailyReset();renderMissions();showScreen("missionsMenu");};
+  const backMissionsBtnEl=document.getElementById("backMissionsBtn");
+  if(backMissionsBtnEl) backMissionsBtnEl.onclick=()=>{tone(330,.06,.05);goMain();};
+
+  const ctlPauseEl=document.getElementById("ctlPause");
+  if(ctlPauseEl) ctlPauseEl.onclick=e=>{if(e)e.preventDefault();resumeAudio();if(state==="play"||state==="pause")togglePause();};
+
+  const ctlRestartEl=document.getElementById("ctlRestart");
+  if(ctlRestartEl) ctlRestartEl.onclick=e=>{if(e)e.preventDefault();resumeAudio();if(state==="play"||state==="pause")startLevel(currentLevel);};
+
+  const ctlMuteEl=document.getElementById("ctlMute");
+  if(ctlMuteEl){
+    const syncMuteIcon=()=>{ctlMuteEl.textContent=userMuted?"🔇":"🔊";ctlMuteEl.classList.toggle("muted",userMuted);};
+    ctlMuteEl.onclick=e=>{
+      if(e)e.preventDefault();
+      userMuted=!userMuted;
+      localStorage.setItem("hillRushMuted",userMuted?"1":"0");
+      applyAudioVolume();
+      syncMuteIcon();
+      // Settings প্যানেলের mute checkbox-এর সাথেও sync রাখা হচ্ছে।
+      const muteToggleEl=document.getElementById("muteToggle");
+      if(muteToggleEl) muteToggleEl.checked=userMuted;
+    };
+    // শুরুতেই আইকন সঠিকভাবে দেখানো হচ্ছে।
+    syncMuteIcon();
+  }
+})();
+
+// ---------- INPUT SAFETY (অতিরিক্ত গার্ড) ----------
+// Tab/app switch বা window blur হলে boost key-ও (আগের ভার্সনে বাদ ছিল) রিলিজ হবে, এবং pressed CSS class-ও মুছে যাবে।
+addEventListener("blur",()=>{
+  keys.left=keys.right=keys.gas=keys.brake=keys.boost=false;
+  document.querySelectorAll(".pressed").forEach(b=>b.classList.remove("pressed"));
+});
+// ট্যাব hidden হলে এখন শুধু key release না, গেম নিজে থেকেই pause হয়ে যাবে (simulation+timer সত্যিকারে থেমে যায়)।
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){
+    keys.left=keys.right=keys.gas=keys.brake=keys.boost=false;
+    document.querySelectorAll(".pressed").forEach(b=>b.classList.remove("pressed"));
+    if(state==="play") togglePause();
+  }
+});
+
+// ---------- STARTUP (রিফ্রেশ) ----------
+// নতুন HUD/Garage/Missions উপাদানগুলো প্রথমবারেই সঠিক ডেটা দেখানোর জন্য একবার রেন্ডার করা হচ্ছে।
+updateCoinsUI();
+updateWeatherBadge();
+updateDamageBarUI();
+renderMissions();
 // ============================================================

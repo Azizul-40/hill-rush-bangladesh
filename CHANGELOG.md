@@ -57,3 +57,16 @@ v6 থেকে যা বদলেছে:
 - **ইঞ্জিনের শব্দ:** গতি ও গ্যাস অনুযায়ী পিচ আর ভলিউম বদলায়।
 - **লেভেল আরও লম্বা:** শেষ রেখার দূরত্ব বাড়ানো হয়েছে (লেভেল যত বাড়ে তত বেশি)।
 - **Developer credit-এর ক্রম** আবার "Azizul & Habiba"।
+
+## v8 — বড় আপডেট (মিশন, ঘোস্ট, আবহাওয়া, damage)
+v7 থেকে যা বদলেছে:
+- **মাউস-প্রথম control panel:** PAUSE / RESTART / SOUND বাটন, সুরক্ষিত pointer হ্যান্ডলিং, কোনো বাটন আটকে থাকে না।
+- **৫টা biome:** Green Hills, Desert, Snow Mountain, Rocky/Volcano, Night Forest — প্রতিটার আলাদা গ্রিপ/ট্র্যাকশন।
+- **Ghost Racing:** আগের সেরা রানের স্বচ্ছ ভূত ট্রাক।
+- **Stunt & Combo:** সত্যিকারের হাওয়ায় ঘোরা গোনা, পরপর স্টান্টে multiplier।
+- **Dynamic Weather:** বৃষ্টি / তুষার / বাতাস, প্রতি লেভেলে নির্দিষ্ট (deterministic)।
+- **Daily Missions + Achievements:** নতুন MISSIONS স্ক্রিন, একবারই reward claim।
+- **Damage & Repair:** গাড়ির condition meter, গ্যারেজে কয়েন দিয়ে repair।
+- **বাগ ফিক্স:** (১) করাপ্টেড save-এ গেম crash, (২) স্টান্ট বোনাস কয়েন হারিয়ে যাওয়া, (৩) মাটিতে ল্যান্ড করার পরও ভুল "পাহাড় থেকে পড়ে গেছ" crash, (৪) উঁচু লেভেলে gap-এর পর unfair landing।
+- **Developer credit-এ "Supervised by Md. Hasibur Rahman"** যোগ।
+- README, LICENSE (All Rights Reserved), CHANGELOG যোগ।

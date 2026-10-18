@@ -40,6 +40,14 @@
       <button class="coinPlus" type="button">+</button>
     </div>
 
+    <!-- V30: আবহাওয়া আইকন + vehicle condition (damage) bar একসাথে একটা ছোট status panel-এ। -->
+    <div id="hudStatus" class="hudStatus">
+      <span id="weatherBadge" class="weatherBadge" title="Weather">☀</span>
+      <div class="damageWrap" title="Vehicle condition">
+        <div id="damageBar" class="damageBar"></div>
+      </div>
+    </div>
+
     <!-- Reference-এর মতো settings button। -->
     <button id="settingsBtn" class="hudIcon settingsHud">⚙</button>
   </div>
@@ -82,6 +90,8 @@
       <button id="mapsBtn" type="button" class="actionBtn">🗺️ MAPS</button>
       <button id="garageBtn" type="button" class="actionBtn">🚙 GARAGE</button>
       <button id="storeBtn" type="button" class="actionBtn">🛒 STORE</button>
+      <!-- V30: Daily Missions + Achievements বাটন। -->
+      <button id="missionsBtn" type="button" class="actionBtn">🏆 MISSIONS</button>
     </div>
 
     <!-- Main menu coin balance। -->
@@ -96,6 +106,7 @@
       <span class="devRock devRockL"></span><span class="devRock devRockR"></span>
       <div class="developerSmall">DEVELOPED BY</div>
       <div class="developerName"><span class="azizulName">Azizul</span> <span class="amp">&amp;</span> <span class="habibaName">Habiba</span></div>
+      <div class="supervisedBy">SUPERVISED BY <strong>Md. Hasibur Rahman</strong></div>
     </div>
   </section>
 
@@ -232,6 +243,24 @@
     </div>
   </section>
 
+  <!-- V30: Daily Missions + Achievements স্ক্রিন। -->
+  <section id="missionsMenu" class="screen hidden">
+    <div class="levelHeader missionsHeader">
+      <button id="backMissionsBtn" type="button" class="backBtn">‹ MENU</button>
+      <div class="headerTitle">
+        <span>HILL RUSH</span>
+        <strong>MISSIONS &amp; ACHIEVEMENTS</strong>
+      </div>
+      <div class="headerCoin">🪙 <span id="missionsCoins">250</span></div>
+    </div>
+    <div class="missionsBody">
+      <h3 class="missionsSubTitle">📅 DAILY MISSIONS</h3>
+      <div id="missionsList" class="missionsList"></div>
+      <h3 class="missionsSubTitle">🏆 ACHIEVEMENTS</h3>
+      <div id="achievementsList" class="achievementsList"></div>
+    </div>
+  </section>
+
   <!-- Pause। -->
   <section id="pauseMenu" class="screen hidden">
     <div class="modalCard">
@@ -269,6 +298,13 @@
 
   <!-- Mobile controls। -->
   <div id="controls" class="hidden">
+
+    <!-- V30: মাউস-প্রথম control panel—PAUSE/RESTART/SOUND একসাথে এক জায়গায়, গেমপ্লে বাটনগুলোর ঠিক উপরে। -->
+    <div class="controlTop">
+      <button id="ctlPause" class="iconControl pauseIcon" type="button" aria-label="Pause">Ⅱ</button>
+      <button id="ctlRestart" class="iconControl restartIcon" type="button" aria-label="Restart">↻</button>
+      <button id="ctlMute" class="iconControl muteIcon" type="button" aria-label="Mute">🔊</button>
+    </div>
 
     <!-- বাম পাশে শুধু Brake থাকবে। -->
     <div class="controlSide controlLeft">
