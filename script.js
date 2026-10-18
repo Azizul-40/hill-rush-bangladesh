@@ -788,6 +788,81 @@ function exhaustPuff(x,y){
   particles.push({type:"smoke",x:x+(Math.random()-.5)*8,y:y+(Math.random()-.5)*6,vx:-60-Math.random()*40,vy:-30-Math.random()*40,life:.5+Math.random()*.3,max:.8,size:4+Math.random()*5});
 }
 
+// ---------- AIR TIME / FLIP বোনাস (Hill Climb Racing-এর মতো ভাসমান স্কোর টেক্সট) ----------
+let floatTexts=[];
+function spawnFloatText(x,y,text,color){
+  floatTexts.push({x,y,text,color,life:1.4,max:1.4,vy:-46});
+}
+function updateFloatTexts(dt){
+  for(let i=floatTexts.length-1;i>=0;i--){
+    const f=floatTexts[i];f.y+=f.vy*dt;f.vy*=Math.pow(.9,dt*60);f.life-=dt;
+    if(f.life<=0)floatTexts.splice(i,1);
+  }
+}
+function drawFloatTexts(){
+  floatTexts.forEach(f=>{
+    const a=Math.max(0,Math.min(1,f.life/f.max));
+    ctx.save();ctx.globalAlpha=a;ctx.font="900 26px system-ui, sans-serif";ctx.textAlign="center";
+    ctx.lineWidth=5;ctx.strokeStyle="rgba(0,0,0,.55)";ctx.strokeText(f.text,f.x-camera.x,f.y);
+    ctx.fillStyle=f.color;ctx.fillText(f.text,f.x-camera.x,f.y);
+    ctx.restore();
+  });
+}
+// ল্যান্ড করার মুহূর্তে air-time আর flip হিসাব করে কয়েন বোনাস দেওয়া হচ্ছে।
+function awardAirBonus(){
+  const flips=Math.floor(truck.airRotation/(Math.PI*2));
+  let bonusCoins=0,label="",color="#ffd83a";
+  if(flips>=1){
+    bonusCoins=flips*120+Math.floor(truck.airTime*30);
+    label=(flips>=2?("FLIP x"+flips):"FLIP!")+" +"+bonusCoins;
+    color="#ff6fae";
+  }else if(truck.airTime>0.4){
+    bonusCoins=Math.floor(truck.airTime*45);
+    label="AIR TIME +"+bonusCoins;
+    color="#ffd83a";
+  }
+  if(bonusCoins>0){
+    save.coins=(save.coins||0)+bonusCoins;updateCoinsUI();coinSound();persist();
+    spawnFloatText(truck.x,truck.y-95,label,color);
+  }
+  truck.airTime=0;truck.airRotation=0;
+}
+
+// ---------- RPM / FUEL / BOOST গেজ ক্লাস্টার (Hill Climb Racing-এর মতো ড্যাশবোর্ড, স্ক্রিন-স্পেসে আঁকা) ----------
+function drawGauge(cx,cy,r,value,label,color){
+  ctx.save();ctx.translate(cx,cy);
+  // outer ring
+  ctx.fillStyle="#12181e";ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#3a444d";ctx.lineWidth=4;ctx.stroke();
+  // colored arc scale (red-orange-green feel)
+  const startA=Math.PI*.78,endA=Math.PI*2.22;
+  ctx.lineWidth=6;
+  ctx.strokeStyle="#e6493b";ctx.beginPath();ctx.arc(0,0,r-11,startA,startA+(endA-startA)*.32);ctx.stroke();
+  ctx.strokeStyle="#f3a53a";ctx.beginPath();ctx.arc(0,0,r-11,startA+(endA-startA)*.32,startA+(endA-startA)*.62);ctx.stroke();
+  ctx.strokeStyle="#79d94a";ctx.beginPath();ctx.arc(0,0,r-11,startA+(endA-startA)*.62,endA);ctx.stroke();
+  // ticks
+  ctx.strokeStyle="#c8d2d8";ctx.lineWidth=1.4;
+  for(let i=0;i<=8;i++){const a=startA+(endA-startA)*(i/8);ctx.beginPath();ctx.moveTo(Math.cos(a)*(r-18),Math.sin(a)*(r-18));ctx.lineTo(Math.cos(a)*(r-11),Math.sin(a)*(r-11));ctx.stroke();}
+  // needle
+  const nv=Math.max(0,Math.min(1,value)),na=startA+(endA-startA)*nv;
+  ctx.save();ctx.rotate(na);ctx.strokeStyle="#f4f7f8";ctx.lineWidth=3;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-r*.14,0);ctx.lineTo(r*.72,0);ctx.stroke();ctx.restore();
+  ctx.fillStyle="#dfe6ea";ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();
+  // icon/fuel pump in the middle-bottom, and label below
+  ctx.fillStyle=color;ctx.font="700 10px system-ui, sans-serif";ctx.textAlign="center";ctx.fillText(label,0,r+15);
+  ctx.restore();
+}
+function drawGaugeCluster(){
+  if(state!=="play")return;
+  const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],maxSpeed=430+v.speed*260+currentUpgrades().engine*18;
+  const rpmVal=Math.min(1,Math.abs(truck.vx)/Math.max(1,maxSpeed));
+  const boostVal=Math.min(1,.35+Math.abs(truck.vx)/Math.max(1,maxSpeed)*.65);
+  const fuelVal=keys.gas?Math.min(1,.55+Math.abs(truck.vx)/Math.max(1,maxSpeed)*.45):.45;
+  const cy=H-58,gap=86,r=34;
+  drawGauge(W/2-gap,cy,r,rpmVal,"RPM","#e6493b");
+  drawGauge(W/2,cy,r*1.08,fuelVal,"FUEL","#79d94a");
+  drawGauge(W/2+gap,cy,r,boostVal,"BOOST","#4aa8ff");
+}
+
 // Coin spark।
 function coinBurst(x,y){
   // Spark loop। 
@@ -3385,10 +3460,15 @@ function drawTerrain(){
 function resetTruck(){
   truck.x=250;truck.vx=0;truck.vy=0;truck.angle=terrainSlope(truck.x);truck.angVel=0;truck.wheelSpin=0;truck.onGround=true;
   const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0];truck.wheelR=27+Math.min(4,(v.suspension-1)*12);truck.wheelBase=92;truck.y=terrainY(truck.x)-truck.wheelR-31;camera.x=0;
+  // Hill Climb Racing-এর মতো প্রতিটা চাকা আলাদাভাবে suspension-এ ওঠানামা করবে—body একই থাকছে, শুধু চাকাদুটো independent bounce পাবে।
+  truck.rearSusp=0;truck.frontSusp=0;truck.rearSuspV=0;truck.frontSuspV=0;
+  // Air-time ও flip বোনাস স্কোরিং-এর জন্য state।
+  truck.airTime=0;truck.airRotation=0;truck.flipsThisAir=0;
 }
 
 // Control + vehicle stats physics।
 function updatePhysics(dt){
+  updateFloatTexts(dt);
   if(state!=="play")return;updateEngine();
   const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],up=currentUpgrades();
   const enginePower=1+(up.engine-1)*.10,grip=v.grip*(1+(up.tires-1)*.055),suspension=v.suspension*(1+(up.suspension-1)*.07),boost=v.boost*(1+(up.boost-1)*.08),maxSpeed=430+v.speed*260+up.engine*18;
@@ -3396,12 +3476,27 @@ function updatePhysics(dt){
   if(keys.left)truck.vx-=520*enginePower*dt;
   if(keys.brake)truck.vx*=Math.pow(.035,dt);
   truck.vx*=Math.pow(.92,dt);truck.vx=Math.max(-260,Math.min(maxSpeed,truck.vx));truck.vy+=1500/Math.max(.7,suspension)*dt;truck.x+=truck.vx*dt;if(truck.x<220){truck.x=220;truck.vx=0;}truck.y+=truck.vy*dt;truck.wheelSpin+=truck.vx*dt/truck.wheelR;
+  const wasOnGround=truck.onGround;
   const rearX=truck.x-truck.wheelBase/2,frontX=truck.x+truck.wheelBase/2,rearGround=isGap(rearX)?Infinity:terrainY(rearX),frontGround=isGap(frontX)?Infinity:terrainY(frontX),rearContact=rearGround-truck.wheelR,frontContact=frontGround-truck.wheelR;
   if(Number.isFinite(rearContact)&&Number.isFinite(frontContact)){
     const targetY=(rearContact+frontContact)/2-25,targetAngle=Math.atan2(frontContact-rearContact,truck.wheelBase);
     if(truck.y>=targetY&&truck.vy>=-150){if(!truck.onGround&&truck.vy>220){dust(truck.x,targetY+30,16);landSound();}truck.y=targetY;truck.vy*=-.08;truck.onGround=true;const diff=Math.atan2(Math.sin(targetAngle-truck.angle),Math.cos(targetAngle-truck.angle));truck.angVel+=diff*24*dt*grip;truck.angle+=truck.angVel*dt;truck.angVel*=Math.pow(.015,dt);if(Math.abs(truck.vx)>110&&Math.random()<dt*13)dust(rearX,rearContact+20,1);}
     else{if(truck.onGround&&truck.vy>200)jumpSound();truck.onGround=false;if(keys.left)truck.angVel-=4*dt*grip;if(keys.right)truck.angVel+=4*dt*grip;truck.angVel*=Math.pow(.89,dt);truck.angle+=truck.angVel*dt;}
   }else{truck.onGround=false;if(keys.left)truck.angVel-=4*dt*grip;if(keys.right)truck.angVel+=4*dt*grip;truck.angVel*=Math.pow(.90,dt);truck.angle+=truck.angVel*dt;}
+  // --- Hill Climb Racing-এর মতো প্রতিটা চাকা independently suspension-এ ওঠানামা করবে (body/design অপরিবর্তিত, শুধু চাকার movement আলাদা)। ---
+  {
+    const ca=Math.cos(truck.angle),sa=Math.sin(truck.angle);
+    const rearRigidY=truck.y+(-39*sa+32*ca),frontRigidY=truck.y+(43*sa+28*ca);
+    const rearRaw=Number.isFinite(rearContact)?(rearContact-rearRigidY):22,frontRaw=Number.isFinite(frontContact)?(frontContact-frontRigidY):22;
+    const rearTarget=Math.max(-14,Math.min(22,rearRaw)),frontTarget=Math.max(-14,Math.min(22,frontRaw));
+    const susK=95,susD=13;
+    truck.rearSuspV+=((rearTarget-truck.rearSusp)*susK-truck.rearSuspV*susD)*dt;truck.rearSusp+=truck.rearSuspV*dt;
+    truck.frontSuspV+=((frontTarget-truck.frontSusp)*susK-truck.frontSuspV*susD)*dt;truck.frontSusp+=truck.frontSuspV*dt;
+    truck.rearSusp=Math.max(-14,Math.min(22,truck.rearSusp));truck.frontSusp=Math.max(-14,Math.min(22,truck.frontSusp));
+  }
+  // --- Air Time / Flip বোনাস স্কোরিং (Hill Climb Racing-এর মতো)। ---
+  if(!truck.onGround){truck.airTime+=dt;truck.airRotation+=Math.abs(truck.angVel*dt);}
+  if(truck.onGround&&!wasOnGround)awardAirBonus();
   // Gas চাপলে exhaust pipe থেকে ধোঁয়া বের হবে (truck-এর পেছনের নিচের দিকে, facing অনুযায়ী)।
   if(keys.gas&&Math.random()<dt*22)exhaustPuff(truck.x-Math.cos(truck.angle)*45,truck.y+Math.sin(truck.angle)*45+8);
   collectCoins();updateCamera(dt);updateParticles(dt);if(checkCrash())return;if(truck.x>=finishX())completeLevel();
@@ -3450,7 +3545,8 @@ function drawTruck(){
   ctx.fillStyle="#101820";roundRect(47,-4,24,10,3);ctx.fill();ctx.fillStyle="#fff4ae";roundRect(49,-29,9,10,2);ctx.fill();ctx.fillStyle="#e7a000";roundRect(24,-28,29,6,2);ctx.fill();
   for(let i=0;i<5;i++){ctx.shadowColor="#ffe66b";ctx.shadowBlur=8;ctx.fillStyle="#ffd62e";ctx.beginPath();ctx.arc(-20+i*9,-82,3.2,0,Math.PI*2);ctx.fill();}ctx.shadowBlur=0;
   ctx.strokeStyle="#7d560e";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-9,-30);ctx.lineTo(-9,7);ctx.stroke();
-  drawMonsterWheel(-39,32,27,truck.wheelSpin);drawMonsterWheel(43,28,30,truck.wheelSpin);ctx.restore();
+  // চাকা দুটো এখন body-র সাথে rigidly বসানো না থেকে independent suspension offset (truck.rearSusp/frontSusp) অনুযায়ী নিজে নিজে ওঠানামা করে।
+  drawMonsterWheel(-39,32+truck.rearSusp,27,truck.wheelSpin);drawMonsterWheel(43,28+truck.frontSusp,30,truck.wheelSpin);ctx.restore();
 }
 function drawMonsterWheel(x,y,r,rotation=0){
   ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.fillStyle="#0b1015";ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#36424b";ctx.lineWidth=4;ctx.stroke();ctx.fillStyle="#252e35";for(let i=0;i<16;i++){ctx.save();ctx.rotate(i*Math.PI*2/16);ctx.fillRect(-3,-r+1,6,10);ctx.restore();}ctx.fillStyle="#8d9aa3";ctx.beginPath();ctx.arc(0,0,r*.48,0,Math.PI*2);ctx.fill();ctx.fillStyle="#313b43";ctx.beginPath();ctx.arc(0,0,r*.30,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#d2d9dd";ctx.lineWidth=2;for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*r*.42,Math.sin(a)*r*.42);ctx.stroke();}ctx.fillStyle="#edf3f5";ctx.beginPath();ctx.arc(0,0,r*.12,0,Math.PI*2);ctx.fill();ctx.restore();
@@ -3574,7 +3670,7 @@ addEventListener("keydown",e=>{if(e.key==="Escape"){if(!document.getElementById(
 // Existing bridge layer বাদ দেওয়া হচ্ছে যাতে visible gap আর fake bridge collision না করে।
 function drawBridges(){}
 function render(){
-  drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawParticles();drawTruck();
+  drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawParticles();drawTruck();drawFloatTexts();drawGaugeCluster();
   if(state==="play"){elapsed=(performance.now()-levelStart)/1000;document.getElementById("timer").textContent=formatTime(elapsed);updateHUD();}
 }
 
