@@ -70,3 +70,8 @@ v7 থেকে যা বদলেছে:
 - **বাগ ফিক্স:** (১) করাপ্টেড save-এ গেম crash, (২) স্টান্ট বোনাস কয়েন হারিয়ে যাওয়া, (৩) মাটিতে ল্যান্ড করার পরও ভুল "পাহাড় থেকে পড়ে গেছ" crash, (৪) উঁচু লেভেলে gap-এর পর unfair landing।
 - **Developer credit-এ "Supervised by Md. Hasibur Rahman"** যোগ।
 - README, LICENSE (All Rights Reserved), CHANGELOG যোগ।
+
+## v9 — নাম: HILL RUSH BANGLADESH
+v8 থেকে যা বদলেছে:
+- গেমের নাম **HILL RUSH BANGLADESH** (মেনু লোগোতে সবুজ BANGLADESH ব্যানার + লাল বৃত্ত, ট্যাগলাইন "Conquer the Hills. Drive Bangladesh.", ট্যাব টাইটেল ও সব স্ক্রিন হেডার)।
+- হোম পেজের নতুন ব্যাকগ্রাউন্ড ছবি ফাইনাল ভার্সনে যোগ হবে।

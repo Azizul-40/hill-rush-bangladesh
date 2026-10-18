@@ -3216,3 +3216,7 @@ body{
 }
 #mainMenu .supervisedBy strong{ color:#ffe99a; letter-spacing:.5px; }
 @media(max-width:700px){ #mainMenu .supervisedBy{ font-size:9px; } }
+
+/* v4: HILL RUSH BANGLADESH নাম */
+.brandBD{display:inline-flex;align-items:center;gap:8px;margin:6px 0 4px;padding:3px 16px 3px 10px;background:#0a7a3a;color:#fff;font-weight:1000;font-style:italic;letter-spacing:3px;font-size:clamp(16px,2.6vw,30px);transform:skewX(-8deg);border-radius:4px;box-shadow:0 4px 0 #064d24;}
+.brandBD .bdDot{width:.9em;height:.9em;border-radius:50%;background:#e8112d;display:inline-block;}

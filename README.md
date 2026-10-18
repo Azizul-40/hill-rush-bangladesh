@@ -1,4 +1,4 @@
-# Hill Rush
+# Hill Rush Bangladesh
 
 Browser-based monster truck hill-climb game. Plain HTML + CSS + JavaScript + Canvas (no framework, no build step).
 
@@ -13,7 +13,7 @@ Open `index.html` in a browser, or host the three files on any static host.
 Multiple maps/biomes, 100 levels, garage and upgrades, ghost racing, stunt combo, dynamic weather, daily missions and achievements, damage and repair.
 
 ## Version history
-See [CHANGELOG.md](CHANGELOG.md). Each version is a git tag (v1, v2, v3, v4 ...).
+See [CHANGELOG.md](CHANGELOG.md). Each version is a git tag (v1, v2, v3 ...).
 
 ## License
 Copyright (c) 2026 Azizul and Habiba. All Rights Reserved. See [LICENSE](LICENSE).
