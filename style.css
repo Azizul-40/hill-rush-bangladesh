@@ -3223,27 +3223,56 @@ body{
 
 
 /* ============================================================
-   V10 — HOME PAGE: Hill Rush Bangladesh ব্যানার ছবি ব্যাকগ্রাউন্ড
-   + তিনজনের নাম এক বক্সে (Developer + Supervisor)
+   V10 — HOME PAGE: Hill Rush Bangladesh ব্যানার ছবি + তিনজনের নামের বক্স
+   ছবির পুরোটাই সবসময় দেখা যায় (কোনো স্ক্রিনে নিচের ফিচার-স্ট্রিপ কাটে না):
+   .menuStage = ছবির সমান 3:2 মাপের বক্স, স্ক্রিনের মাঝখানে ফিট হয়;
+   বাটন ও credit box ওই বক্সের ভেতরে, তাই ছবির সাথে সবসময় একই জায়গায় থাকে।
+   ছবির দুই পাশের বাড়তি জায়গা ঝাপসা করা একই ছবি দিয়ে ভরা।
    (এই section সবার শেষে—আগের সব main menu rule override করে।)
    ============================================================ */
 #mainMenu{
-  background:#0c2d44 url("home_bg.jpg") center 78%/cover no-repeat !important;
+  background:#0c2d44 !important;
+  overflow:hidden !important;
 }
-#mainMenu:before,#mainMenu:after,#mainMenu .menuAtmosphere,#mainMenu .brand,#mainMenu .menuVehicle,#mainMenu .version{
+#mainMenu:before{
+  content:"" !important;
+  display:block !important;
+  position:absolute !important;
+  inset:-30px !important;
+  width:auto !important;height:auto !important;
+  clip-path:none !important;
+  background:url("home_bg.jpg") center/cover no-repeat !important;
+  filter:blur(16px) brightness(.8) !important;
+  opacity:1 !important;
+  animation:none !important;
+  box-shadow:none !important;border:0 !important;
+  z-index:0 !important;
+}
+#mainMenu:after,#mainMenu .menuAtmosphere,#mainMenu .brand,#mainMenu .menuVehicle,#mainMenu .version{
   display:none !important;
 }
 
-/* ডান পাশে বাটন-প্যানেল: ছবির উপর পরিষ্কার পড়া যায়, ছবির লোগো/ট্রাক ঢাকে না। */
-#mainMenu .mainActions{
+#mainMenu .menuStage{
+  position:absolute !important;
+  top:50% !important;left:50% !important;
+  width:min(100vw,150vh) !important;
+  height:min(100vh,66.667vw) !important;
+  transform:translate(-50%,-50%) !important;
+  background:url("home_bg.jpg") center/100% 100% no-repeat !important;
+  --sw:min(100vw,150vh);
+  z-index:2 !important;
+}
+
+#mainMenu .menuStage .mainActions{
+  min-width:0 !important;max-width:none !important;
   position:absolute !important;
   top:25% !important;
   right:3% !important;
   left:auto !important;
   bottom:auto !important;
-  width:clamp(170px,22vw,260px) !important;
-  padding:clamp(8px,1.2vw,14px) !important;
-  gap:clamp(5px,.8vw,9px) !important;
+  width:max(130px,calc(var(--sw)*0.22)) !important;
+  padding:max(6px,calc(var(--sw)*0.012)) !important;
+  gap:max(4px,calc(var(--sw)*0.008)) !important;
   background:rgba(6,30,48,.58) !important;
   border:2px solid rgba(255,255,255,.28) !important;
   border-radius:22px !important;
@@ -3251,26 +3280,31 @@ body{
   box-shadow:0 12px 30px rgba(0,20,35,.5) !important;
   z-index:300 !important;
 }
-#mainMenu .mainActions .actionBtn{
-  padding:clamp(6px,.9vw,11px) 12px !important;
-  font-size:clamp(11px,1.15vw,15px) !important;
+#mainMenu .menuStage .mainActions .actionBtn{
+  min-height:0 !important;height:auto !important;line-height:1.2 !important;
+  padding:max(5px,calc(var(--sw)*0.009000000000000001)) 12px !important;
+  font-size:max(10px,calc(var(--sw)*0.013000000000000001)) !important;
   border-radius:14px !important;
 }
-/* কয়েন ব্যালেন্স: ব্যানারের উপরের ডান কোণে ছোট করে। */
-#mainMenu .menuCoin{
-  top:3% !important;
-  right:3% !important;
-  padding:clamp(6px,.8vw,10px) clamp(10px,1.3vw,16px) !important;
-  font-size:clamp(11px,1.2vw,16px) !important;
+/* কয়েন ব্যালেন্স: বাটন-প্যানেলের মাথায় */
+#mainMenu .menuStage .mainActions .menuCoin{
+  position:static !important;
+  margin:0 0 2px !important;
+  padding:max(4px,calc(var(--sw)*0.006999999999999999)) 10px !important;
+  font-size:max(11px,calc(var(--sw)*0.013999999999999999)) !important;
+  text-align:center !important;
+  background:rgba(255,255,255,.12) !important;
+  box-shadow:none !important;
+  border-radius:12px !important;
+  transform:none !important;
 }
 
-/* ---- Credit box: উপরের বাম কোণে, তিনজনের নাম একসাথে ---- */
-body #mainMenu .developerPlaque{
-  font-size:clamp(8px,1vw,13px) !important;
+body #mainMenu .menuStage .developerPlaque{
+  font-size:max(7px,calc(var(--sw)*0.012)) !important;
   position:absolute !important;
   top:auto !important;
   left:1.2% !important;
-  bottom:13.5% !important;      /* নিচে: ফিচার-স্ট্রিপের ঠিক উপরে, বাম পাশে */
+  bottom:13.5% !important;
   right:auto !important;
   width:17em !important;
   height:auto !important;
@@ -3280,15 +3314,11 @@ body #mainMenu .developerPlaque{
   z-index:8 !important;
 }
 body #mainMenu .developerPlaque .developerSmall{
-  font-size:.82em !important;
-  letter-spacing:.3em !important;
-  margin:0 0 .45em !important;
-  line-height:1.2 !important;
+  font-size:.82em !important;letter-spacing:.3em !important;
+  margin:0 0 .45em !important;line-height:1.2 !important;
 }
 body #mainMenu .developerPlaque .developerName{
-  font-size:1.5em !important;       /* আগের চেয়ে অনেক ছোট */
-  line-height:1.1 !important;
-  white-space:nowrap !important;
+  font-size:1.5em !important;line-height:1.1 !important;white-space:nowrap !important;
 }
 body #mainMenu .developerPlaque .supervisedBy{
   display:block !important;
@@ -3296,29 +3326,36 @@ body #mainMenu .developerPlaque .supervisedBy{
   padding-top:.6em !important;
   border-top:1px solid rgba(255,235,190,.45) !important;
   width:80% !important;
-  font-size:.78em !important;
-  letter-spacing:.3em !important;
-  color:#fff !important;
-  font-weight:900 !important;
-  opacity:1 !important;
+  font-size:.78em !important;letter-spacing:.3em !important;
+  color:#fff !important;font-weight:900 !important;opacity:1 !important;
   text-shadow:0 1px 2px rgba(60,20,0,.7) !important;
 }
 body #mainMenu .developerPlaque .supervisorName{
-  font-size:1.1em !important;
-  font-weight:900 !important;
-  line-height:1.15 !important;
-  white-space:nowrap !important;
-  color:#ffe99a !important;
+  font-size:1.1em !important;font-weight:900 !important;line-height:1.15 !important;
+  white-space:nowrap !important;color:#ffe99a !important;
   text-shadow:0 1px 0 rgba(255,240,200,.35),0 2px 4px rgba(90,25,0,.7) !important;
 }
 
-#mainMenu .menuCoin{position:absolute !important;left:auto !important;bottom:auto !important;margin:0 !important;transform:none !important;z-index:320 !important;}
-#mainMenu .mainActions .actionBtn{min-height:0 !important;height:auto !important;line-height:1.2 !important;}
+@media(max-height:520px){
+  #mainMenu .menuStage .mainActions{top:15% !important;right:2% !important;width:max(100px,calc(var(--sw)*0.18)) !important;padding:4px !important;gap:3px !important;border-radius:12px !important;}
+  #mainMenu .menuStage .mainActions .actionBtn{padding:3px 6px !important;font-size:9px !important;min-width:0 !important;border-radius:8px !important;box-shadow:inset 0 0 0 1px #ffffff33,0 2px 0 #062f4d !important;}
+  #mainMenu .menuStage .mainActions .menuCoin{padding:2px 6px !important;font-size:9px !important;}
+  body #mainMenu .menuStage .developerPlaque{bottom:15% !important;}
+}
 
-/* ছোট (মোবাইল/ল্যান্ডস্কেপ) স্ক্রিন: বাটন-প্যানেল ও credit box দুটোই ছোট, কিছু কাউকে ঢাকে না। */
-@media(max-width:900px),(max-height:520px){
-  #mainMenu .mainActions{top:17% !important;right:2% !important;width:clamp(120px,24vw,190px) !important;padding:6px !important;gap:4px !important;border-radius:14px !important;}
-  #mainMenu .mainActions .actionBtn{padding:5px 8px !important;font-size:10px !important;border-radius:9px !important;box-shadow:inset 0 0 0 1px #ffffff33,0 3px 0 #062f4d !important;}
-  #mainMenu .menuCoin{top:2% !important;right:2% !important;padding:4px 9px !important;font-size:10px !important;}
-  body #mainMenu .developerPlaque{top:auto !important;bottom:13.5% !important;left:1% !important;font-size:7.5px !important;}
+@media(orientation:portrait){
+  #mainMenu .menuStage{
+    top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;
+    transform:none !important;
+    --sw:100vw;
+    background:url("home_bg.jpg") top center/100% auto no-repeat !important;
+  }
+  #mainMenu .menuStage .mainActions{
+    top:calc(66.667vw + 14px) !important;right:auto !important;left:50% !important;
+    transform:translateX(-50%) !important;width:min(300px,76vw) !important;
+  }
+  #mainMenu .menuStage .mainActions .actionBtn{font-size:14px !important;padding:9px 12px !important;}
+  body #mainMenu .menuStage .developerPlaque{
+    font-size:10px !important;left:50% !important;transform:translateX(-50%) !important;bottom:2.5% !important;
+  }
 }
