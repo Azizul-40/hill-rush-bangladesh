@@ -3220,3 +3220,105 @@ body{
 /* v4: HILL RUSH BANGLADESH নাম */
 .brandBD{display:inline-flex;align-items:center;gap:8px;margin:6px 0 4px;padding:3px 16px 3px 10px;background:#0a7a3a;color:#fff;font-weight:1000;font-style:italic;letter-spacing:3px;font-size:clamp(16px,2.6vw,30px);transform:skewX(-8deg);border-radius:4px;box-shadow:0 4px 0 #064d24;}
 .brandBD .bdDot{width:.9em;height:.9em;border-radius:50%;background:#e8112d;display:inline-block;}
+
+
+/* ============================================================
+   V10 — HOME PAGE: Hill Rush Bangladesh ব্যানার ছবি ব্যাকগ্রাউন্ড
+   + তিনজনের নাম এক বক্সে (Developer + Supervisor)
+   (এই section সবার শেষে—আগের সব main menu rule override করে।)
+   ============================================================ */
+#mainMenu{
+  background:#0c2d44 url("home_bg.jpg") center 78%/cover no-repeat !important;
+}
+#mainMenu:before,#mainMenu:after,#mainMenu .menuAtmosphere,#mainMenu .brand,#mainMenu .menuVehicle,#mainMenu .version{
+  display:none !important;
+}
+
+/* ডান পাশে বাটন-প্যানেল: ছবির উপর পরিষ্কার পড়া যায়, ছবির লোগো/ট্রাক ঢাকে না। */
+#mainMenu .mainActions{
+  position:absolute !important;
+  top:25% !important;
+  right:3% !important;
+  left:auto !important;
+  bottom:auto !important;
+  width:clamp(170px,22vw,260px) !important;
+  padding:clamp(8px,1.2vw,14px) !important;
+  gap:clamp(5px,.8vw,9px) !important;
+  background:rgba(6,30,48,.58) !important;
+  border:2px solid rgba(255,255,255,.28) !important;
+  border-radius:22px !important;
+  backdrop-filter:blur(5px);
+  box-shadow:0 12px 30px rgba(0,20,35,.5) !important;
+  z-index:300 !important;
+}
+#mainMenu .mainActions .actionBtn{
+  padding:clamp(6px,.9vw,11px) 12px !important;
+  font-size:clamp(11px,1.15vw,15px) !important;
+  border-radius:14px !important;
+}
+/* কয়েন ব্যালেন্স: ব্যানারের উপরের ডান কোণে ছোট করে। */
+#mainMenu .menuCoin{
+  top:3% !important;
+  right:3% !important;
+  padding:clamp(6px,.8vw,10px) clamp(10px,1.3vw,16px) !important;
+  font-size:clamp(11px,1.2vw,16px) !important;
+}
+
+/* ---- Credit box: উপরের বাম কোণে, তিনজনের নাম একসাথে ---- */
+body #mainMenu .developerPlaque{
+  font-size:clamp(8px,1vw,13px) !important;
+  position:absolute !important;
+  top:auto !important;
+  left:1.2% !important;
+  bottom:13.5% !important;      /* নিচে: ফিচার-স্ট্রিপের ঠিক উপরে, বাম পাশে */
+  right:auto !important;
+  width:17em !important;
+  height:auto !important;
+  padding:1.1em 1.4em 1.5em !important;
+  border-radius:1.6em !important;
+  text-align:center !important;
+  z-index:8 !important;
+}
+body #mainMenu .developerPlaque .developerSmall{
+  font-size:.82em !important;
+  letter-spacing:.3em !important;
+  margin:0 0 .45em !important;
+  line-height:1.2 !important;
+}
+body #mainMenu .developerPlaque .developerName{
+  font-size:1.5em !important;       /* আগের চেয়ে অনেক ছোট */
+  line-height:1.1 !important;
+  white-space:nowrap !important;
+}
+body #mainMenu .developerPlaque .supervisedBy{
+  display:block !important;
+  margin:.7em auto .25em !important;
+  padding-top:.6em !important;
+  border-top:1px solid rgba(255,235,190,.45) !important;
+  width:80% !important;
+  font-size:.78em !important;
+  letter-spacing:.3em !important;
+  color:#fff !important;
+  font-weight:900 !important;
+  opacity:1 !important;
+  text-shadow:0 1px 2px rgba(60,20,0,.7) !important;
+}
+body #mainMenu .developerPlaque .supervisorName{
+  font-size:1.1em !important;
+  font-weight:900 !important;
+  line-height:1.15 !important;
+  white-space:nowrap !important;
+  color:#ffe99a !important;
+  text-shadow:0 1px 0 rgba(255,240,200,.35),0 2px 4px rgba(90,25,0,.7) !important;
+}
+
+#mainMenu .menuCoin{position:absolute !important;left:auto !important;bottom:auto !important;margin:0 !important;transform:none !important;z-index:320 !important;}
+#mainMenu .mainActions .actionBtn{min-height:0 !important;height:auto !important;line-height:1.2 !important;}
+
+/* ছোট (মোবাইল/ল্যান্ডস্কেপ) স্ক্রিন: বাটন-প্যানেল ও credit box দুটোই ছোট, কিছু কাউকে ঢাকে না। */
+@media(max-width:900px),(max-height:520px){
+  #mainMenu .mainActions{top:17% !important;right:2% !important;width:clamp(120px,24vw,190px) !important;padding:6px !important;gap:4px !important;border-radius:14px !important;}
+  #mainMenu .mainActions .actionBtn{padding:5px 8px !important;font-size:10px !important;border-radius:9px !important;box-shadow:inset 0 0 0 1px #ffffff33,0 3px 0 #062f4d !important;}
+  #mainMenu .menuCoin{top:2% !important;right:2% !important;padding:4px 9px !important;font-size:10px !important;}
+  body #mainMenu .developerPlaque{top:auto !important;bottom:13.5% !important;left:1% !important;font-size:7.5px !important;}
+}
