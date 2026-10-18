@@ -3419,3 +3419,25 @@ body #mainMenu .developerPlaque .supervisorName{
     border-radius:16px !important;
   }
 }
+
+/* V12d — কয়েন ব্যালেন্স বাটন থেকে আলাদা, স্ক্রিনের একদম উপরে (ডান দিকে)। */
+@media(orientation:landscape){
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(6px,calc(min(100vh,66.667vw)*0.25 - 52px))) !important;
+  }
+}
+@media(orientation:landscape) and (max-height:520px){
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(4px,calc(min(100vh,66.667vw)*0.15 - 30px))) !important;
+  }
+}
+@media(orientation:landscape) and (min-aspect-ratio:17/10){
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(6px,calc(16vh - 52px))) !important;
+  }
+}
+@media(orientation:landscape) and (min-aspect-ratio:17/10) and (max-height:520px){
+  #mainMenu .menuStage .mainActions .menuCoin{
+    bottom:calc(100% + max(4px,calc(4.8vh - 30px))) !important;
+  }
+}
