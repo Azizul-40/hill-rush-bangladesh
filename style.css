@@ -251,18 +251,25 @@ button{
 }
 
 #mainMenu:before{
-  /* mountain silhouettes। */
+  /* Real jagged mountain silhouette (দূরের range) — আগের বিচ্ছিরি diagonal-cross gradient সরিয়ে clip-path দিয়ে আসল পাহাড়ের আকৃতি বানানো হলো। */
   content:"";
   /* full layer। */
   position:absolute;
   inset:0;
-  /* multiple mountain shapes। */
-  background:
-    linear-gradient(145deg,transparent 0 35%,#1377ca 35% 55%,transparent 55%),
-    linear-gradient(35deg,transparent 0 45%,#0c69b8 45% 63%,transparent 63%),
-    linear-gradient(150deg,transparent 0 52%,#38a2dc 52% 72%,transparent 72%);
-  /* visual depth। */
-  opacity:.95;
+  background:linear-gradient(180deg,#1d78bd 0%,#0f588f 55%,#083d68 100%);
+  clip-path:polygon(0% 63%,7% 49%,13% 58%,20% 40%,27% 55%,35% 45%,41% 59%,48% 42%,55% 57%,62% 46%,69% 60%,76% 41%,83% 56%,90% 47%,96% 58%,100% 50%,100% 100%,0% 100%);
+  opacity:.96;
+  z-index:0;
+}
+
+/* সামনের (কাছের) পাহাড়ের range — আলাদা shade আর আলাদা shape দিয়ে depth তৈরি করছে। */
+#mainMenu .menuAtmosphere:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,#3ea0e0 0%,#1c7fc4 50%,#0e5a95 100%);
+  clip-path:polygon(0% 80%,9% 67%,18% 77%,28% 62%,38% 75%,48% 64%,58% 77%,68% 66%,78% 79%,88% 68%,100% 77%,100% 100%,0% 100%);
+  z-index:1;
 }
 
 #mainMenu:after{
@@ -284,8 +291,8 @@ button{
   /* gentle drifting shimmer। */
   background-size:220px 100%,100% 100%;
   animation:mainWaterDrift 7s linear infinite;
-  /* layer behind UI। */
-  z-index:1;
+  /* layer behind UI, কিন্তু পাহাড়ের পায়ের সামনে। */
+  z-index:2;
 }
 
 /* Rolling foam ripples riding along the waterline। */
@@ -296,7 +303,7 @@ button{
   right:-10%;
   bottom:22%;
   height:26px;
-  z-index:2;
+  z-index:4;
   background-repeat:repeat-x;
   background-size:130px 26px;
   background-image:radial-gradient(ellipse at 30% 30%,rgba(255,255,255,.85) 0 5px,transparent 6px),
@@ -320,7 +327,7 @@ button{
     radial-gradient(circle at 75% 25%,#ffffff66,transparent 20%),
     radial-gradient(circle at 18% 72%,#65ed7c66,transparent 25%);
   /* above background, below UI। */
-  z-index:2;
+  z-index:3;
 }
 
 .brand{
@@ -3011,4 +3018,32 @@ body{
 }
 @media(max-width:560px){
   #storeMenu .storeGrid{grid-template-columns:1fr !important;}
+}
+
+/* ============================================================
+   V29 — TOAST NOTIFICATION ("Not enough balance!" ইত্যাদি)
+   ============================================================ */
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:90px;
+  transform:translateX(-50%) translateY(20px);
+  background:linear-gradient(180deg,#ff5a4d,#c62c22);
+  color:#fff;
+  font-weight:900;
+  font-size:15px;
+  letter-spacing:.3px;
+  padding:14px 26px;
+  border-radius:14px;
+  box-shadow:0 10px 26px rgba(0,0,0,.35),0 0 0 3px rgba(255,255,255,.25) inset;
+  z-index:99999;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .22s ease,transform .22s ease;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.hidden{display:none;}
+@media(max-width:600px){
+  .toast{font-size:13px;padding:11px 18px;bottom:120px;white-space:normal;text-align:center;max-width:82vw;}
 }

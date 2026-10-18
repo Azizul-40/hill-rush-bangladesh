@@ -1636,8 +1636,30 @@ function updateCoinsUI(){
   document.getElementById("levelCoins").textContent=coins;
   // Garage। 
   document.getElementById("garageCoins").textContent=coins;
-  // Store। 
+  // Store।
   document.getElementById("storeCoins").textContent=coins;
+}
+
+// Toast notification—যেমন "Not enough balance!" এক-দুই সেকেন্ডের জন্য নিচে দেখাবে।
+let toastTimer=null;
+function showToast(msg){
+  const el=document.getElementById("toast");
+  if(!el)return;
+  clearTimeout(toastTimer);
+  el.textContent=msg;
+  el.classList.remove("hidden");
+  // reflow trigger যাতে transition আবার কাজ করে বারবার দেখালেও।
+  void el.offsetWidth;
+  el.classList.add("show");
+  toastTimer=setTimeout(()=>{
+    el.classList.remove("show");
+    setTimeout(()=>el.classList.add("hidden"),240);
+  },1600);
+}
+// ব্যালেন্স কম থাকলে সবসময় এই একই helper থেকে sound+toast দুটোই হবে।
+function notEnoughCoins(){
+  tone(120,.15,.08,"sawtooth");
+  showToast("Not enough balance! 🪙");
 }
 
 
@@ -2637,7 +2659,7 @@ document.getElementById("dailyBtn").onclick=()=>{
 // Coin pack — দিনে সর্বোচ্চ COIN_PACK_DAILY_LIMIT বার claim করা যাবে।
 document.getElementById("coinPackBtn").onclick=()=>{
   const limit=(typeof COIN_PACK_DAILY_LIMIT!=="undefined")?COIN_PACK_DAILY_LIMIT:4;
-  if((Number(save.coinPackClaims)||0)>=limit){tone(150,.1,.05,"sawtooth");return;}
+  if((Number(save.coinPackClaims)||0)>=limit){tone(150,.1,.05,"sawtooth");showToast("Daily limit reached! Try again tomorrow.");return;}
   // Free demo reward।
   coins+=500;
   save.coinPackClaims=(Number(save.coinPackClaims)||0)+1;
@@ -2657,13 +2679,13 @@ document.getElementById("boostPackBtn").onclick=()=>{
   // Cost। 
   const cost=150;
 
-  // Coin check। 
+  // Coin check।
   if(coins<cost){
-    tone(150,.1,.05);
+    notEnoughCoins();
     return;
   }
 
-  // Pay। 
+  // Pay।
   coins-=cost;
 
   // Upgrade boost। 
@@ -2687,7 +2709,7 @@ document.getElementById("mapBundleBtn").onclick=()=>{
   const locked=maps.map((m,i)=>({m,i})).filter(o=>!save.ownedMaps.includes(o.i));
   if(locked.length===0){tone(520,.05,.04);return;}
   const fullPrice=locked.reduce((s,o)=>s+o.m.price,0),cost=Math.round(fullPrice*.75);
-  if(coins<cost){tone(120,.15,.08,"sawtooth");return;}
+  if(coins<cost){notEnoughCoins();return;}
   coins-=cost;save.coins=coins;locked.forEach(o=>save.ownedMaps.push(o.i));persist();purchaseSound();updateCoinsUI();renderStore();renderMaps();
 };
 
@@ -2696,14 +2718,14 @@ document.getElementById("vehicleBundleBtn").onclick=()=>{
   const locked=vehiclesV22.map((v,i)=>({v,i})).filter(o=>!save.ownedVehicles.includes(o.i));
   if(locked.length===0){tone(520,.05,.04);return;}
   const fullPrice=locked.reduce((s,o)=>s+o.v.price,0),cost=Math.round(fullPrice*.75);
-  if(coins<cost){tone(120,.15,.08,"sawtooth");return;}
+  if(coins<cost){notEnoughCoins();return;}
   coins-=cost;save.coins=coins;locked.forEach(o=>save.ownedVehicles.push(o.i));persist();purchaseSound();updateCoinsUI();renderStore();renderGarage();
 };
 
 // সিলেক্টেড vehicle-এর সব upgrade (engine/tires/suspension/boost) এক ধাক্কায় +1 level বাড়িয়ে দেয়।
 document.getElementById("vipUpgradeBtn").onclick=()=>{
   const cost=1200;
-  if(coins<cost){tone(120,.15,.08,"sawtooth");return;}
+  if(coins<cost){notEnoughCoins();return;}
   const up=currentUpgrades();
   if(up.engine>=8&&up.tires>=8&&up.suspension>=8&&up.boost>=8){tone(520,.05,.04);return;}
   coins-=cost;
@@ -3020,7 +3042,7 @@ function renderMaps(){
     card.onclick=()=>{
       resumeAudio();
       if(owned){save.selectedMap=id;persist();selectSound();renderMaps();return;}
-      if(coins<m.price){tone(120,.15,.08,"sawtooth");return;}
+      if(coins<m.price){notEnoughCoins();return;}
       coins-=m.price;save.coins=coins;save.ownedMaps.push(id);save.selectedMap=id;persist();purchaseSound();updateCoinsUI();renderMaps();
     };
     grid.appendChild(card);
@@ -3096,7 +3118,7 @@ function renderGarage(){
       e.stopPropagation();resumeAudio();
       if(selectedNow){tone(520,.05,.04);return;}
       if(owned){save.selectedVehicle=id;persist();selectSound();renderGarage();return;}
-      if(coins<vehicle.price){tone(120,.15,.08,"sawtooth");return;}
+      if(coins<vehicle.price){notEnoughCoins();return;}
       coins-=vehicle.price;save.coins=coins;save.ownedVehicles.push(id);save.selectedVehicle=id;persist();purchaseSound();updateCoinsUI();renderGarage();
     };
     list.appendChild(card);
@@ -3181,13 +3203,15 @@ function isGap(x){if(x<450)return false;const finish=finishX();if(x>finish-330&&
 function spanHasGap(a,b){for(let t=a;t<=b;t+=8){if(isGap(t))return true;}return isGap(b);}
 function terrainY(x){
   const levelD=Math.min(1,(currentLevel-1)/99),seed=currentLevel*137.31+(save.selectedMap||0)*983.7,mapD=mapDifficulty();
-  const longWave=Math.sin((x+seed)*.0019)*45*(1+levelD*.72)*mapD,mediumWave=Math.sin((x+seed*2)*.0046)*23*(1+levelD*.55)*mapD,shortWave=Math.sin((x+seed*3)*.0102)*7;
-  let y=H*.62-(longWave+mediumWave+shortWave);const section=Math.floor(x/1200),local=((x%1200)+1200)%1200,hard=1+levelD*.75;
-  if(local>=120&&local<=650){const t=(local-120)/530;y-=(105+levelD*80+(section%3)*14)*Math.sin(t*Math.PI)*hard;}
-  if(local>650&&local<1060){const t=(local-650)/410;y-=(55+levelD*48)*Math.sin(t*Math.PI);}
-  if(local>1060&&local<1190){const t=(local-1060)/130;y-=Math.sin(t*Math.PI)*(12+levelD*10);}
+  // পাহাড়/hill আরও অনেক বড়/dramatic দেখানোর জন্য সব wave, bump amplitude আর ভ্যালির গভীরতা আরও বাড়ানো হয়েছে।
+  const longWave=Math.sin((x+seed)*.0019)*94*(1+levelD*.72)*mapD,mediumWave=Math.sin((x+seed*2)*.0046)*45*(1+levelD*.55)*mapD,shortWave=Math.sin((x+seed*3)*.0102)*11;
+  let y=H*.58-(longWave+mediumWave+shortWave);const section=Math.floor(x/1200),local=((x%1200)+1200)%1200,hard=1+levelD*.75;
+  // এই মূল hill-bump-এর slope আগে এত খাড়া ছিল যে normal driving-এও truck বাতাসে উল্টে crash করছিল—তাই height কিছুটা কমিয়ে চড়াই-টা drivable রাখা হয়েছে, তারপরও আগের ভার্সনের চেয়ে অনেক বড়।
+  if(local>=120&&local<=650){const t=(local-120)/530;y-=(150+levelD*100+(section%3)*18)*Math.sin(t*Math.PI)*hard;}
+  if(local>650&&local<1060){const t=(local-650)/410;y-=(85+levelD*60)*Math.sin(t*Math.PI);}
+  if(local>1060&&local<1190){const t=(local-1060)/130;y-=Math.sin(t*Math.PI)*(20+levelD*16);}
   if(x<560){const starter=H*.61-Math.sin(x*.0052)*9,t=Math.max(0,Math.min(1,(x-260)/300)),s=t*t*(3-2*t);y=starter*(1-s)+y*s;}
-  return Math.max(H*.22,Math.min(H*.72,y));
+  return Math.max(H*.14,Math.min(H*.80,y));
 }
 function terrainSlope(x){return Math.atan2(terrainY(x+5)-terrainY(x-5),10);}
 
@@ -3394,8 +3418,11 @@ function checkCrash(){
   }
   if(truck.y>H+30){crash("You fell off the mountain!");return true;}
   const a=Math.atan2(Math.sin(truck.angle),Math.cos(truck.angle));
-  if(truck.x>500&&!truck.onGround&&Math.abs(a)>2.55&&truck.y>H*.35){crash("The truck rolled over!");return true;}
-  if(truck.onGround&&Math.abs(a)>2.05&&Math.abs(truck.vx)>150){crash("The truck rolled over!");return true;}
+  // আরও realistic crash: truck-এর body সত্যিকারে মাটিতে (উল্টে) ধাক্কা খেলে দ্রুত crash হবে।
+  // বড় পাহাড়ের কারণে বাতাসে (jump-এ) truck স্বাভাবিকভাবেই অনেকটা ঘুরে যেতে পারে—সেটা crash না, তাই airborne threshold লেনিয়েন্ট রাখা হয়েছে;
+  // আসল crash হবে যখন truck মাটিতে নেমে (onGround) উল্টে থাকা অবস্থায় body দিয়ে ধাক্কা খায়।
+  if(truck.x>500&&!truck.onGround&&Math.abs(a)>2.75&&truck.y>H*.5){crash("The truck rolled over!");return true;}
+  if(truck.onGround&&Math.abs(a)>1.55&&Math.abs(truck.vx)>90){crash("The truck rolled over!");return true;}
   return false;
 }
 
