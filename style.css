@@ -3398,3 +3398,24 @@ body #mainMenu .developerPlaque .supervisorName{
     background:url("home_bg.jpg") center bottom/cover no-repeat !important;
   }
 }
+
+/* V12c — বাটনগুলো স্বচ্ছ (পতাকা দেখা যায়), তার চারপাশে হালকা বক্স + বর্ডার;
+   কয়েন ব্যালেন্স আলাদা হয়ে বক্সের ঠিক উপরে। */
+@media(orientation:landscape){
+  #mainMenu .menuStage .mainActions{
+    background:rgba(6,30,48,.10) !important;
+    border:2px solid rgba(255,255,255,.6) !important;
+    box-shadow:0 6px 18px rgba(0,0,0,.22) !important;
+    -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  }
+  #mainMenu .menuStage .mainActions .actionBtn{opacity:.82 !important;}
+  #mainMenu .menuStage .mainActions .menuCoin{
+    position:absolute !important;
+    left:0 !important;right:0 !important;top:auto !important;
+    bottom:calc(100% + max(6px,calc(var(--sw)*0.010))) !important;
+    margin:0 !important;
+    background:rgba(6,30,48,.62) !important;
+    border:2px solid rgba(255,255,255,.45) !important;
+    border-radius:16px !important;
+  }
+}
