@@ -3398,3 +3398,15 @@ body #mainMenu .developerPlaque .supervisorName{
     background:url("home_bg.jpg") center bottom/cover no-repeat !important;
   }
 }
+
+/* V12c — বাটন প্যানেল স্বচ্ছ: পেছনের পতাকা ও ছবি পরিষ্কার দেখা যায়। */
+@media(orientation:landscape){
+  #mainMenu .menuStage .mainActions{
+    background:transparent !important;
+    border-color:transparent !important;
+    box-shadow:none !important;
+    -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  }
+  #mainMenu .menuStage .mainActions .actionBtn{opacity:.8 !important;}
+  #mainMenu .menuStage .mainActions .menuCoin{background:rgba(6,30,48,.35) !important;}
+}
