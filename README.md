@@ -7,7 +7,8 @@ Browser-based monster truck hill-climb game. Plain HTML + CSS + JavaScript + Can
 **Supervised by:** Md. Hasibur Rahman
 
 ## Run
-Open `index.html` in a browser, or host the three files on any static host.
+Live: https://hill-rush-bangladesh.pages.dev (Cloudflare Pages, auto-deploys from `main`).
+Or open `index.html` in a browser, or host the files on any static host.
 
 ## Features
 13 maps (including 5 Bangladesh maps: Sajek, Bandarban, Sylhet, Khagrachhari, Kaptai), 12 vehicles (8 monster trucks + CNG auto, rickshaw, easy bike, local bus), 100 levels, real fuel tank + fuel/boost pickups, Endless mode, checkpoints, vehicle colour/number-plate customization, local records, garage and upgrades, ghost racing, stunt combo, dynamic weather, daily missions and achievements, damage and repair.

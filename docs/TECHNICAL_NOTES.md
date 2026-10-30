@@ -12,7 +12,7 @@
 - `tests/v15_bot_playability.js` — নতুন যানবাহন × নতুন ম্যাপে bot-খেলা (শুধু "চলে কি না" দেখায়)
 
 ## হোস্টিং
-GitHub (`Azizul-40/hill-rush-bangladesh`) → Netlify। `main`-এ push করলে স্বয়ংক্রিয় ডিপ্লয়: https://hill-rush-bangladesh.netlify.app
+GitHub (`Azizul-40/hill-rush-bangladesh`) → **Cloudflare Pages**: https://hill-rush-bangladesh.pages.dev (`main`-এ push করলে অটো ডিপ্লয়; framework None, build command খালি)। আগে Netlify ছিল; ২০২৬-১০-৩১ তারিখে Netlify-র ফ্রি ক্রেডিট শেষ হয়ে production deploy বন্ধ ("Skipped") হওয়ায় সরানো হয়েছে।
 
 ## Save সিস্টেম (v13)
 - Key: `hillRushFinalSaveV1`, ভেতরে `saveVersion: 2`।
@@ -57,3 +57,7 @@ GitHub (`Azizul-40/hill-rush-bangladesh`) → Netlify। `main`-এ push কর�
 - Coin economy-র বাস্তব (মানুষ-খেলা) ভারসাম্য যাচাই এখনো বাকি। নতুন ম্যাপে লেভেল পুরস্কারে `map index × 10` যোগ হয় (index ১২-তে +১২০)—এটা পুরনো সূত্রই, আলাদা করে মাপা/বদলানো হয়নি।
 - Touch টেস্ট হয়েছে Chromium-এর emulated touch দিয়ে (CDP), আসল ফোনে হাতে নয়।
 - নতুন যানবাহনের sprite ও ম্যাপের দৃশ্য প্রতি ফ্রেমে canvas-এ আঁকা হয়; headless-এ গড় ফ্রেম (physics+render) প্রায় ১০ms, কিন্তু আসল কম-শক্তির ফোনে মাপা হয়নি।
+
+
+## শব্দ (v16)
+`V15_SND` প্রোফাইল-টেবিল (গাড়ির নাম → তরঙ্গ, পিচ, ফিল্টার, চাগ-রেট, ভলিউম); `v15SndInit()` দুটো oscillator + lowpass filter + LFO দিয়ে amplitude-modulation (ইঞ্জিনের "চাগ") বানায়; `updateEngine`/`engineStop` wrap করা। রিকশায় ইঞ্জিনের বদলে timed noise/tone-টিক। কোনো অডিও ফাইল নেই।

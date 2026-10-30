@@ -5104,7 +5104,7 @@ maps.push(
   {name:"BANDARBAN NILGIRI",desc:"কুয়াশাঢাকা সবুজ পাহাড় ও ঝর্ণা।",price:2600,sky1:"#5a9fc2",sky2:"#dcebe4",grass:"#3aa65a",dirt:"#8a6a48",water:"#4a9ec0",theme:"bandarban"},
   {name:"SYLHET TEA HILLS",desc:"জাফলংয়ের চা-বাগান ও স্বচ্ছ নদী।",price:3000,sky1:"#3b9be0",sky2:"#cfeeff",grass:"#5fcf5c",dirt:"#a56b45",water:"#1fb7c9",theme:"sylhet"},
   {name:"KHAGRACHHARI",desc:"বাঁশবন, মাচাঘর আর লাল মাটির পাহাড়।",price:3600,sky1:"#4eb0e8",sky2:"#fff0c8",grass:"#58c04e",dirt:"#c0603a",water:"#3aa0b8",theme:"khagrachhari"},
-  {name:"KAPTAI LAKE",desc:"সূর্যাস্তের হ্রদ, নৌকা আর পাহাড়।",price:4000,sky1:"#5b3a8c",sky2:"#ffb070",grass:"#3f9a55",dirt:"#7a5a40",water:"#e0894a",theme:"kaptai"}
+  {name:"RANGAMATI KAPTAI",desc:"রাঙামাটির কাপ্তাই হ্রদ, ঝুলন্ত সেতু আর নৌকা।",price:4000,sky1:"#5b3a8c",sky2:"#ffb070",grass:"#3f9a55",dirt:"#7a5a40",water:"#e0894a",theme:"kaptai"}
 );
 const V15_BD_THEMES=["sajek","bandarban","sylhet","khagrachhari","kaptai"];
 
@@ -5168,56 +5168,89 @@ function v15Boat(x,y,s,phase){
 }
 
 // ---------- প্রতিটা ম্যাপের পেছনের দৃশ্য ----------
+function v15Stupa(x,y,s){
+  ctx.fillStyle="#7a5a1a";ctx.fillRect(x-16*s,y-6*s,32*s,6*s);
+  ctx.fillStyle="#d9a52a";ctx.beginPath();ctx.moveTo(x-14*s,y-6*s);ctx.lineTo(x-10*s,y-22*s);ctx.lineTo(x+10*s,y-22*s);ctx.lineTo(x+14*s,y-6*s);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#f2c94c";ctx.beginPath();ctx.arc(x,y-22*s,11*s,Math.PI,0);ctx.fill();
+  ctx.fillStyle="#e0b23a";ctx.fillRect(x-3*s,y-44*s,6*s,12*s);ctx.beginPath();ctx.moveTo(x-5*s,y-32*s);ctx.lineTo(x,y-54*s);ctx.lineTo(x+5*s,y-32*s);ctx.closePath();ctx.fill();
+  ctx.fillStyle="rgba(255,240,170,.5)";ctx.fillRect(x-8*s,y-20*s,4*s,12*s);
+}
+function v15HangBridge(){
+  const P=2600,x0=((1000-camera.x*.07)%P+P)%P-300;
+  if(x0>W+700||x0<-1000) return;
+  const deckY=H*.50,topY=H*.37,x1=x0+520;
+  ctx.save();ctx.strokeStyle="#26203a";ctx.fillStyle="#26203a";ctx.lineCap="round";
+  ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(x0-160,deckY+2);ctx.lineTo(x1+160,deckY+2);ctx.stroke();
+  [x0,x1].forEach(tx=>{ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(tx,deckY+4);ctx.lineTo(tx,topY);ctx.stroke();ctx.fillRect(tx-9,topY-4,18,6);});
+  ctx.lineWidth=2.6;
+  [[x0-160,x0],[x0,x1],[x1,x1+160]].forEach(seg=>{
+    const a=seg[0],b=seg[1];ctx.beginPath();
+    if(a===x0&&b===x1){ctx.moveTo(a,topY);ctx.quadraticCurveTo((a+b)/2,deckY-6,b,topY);}
+    else if(a<x0){ctx.moveTo(a,deckY);ctx.quadraticCurveTo((a+b)/2,deckY-30,b,topY);}
+    else {ctx.moveTo(a,topY);ctx.quadraticCurveTo((a+b)/2,deckY-30,b,deckY);}
+    ctx.stroke();
+  });
+  ctx.lineWidth=1.2;
+  for(let x=x0+14;x<x1;x+=18){const t=(x-x0)/(x1-x0),cy=(1-t)*(1-t)*topY+2*t*(1-t)*(deckY-6)+t*t*topY;ctx.beginPath();ctx.moveTo(x,cy);ctx.lineTo(x,deckY);ctx.stroke();}
+  ctx.fillStyle="#ffd98a";for(let x=x0-150;x<x1+160;x+=40){ctx.beginPath();ctx.arc(x,deckY-3,1.6,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+}
 function v15Scenario(theme){
   if(theme==="sajek"){
-    const sg=ctx.createRadialGradient(W*.78,H*.2,4,W*.78,H*.2,90);sg.addColorStop(0,"#fff6d8");sg.addColorStop(1,"rgba(255,246,216,0)");ctx.fillStyle=sg;ctx.beginPath();ctx.arc(W*.78,H*.2,90,0,Math.PI*2);ctx.fill();
-    drawClouds(3,60,"#ffffff",.5);
-    v15Ridge(H*.50,60,.0042,.02,1.3,"#b4c9de","#e8eef2");
-    v15Mist(H*.50,.55,.05);
-    v15Ridge(H*.57,70,.0056,.05,3.1,"#55a85e","#2f7a45");
-    const roofs=["#d0392f","#2f6fd0","#d09a2f","#2f9a5a"];
-    v15OnRidge(7,300,90,H*.57,70,.0056,.05,3.1,(x,y,i)=>v15Cottage(x,y+4,1.1,roofs[i%4]));
-    v15Mist(H*.63,.65,.09);
-    v15Ridge(H*.66,48,.0072,.1,5.2,"#3a9a52","#1f6a38");
+    const sg=ctx.createRadialGradient(W*.76,H*.17,4,W*.76,H*.17,110);sg.addColorStop(0,"#fff6d8");sg.addColorStop(1,"rgba(255,246,216,0)");ctx.fillStyle=sg;ctx.beginPath();ctx.arc(W*.76,H*.17,110,0,Math.PI*2);ctx.fill();
+    drawClouds(3,70,"#ffffff",.5);
+    v15Ridge(H*.34,55,.0042,.02,1.3,"#a9c4de","#e3ecf3");
+    v15Mist(H*.40,.7,.05);
+    v15Ridge(H*.43,62,.0056,.05,3.1,"#5aae62","#2f7a45");
+    const roofs=["#d0392f","#2f6fd0","#e0a22f","#2f9a5a","#c43a8a"];
+    v15OnRidge(7,300,90,H*.43,62,.0056,.05,3.1,(x,y,i)=>v15Cottage(x,y+5,1.45,roofs[i%5]));
+    v15Mist(H*.47,.8,.09);
+    v15Ridge(H*.52,40,.0072,.1,5.2,"#3a9a52","#1f6a38");
+    v15OnRidge(9,230,60,H*.52,40,.0072,.1,5.2,(x,y,i)=>drawPine(x,y+8,.7,i%2?"#1f7a42":"#2b8f4d"));
   }else if(theme==="bandarban"){
     drawClouds(3,70,"#ffffff",.4);
-    v15Ridge(H*.46,80,.0038,.02,0.7,"#7a9db8","#c4d6df");
-    v15Mist(H*.48,.5,.04);
-    v15Ridge(H*.55,90,.0050,.05,2.2,"#34777a","#1d5252");
-    // ঝর্ণা
+    v15Ridge(H*.32,75,.0038,.02,0.7,"#7a9db8","#c4d6df");
+    v15Mist(H*.37,.55,.04);
+    v15Ridge(H*.43,85,.0050,.05,2.2,"#34777a","#1d5252");
+    v15OnRidge(1,1500,500,H*.43,85,.0050,.05,2.2,(x,y)=>v15Stupa(x,y+3,1.5));
     const fx=((420-camera.x*.05)%1800+1800)%1800-200;
-    if(fx>-40&&fx<W+40){const fy=v15RidgeY(fx,H*.55,90,.0050,.05,2.2);const g=ctx.createLinearGradient(0,fy,0,fy+120);g.addColorStop(0,"rgba(255,255,255,.95)");g.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=g;ctx.fillRect(fx-5,fy,10,120);ctx.strokeStyle="rgba(255,255,255,.8)";ctx.lineWidth=2;ctx.setLineDash([8,10]);ctx.lineDashOffset=-performance.now()/40;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy+110);ctx.stroke();ctx.setLineDash([]);}
-    v15Mist(H*.60,.55,.08);
-    v15Ridge(H*.65,60,.0064,.1,4.4,"#2a8a52","#16603a");
-    v15OnRidge(12,170,40,H*.65,60,.0064,.1,4.4,(x,y,i)=>drawPine(x,y+6,.9,i%2?"#0e6a3a":"#17804a"));
+    if(fx>-40&&fx<W+40){const fy=v15RidgeY(fx,H*.43,85,.0050,.05,2.2);const g=ctx.createLinearGradient(0,fy,0,fy+170);g.addColorStop(0,"rgba(255,255,255,.95)");g.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=g;ctx.fillRect(fx-6,fy,12,170);ctx.strokeStyle="rgba(255,255,255,.8)";ctx.lineWidth=2;ctx.setLineDash([8,10]);ctx.lineDashOffset=-performance.now()/40;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy+160);ctx.stroke();ctx.setLineDash([]);}
+    v15Mist(H*.49,.6,.08);
+    v15Ridge(H*.53,55,.0064,.1,4.4,"#2a8a52","#16603a");
+    v15OnRidge(12,170,40,H*.53,55,.0064,.1,4.4,(x,y,i)=>drawPine(x,y+8,1,i%2?"#0e6a3a":"#17804a"));
   }else if(theme==="sylhet"){
-    drawClouds(4,70,"#ffffff",.55);
-    v15Ridge(H*.44,70,.0040,.015,0.4,"#6f9cc6","#b9d4ea");
-    v15Mist(H*.47,.5,.04);
-    v15Ridge(H*.55,55,.0050,.04,2.6,"#7ad07a","#3f9a4e");
-    // চা-বাগানের সারি
-    for(let r=0;r<7;r++){
+    drawClouds(4,60,"#ffffff",.55);
+    v15Ridge(H*.31,70,.0040,.015,0.4,"#6f9cc6","#b9d4ea");
+    // দূরের পাহাড়ে ঝর্ণা (জাফলং/মেঘালয়)
+    const wx=((700-camera.x*.015)%2000+2000)%2000-200;
+    if(wx>-30&&wx<W+30){const wy=v15RidgeY(wx,H*.31,70,.0040,.015,0.4);const g=ctx.createLinearGradient(0,wy,0,wy+120);g.addColorStop(0,"rgba(255,255,255,.9)");g.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=g;ctx.fillRect(wx-3,wy,6,120);}
+    v15Mist(H*.37,.5,.04);
+    v15Ridge(H*.43,48,.0050,.04,2.6,"#7ad07a","#3f9a4e");
+    for(let r=0;r<8;r++){
       ctx.strokeStyle=r%2?"#2f8a42":"#4aa85a";ctx.lineWidth=5;ctx.beginPath();
-      for(let x=0;x<=W+12;x+=12){const y=v15RidgeY(x,H*.55,55,.0050,.04,2.6)+12+r*9;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+      for(let x=0;x<=W+12;x+=12){const y=v15RidgeY(x,H*.43,48,.0050,.04,2.6)+10+r*9;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
       ctx.stroke();
     }
-    v15OnRidge(8,230,60,H*.55,55,.0050,.04,2.6,(x,y)=>v15Tree(x,y+4,1.1));
-    v15Ridge(H*.68,40,.0075,.09,5.0,"#3f9a4e","#2a7a3a");
+    v15OnRidge(8,230,60,H*.43,48,.0050,.04,2.6,(x,y)=>v15Tree(x,y+3,1.4));
+    v15Ridge(H*.54,34,.0075,.09,5.0,"#3f9a4e","#2a7a3a");
   }else if(theme==="khagrachhari"){
     drawClouds(3,60,"#ffffff",.45);
-    v15Ridge(H*.50,64,.0044,.02,1.9,"#79b88a","#bfe0c4");
-    v15Ridge(H*.58,70,.0054,.05,3.7,"#3f9a4a","#276f36");
-    v15OnRidge(6,320,100,H*.58,70,.0054,.05,3.7,(x,y)=>v15StiltHouse(x,y+4,1.0));
-    v15Ridge(H*.67,46,.0070,.1,0.9,"#2f8a3c","#1c5f2a");
-    v15OnRidge(9,210,30,H*.67,46,.0070,.1,0.9,(x,y)=>v15Bamboo(x,y+6,.85));
+    v15Ridge(H*.33,66,.0044,.02,1.9,"#79b88a","#bfe0c4");
+    v15Mist(H*.38,.4,.04);
+    v15Ridge(H*.43,66,.0054,.05,3.7,"#3f9a4a","#276f36");
+    v15OnRidge(6,320,100,H*.43,66,.0054,.05,3.7,(x,y)=>v15StiltHouse(x,y+4,1.4));
+    v15Ridge(H*.53,40,.0070,.1,0.9,"#2f8a3c","#1c5f2a");
+    v15OnRidge(9,210,30,H*.53,40,.0070,.1,0.9,(x,y)=>v15Bamboo(x,y+6,1.15));
   }else if(theme==="kaptai"){
-    const sx=W*.62,sy=H*.36;
-    const sg=ctx.createRadialGradient(sx,sy,6,sx,sy,170);sg.addColorStop(0,"rgba(255,244,200,1)");sg.addColorStop(.25,"rgba(255,190,110,.75)");sg.addColorStop(1,"rgba(255,150,90,0)");ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,170,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#fff3c8";ctx.beginPath();ctx.arc(sx,sy,34,0,Math.PI*2);ctx.fill();
-    drawClouds(3,90,"#ffd2a8",.45);
-    v15Ridge(H*.52,60,.0040,.02,1.1,"#6a4a8a","#a8708a");
-    v15Ridge(H*.60,56,.0052,.05,2.9,"#3a4f6a","#2a3a52");
-    v15Ridge(H*.67,40,.0066,.09,4.6,"#2a5a46","#1c3f32");
+    const sx=W*.62,sy=H*.27;
+    const sg=ctx.createRadialGradient(sx,sy,6,sx,sy,190);sg.addColorStop(0,"rgba(255,244,200,1)");sg.addColorStop(.25,"rgba(255,190,110,.75)");sg.addColorStop(1,"rgba(255,150,90,0)");ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,190,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#fff3c8";ctx.beginPath();ctx.arc(sx,sy,36,0,Math.PI*2);ctx.fill();
+    drawClouds(3,80,"#ffd2a8",.45);
+    v15Ridge(H*.40,55,.0040,.02,1.1,"#6a4a8a","#a8708a");
+    v15HangBridge();
+    v15Ridge(H*.48,50,.0052,.05,2.9,"#3a4f6a","#2a3a52");
+    v15Ridge(H*.54,36,.0066,.09,4.6,"#2a5a46","#1c3f32");
+    v15OnRidge(10,200,50,H*.54,36,.0066,.09,4.6,(x,y)=>v15Tree(x,y+4,1.1));
   }
 }
 
@@ -5429,3 +5462,121 @@ showScreen=function(id){
   renderGarage();
   if(typeof renderStore==="function") renderStore();
 })();
+
+
+// =====================================================================
+// V15b — প্রতিটা গাড়ির আলাদা ইঞ্জিন/শব্দ-চরিত্র (Web Audio, কোডে তৈরি; কোনো অডিও ফাইল নেই)
+// =====================================================================
+// প্রোফাইলের মান: w1/w2 তরঙ্গ, f0 নিষ্ক্রিয় পিচ(Hz), fs গতি-প্রতি পিচ বৃদ্ধি, cut ফিল্টার সীমা, q, lfo [ন্যূনতম,সর্বোচ্চ] চাগ-রেট (Hz),
+// depth চাগের গভীরতা (০–১), gain মূল ভলিউম, noise ঘর্ঘর, o2 দ্বিতীয় অসিলেটরের অনুপাত (পিচ-গুণক)
+const V15_SND={
+  "TRAIL BLAZER":{w1:"sawtooth",w2:"square",f0:46,fs:.060,cut:700,q:1,lfo:[9,22],depth:.35,gain:.085,noise:.016,o2:.5},
+  "RED RAMPAGE":{w1:"sawtooth",w2:"sawtooth",f0:52,fs:.075,cut:900,q:1,lfo:[10,26],depth:.30,gain:.085,noise:.016,o2:.5},
+  "OCEAN TITAN":{w1:"sawtooth",w2:"triangle",f0:44,fs:.055,cut:650,q:.8,lfo:[8,18],depth:.28,gain:.090,noise:.012,o2:.5},
+  "JUNGLE KING":{w1:"square",w2:"sawtooth",f0:40,fs:.050,cut:560,q:1.2,lfo:[7,16],depth:.45,gain:.090,noise:.020,o2:.5},
+  "PURPLE FURY":{w1:"sawtooth",w2:"square",f0:64,fs:.100,cut:1400,q:1.5,lfo:[14,34],depth:.20,gain:.075,noise:.014,o2:2},
+  "BLACK BEAST":{w1:"sawtooth",w2:"sine",f0:36,fs:.045,cut:500,q:1.5,lfo:[6,14],depth:.50,gain:.100,noise:.022,o2:.5},
+  "SUNSET KING":{w1:"sawtooth",w2:"square",f0:58,fs:.090,cut:1200,q:1.2,lfo:[12,30],depth:.25,gain:.080,noise:.014,o2:1.5},
+  "GOLDEN X":{w1:"sawtooth",w2:"sawtooth",f0:70,fs:.110,cut:1700,q:.9,lfo:[16,38],depth:.14,gain:.070,noise:.010,o2:2},
+  "CNG AUTO":{w1:"square",w2:"sawtooth",f0:72,fs:.090,cut:1100,q:3,lfo:[7,21],depth:.75,gain:.065,noise:.014,o2:1.5},
+  "RICKSHAW":{none:true,noise:.008},
+  "EASY BIKE":{w1:"triangle",w2:"sine",f0:170,fs:.60,cut:3200,q:.7,lfo:[0,0],depth:0,gain:.030,noise:.006,o2:2},
+  "MURIR TIN BUS":{w1:"sawtooth",w2:"square",f0:31,fs:.040,cut:380,q:1.4,lfo:[5,11],depth:.55,gain:.105,noise:.030,o2:.5}
+};
+let v15S=null,v15SndPhase=0,v15LastBoost=false,v15LastHorn=0,v15LastT=0;
+function v15SndInit(){
+  if(v15S||!audioReady||!audio||!master) return;
+  const a=audio;
+  const o1=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),amp=a.createGain(),out=a.createGain(),lfo=a.createOscillator(),lfoG=a.createGain();
+  f.type="lowpass";f.frequency.value=700;f.Q.value=1;
+  o1.type="sawtooth";o2.type="square";o1.frequency.value=46;o2.frequency.value=23;
+  amp.gain.value=.65;lfo.type="sine";lfo.frequency.value=10;lfoG.gain.value=0;
+  out.gain.value=0;
+  o1.connect(f);o2.connect(f);f.connect(amp);amp.connect(out);out.connect(master);
+  lfo.connect(lfoG);lfoG.connect(amp.gain);
+  o1.start();o2.start();lfo.start();
+  v15S={o1,o2,f,amp,out,lfo,lfoG,last:null};
+}
+// নির্বাচিত গাড়ির শব্দ-প্রোফাইল
+function v15Prof(){const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0];return V15_SND[v.name]||V15_SND["TRAIL BLAZER"];}
+// হর্ন (boost বাটনের প্রথম চাপে, ১.৫ সেকেন্ডে একবার)
+function v15Horn(){
+  const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0];
+  const now=performance.now();if(now-v15LastHorn<1500)return;v15LastHorn=now;
+  if(v.name==="RICKSHAW"){tone(2300,.14,.05,"sine");setTimeout(()=>tone(2300,.14,.05,"sine"),170);}
+  else if(v.name==="MURIR TIN BUS"){tone(196,.32,.07,"sawtooth");tone(247,.32,.06,"sawtooth");}
+  else if(v.name==="CNG AUTO"){tone(620,.09,.05,"square");setTimeout(()=>tone(620,.09,.05,"square"),130);}
+  else if(v.name==="EASY BIKE"){tone(880,.12,.04,"square");}
+  // ট্রাকগুলোর boost-এ আগের মতোই (আলাদা হর্ন নেই)
+}
+const v15UpdateEngineBase=updateEngine;
+updateEngine=function(){
+  if(!audioReady||state!=="play") return;
+  v15UpdateEngineBase();                       // আগের নোড/অবস্থা ঠিক রাখতে
+  v15SndInit();if(!v15S) return;
+  const p=v15Prof(),t=audio.currentTime,speed=Math.abs(truck.vx);
+  const nowMs=performance.now(),dt=Math.min(.1,Math.max(0,(nowMs-(v15LastT||nowMs))/1000));v15LastT=nowMs;
+  // আগের এক-সুরের ইঞ্জিন চুপ করানো (এখন প্রোফাইল-ভিত্তিক শব্দ বাজবে)
+  engineGain.gain.setTargetAtTime(0,t,.03);
+  const spN=Math.min(1,speed/700),thr=keys.gas?1:(keys.right?.55:0);
+  if(p.none){
+    // রিকশা: ইঞ্জিন নেই—চেইন/প্যাডেলের টিক টিক ও টায়ারের হিস
+    v15S.out.gain.setTargetAtTime(0,t,.03);
+    v15SndPhase+=dt*(1.4+spN*7+thr*2);
+    if(v15SndPhase>=1){v15SndPhase-=1;noise(.014,.03);tone(1500+Math.random()*300,.012,.016,"square");}
+    engineNoiseGain.gain.setTargetAtTime(p.noise+spN*.012,t,.08);
+    v15S.last={mode:"ticks",rate:+(1.4+spN*7+thr*2).toFixed(2)};
+  }else{
+    v15S.o1.type=p.w1;v15S.o2.type=p.w2;
+    const f1=p.f0+speed*p.fs+thr*p.f0*.35;
+    v15S.o1.frequency.setTargetAtTime(f1,t,.04);v15S.o2.frequency.setTargetAtTime(f1*p.o2,t,.05);
+    const cut=p.cut*(.75+spN*.45+thr*.35);
+    v15S.f.frequency.setTargetAtTime(cut,t,.05);v15S.f.Q.value=p.q;
+    const lf=p.lfo[0]+(p.lfo[1]-p.lfo[0])*Math.min(1,spN*.7+thr*.4);
+    v15S.lfo.frequency.setTargetAtTime(Math.max(.1,lf),t,.08);
+    v15S.lfoG.gain.setTargetAtTime(p.depth*.5,t,.08);v15S.amp.gain.setTargetAtTime(.65,t,.1);
+    const g=p.gain*(.6+spN*.5+thr*.3);
+    v15S.out.gain.setTargetAtTime(g,t,.05);
+    engineNoiseGain.gain.setTargetAtTime(p.noise+spN*p.noise*1.2,t,.08);
+    v15S.last={mode:"engine",f1:+f1.toFixed(1),cut:+cut.toFixed(0),lfo:+lf.toFixed(1),gain:+g.toFixed(3)};
+  }
+  // boost বাটনের প্রথম চাপে হর্ন
+  if(keys.boost&&!v15LastBoost) v15Horn();
+  v15LastBoost=!!keys.boost;
+};
+const v15EngineStopBase=engineStop;
+engineStop=function(){ v15EngineStopBase(); if(v15S&&audio) v15S.out.gain.setTargetAtTime(0,audio.currentTime,.08); };
+
+// =====================================================================
+// V15b — ম্যাপ তালিকা: বাংলাদেশি স্পট আগে (index অপরিবর্তিত—শুধু দেখানোর ক্রম), প্রতিটার নিজস্ব thumbnail
+// =====================================================================
+// ক্রম: সিলেট, রাঙামাটি (কাপ্তাই), সাজেক, বান্দরবান, খাগড়াছড়ি, তারপর আগের ৮টা
+const V15_MAP_ORDER=[10,12,8,9,11,0,1,2,3,4,5,6,7];
+function v15Thumb(theme){
+  const sky={sajek:["#4fa3e0","#fbe3c8"],bandarban:["#5a9fc2","#dcebe4"],sylhet:["#3b9be0","#cfeeff"],khagrachhari:["#4eb0e8","#fff0c8"],kaptai:["#5b3a8c","#ffb070"]}[theme];
+  let body="";
+  if(theme==="sajek") body=`<ellipse cx="60" cy="58" rx="70" ry="9" fill="#fff" opacity=".75"/><path d="M0 70 Q40 40 90 62 T200 56 V110 H0Z" fill="#4fae5a"/><rect x="40" y="58" width="12" height="8" fill="#f1e4c4"/><path d="M37 58 L46 50 L55 58Z" fill="#d0392f"/><rect x="120" y="60" width="12" height="8" fill="#f1e4c4"/><path d="M117 60 L126 52 L135 60Z" fill="#2f6fd0"/><ellipse cx="150" cy="74" rx="60" ry="8" fill="#fff" opacity=".8"/>`;
+  else if(theme==="bandarban") body=`<path d="M0 62 Q50 20 100 52 T200 40 V110 H0Z" fill="#34777a"/><path d="M110 40 H118 L116 26 L121 12 L126 26 L124 40Z" fill="#e0b23a"/><rect x="60" y="30" width="3" height="38" fill="#fff" opacity=".85"/><ellipse cx="100" cy="66" rx="90" ry="8" fill="#fff" opacity=".6"/><path d="M0 84 Q60 66 110 82 T200 78 V110 H0Z" fill="#1a6a40"/>`;
+  else if(theme==="sylhet") body=`<path d="M0 50 Q50 20 100 44 T200 36 V110 H0Z" fill="#7aa8d0"/><path d="M0 70 Q60 52 110 68 T200 62 V110 H0Z" fill="#5fc064"/><path d="M0 76 Q60 58 110 74 T200 68" stroke="#2f8a42" stroke-width="3" fill="none"/><path d="M0 84 Q60 66 110 82 T200 76" stroke="#2f8a42" stroke-width="3" fill="none"/><rect x="150" y="48" width="3" height="14" fill="#5a3d22"/><circle cx="151" cy="44" r="9" fill="#2f8a3a"/>`;
+  else if(theme==="khagrachhari") body=`<path d="M0 66 Q50 34 100 58 T200 50 V110 H0Z" fill="#3f9a4a"/><rect x="48" y="64" width="2" height="9" fill="#5a3d22"/><rect x="62" y="64" width="2" height="9" fill="#5a3d22"/><rect x="45" y="52" width="22" height="12" fill="#c9a85a"/><path d="M42 53 L56 40 L70 53Z" fill="#b08a3a"/><path d="M0 88 Q70 70 120 86 T200 80 V110 H0Z" fill="#c0603a"/><path d="M150 82 L156 40 M158 82 L164 46 M166 82 L170 50" stroke="#6fbf48" stroke-width="3" fill="none"/>`;
+  else body=`<circle cx="120" cy="40" r="13" fill="#fff3c8"/><path d="M0 58 Q60 38 120 56 T200 50 V110 H0Z" fill="#6a4a8a" opacity=".85"/><path d="M30 56 H170" stroke="#26203a" stroke-width="3"/><path d="M60 56 V34 M130 56 V34 M60 34 Q95 54 130 34" stroke="#26203a" stroke-width="2" fill="none"/><rect x="0" y="76" width="200" height="34" fill="#c9743f"/><rect x="100" y="76" width="30" height="34" fill="#ffd98a" opacity=".5"/><path d="M34 90 Q46 98 58 90Z" fill="#3a2414"/>`;
+  return `<svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%"><defs><linearGradient id="sk${theme}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient></defs><rect width="200" height="110" fill="url(#sk${theme})"/>${body}</svg>`;
+}
+const v15RenderMapsBase=renderMaps;
+renderMaps=function(){
+  v15RenderMapsBase();
+  const g=document.getElementById("mapGrid");
+  if(!g) return;
+  const cards=[...g.children];
+  if(cards.length!==maps.length) return;
+  cards.forEach((c,i)=>{
+    const m=maps[i];
+    if(V15_BD_THEMES.includes(m.theme)){
+      const th=c.querySelector(".mapThumb");
+      if(th){th.innerHTML=v15Thumb(m.theme);th.style.position="relative";th.style.overflow="hidden";}
+      const h=c.querySelector("h3");if(h&&!h.dataset.bd){h.dataset.bd="1";h.textContent=h.textContent+" 🇧🇩";}
+    }
+  });
+  V15_MAP_ORDER.forEach(i=>g.appendChild(cards[i]));
+};
+renderMaps();
