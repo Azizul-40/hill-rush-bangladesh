@@ -886,11 +886,11 @@ function awardAirBonus(){
   const flips=Math.floor(truck.airRotation/(Math.PI*2));
   let bonusCoins=0,label="",color="#ffd83a";
   if(flips>=1){
-    bonusCoins=flips*120+Math.floor(truck.airTime*30);
+    bonusCoins=flips*50+Math.floor(truck.airTime*12);
     label=(flips>=2?("FLIP x"+flips):"FLIP!")+" +"+bonusCoins;
     color="#ff6fae";
   }else if(truck.airTime>0.4){
-    bonusCoins=Math.floor(truck.airTime*45);
+    bonusCoins=Math.floor(truck.airTime*18); // v16 ব্যালান্স: ৪৫→১৮
     label="AIR TIME +"+bonusCoins;
     color="#ffd83a";
   }
@@ -1749,7 +1749,7 @@ function renderStore(){
       coinPackBtn.disabled=true;
       coinPackBtn.style.opacity=".55";
     }else{
-      coinPackBtn.textContent=`GET +500 (${used}/${limit})`;
+      coinPackBtn.textContent=`GET +${COIN_PACK_AMOUNT} (${used}/${limit})`;
       coinPackBtn.disabled=false;
       coinPackBtn.style.opacity="1";
     }
@@ -2818,7 +2818,7 @@ document.getElementById("coinPackBtn").onclick=()=>{
   const limit=(typeof COIN_PACK_DAILY_LIMIT!=="undefined")?COIN_PACK_DAILY_LIMIT:4;
   if((Number(save.coinPackClaims)||0)>=limit){tone(150,.1,.05,"sawtooth");showToast("Daily limit reached! Try again tomorrow.");return;}
   // Free demo reward।
-  coins+=500;
+  coins+=COIN_PACK_AMOUNT;
   save.coinPackClaims=(Number(save.coinPackClaims)||0)+1;
   // Save।
   save.coins=coins;
@@ -3155,7 +3155,9 @@ coins=Math.max(0,Math.floor(Number(save.coins)||250));
 save.coins=coins;
 
 // ---------- DAILY LIMIT RESET (Daily Bonus + Coin Pack প্রতিদিন নতুন করে claim করা যাবে) ----------
-const COIN_PACK_DAILY_LIMIT=4; // দিনে সর্বোচ্চ ৪ বার Coin Pack কেনা যাবে।
+const COIN_PACK_DAILY_LIMIT=4;
+// v16 ব্যালান্স: কয়েনের মান ২৫→১২, ফ্রি প্যাক ৫০০→২০০ (আগে কয়েন এত বেশি ছিল যে ৫-৬ লেভেলেই বাস কেনা হয়ে যেত)।
+const COIN_VALUE=12,COIN_PACK_AMOUNT=200; // দিনে সর্বোচ্চ ৪ বার Coin Pack কেনা যাবে।
 const todayKey=new Date().toDateString();
 if(save.dayKey!==todayKey){
   save.dayKey=todayKey;
@@ -3547,7 +3549,7 @@ function collectCoins(){
     if(c.taken)return; // আগেই নেওয়া কয়েন বাদ
     const d=Math.hypot(c.x-tx,c.y-ty); // truck আর কয়েনের মধ্যে দূরত্ব
     if(d<48){ // কাছাকাছি চলে এলে কয়েন collect হবে
-      c.taken=true;coins+=25;save.coins=coins;
+      c.taken=true;coins+=(typeof COIN_VALUE!=="undefined"?COIN_VALUE:12);save.coins=coins;
       // এই level+map-এর জন্য কোন কোন কয়েন নেওয়া হয়েছে সেটা save-এ রাখা হচ্ছে (key = level_mMapIndex)
       const key=currentLevel+"_m"+(save.selectedMap||0);if(!save.collected[key])save.collected[key]=[];if(!save.collected[key].includes(i))save.collected[key].push(i);
       coinBurst(c.x,c.y);coinSound();changed=true;
@@ -4353,7 +4355,7 @@ function awardAirBonus(){
     comboTimer=3.2;
     // Combo multiplier—সর্বোচ্চ x3 পর্যন্ত (অতিরিক্ত exploit আটকাতে limit)।
     const comboMul=1+Math.min(4,comboCount-1)*.5;
-    bonusCoins=Math.round((flips*120+Math.floor(truck.airTime*30))*comboMul);
+    bonusCoins=Math.round((flips*50+Math.floor(truck.airTime*12))*comboMul); // v16 ব্যালান্স: ১২০→৫০, ৩০→১২
     label=(flips>=2?("FLIP x"+flips):"FLIP!")+(comboCount>1?(" COMBO x"+comboCount):"")+" +"+bonusCoins;
     color="#ff6fae";
     // Lifetime ও দৈনিক স্টান্ট কাউন্টার (achievement/mission-এর জন্য)।
@@ -4361,7 +4363,7 @@ function awardAirBonus(){
     save.daily.stuntsToday=(save.daily.stuntsToday||0)+1;
   }else if(truck.airTime>0.4){
     // শুধু বাতাসে ভেসে থাকা (flip ছাড়া) হলে ছোট bonus, combo বাড়বে না।
-    bonusCoins=Math.floor(truck.airTime*45);
+    bonusCoins=Math.floor(truck.airTime*18); // v16 ব্যালান্স: ৪৫→১৮
     label="AIR TIME +"+bonusCoins;
     color="#ffd83a";
   }
@@ -5580,3 +5582,33 @@ renderMaps=function(){
   V15_MAP_ORDER.forEach(i=>g.appendChild(cards[i]));
 };
 renderMaps();
+
+
+// =====================================================================
+// V16 — বাসের গ্যাপ ও ক্যানভাস-রিসাইজ সুরক্ষা
+// =====================================================================
+// বাস দেখতে অনেক বড় (বডি ~১৫০px), অথচ গ্যাপ ছিল ~১০৫px—চোখে মনে হত বাস গ্যাপের ওপর দিয়ে "সেতু" হয়ে যায়, পড়ার উপায় নেই।
+// তাই বাস নিলে গ্যাপের প্রস্থ ১.৩ গুণ (জাম্প করে পার হওয়া তবুও সম্ভব; tests/v16_test.js ও বট-টেস্টে যাচাই)।
+const V16_BUS_GAP_SCALE=1.3;
+let v16GapSrc=null,v16GapScale=1,v16GapOut=null;
+const v16GetGapsBase=getGaps;
+getGaps=function(){
+  const src=v16GetGapsBase();
+  const v=vehiclesV22[save.selectedVehicle];
+  const sc=(v&&v.kind==="bus")?V16_BUS_GAP_SCALE:1;
+  if(sc===1) return src;
+  if(src===v16GapSrc&&sc===v16GapScale) return v16GapOut;
+  v16GapSrc=src;v16GapScale=sc;v16GapOut=src.map(([a,w])=>[a,Math.round(w*sc)]);
+  return v16GapOut;
+};
+
+// ব্রাউজারের জুম/ডিসপ্লে-স্কেল/উইন্ডো-স্ন্যাপে মাঝেমধ্যে resize ইভেন্ট মিস হয় (স্ক্রিনশটে ডান পাশে কাটা অংশ দেখা গিয়েছিল)।
+// তাই প্রতি ফ্রেমে মাপ মিলিয়ে দেখা হয়, না মিললে canvas নতুন করে মাপা হয়।
+function v16CheckSize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  if(innerWidth!==W||innerHeight!==H||dpr!==DPR||canvas.width!==Math.floor(W*DPR)||canvas.height!==Math.floor(H*DPR)) resizeCanvas();
+}
+const v16RenderBase=render;
+render=function(){ v16CheckSize(); return v16RenderBase.apply(this,arguments); };
+["orientationchange","fullscreenchange","pageshow","focus"].forEach(ev=>addEventListener(ev,()=>setTimeout(resizeCanvas,60)));
+if(window.visualViewport) visualViewport.addEventListener("resize",resizeCanvas);
