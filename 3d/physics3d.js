@@ -47,8 +47,8 @@ export function makeLevel(level, mapIdx, vehIdx){
   const LIFT = 2.3, RAMP = 9, LAND = 9;
 
   function base(x){
-    let y = 2.3*(1+0.5*levelD)*mapD*Math.sin((x+seed)*0.052)
-          + 1.0*(1+0.4*levelD)*mapD*Math.sin((x+seed*2)*0.121)
+    let y = 7.0*(1+0.45*levelD)*mapD*Math.sin((x+seed)*0.034)
+          + 1.7*(1+0.4*levelD)*mapD*Math.sin((x+seed*2)*0.105)
           + 0.25*Math.sin(x*0.31+seed);
     const sec = Math.floor(x/46), loc = ((x%46)+46)%46;
     if(loc>6 && loc<24){ y += (2.6+levelD*1.6+(sec%3)*.4)*mapD*Math.sin((loc-6)/18*Math.PI); }

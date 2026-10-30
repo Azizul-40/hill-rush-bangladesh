@@ -32,9 +32,8 @@ function roadTex(kind){
     g.fillStyle="#8c6040"; g.fillRect(0,0,w,h);
     const id=g.getImageData(0,0,w,h); for(let i=0;i<w*h;i++){ const x=i%w,y=i/w|0; const n=(vnoise(x*.05,y*.05)-.5)*46+(vnoise(x*.2,y*.2)-.5)*28+(Math.random()-.5)*20; id.data[i*4]+=n; id.data[i*4+1]+=n*.85; id.data[i*4+2]+=n*.7; } g.putImageData(id,0,0);
     // মাঝখানে ঘাসের ফিতা ও চাকার খাঁজ
-    g.fillStyle="rgba(70,90,40,.35)"; g.fillRect(0,h*.44,w,h*.12);
-    g.fillStyle="rgba(40,22,12,.38)"; g.fillRect(0,h*.22,w,h*.08); g.fillRect(0,h*.70,w,h*.08);
-    g.fillStyle="rgba(190,150,110,.22)"; g.fillRect(0,h*.30,w,h*.04); g.fillRect(0,h*.78,w,h*.04);
+    // হালকা, নরম খাঁজ (আগের কড়া ডোরা "গ্যাপ"-এর মতো দেখাত)
+    for(const cy of [.30,.72]){ const gr=g.createLinearGradient(0,h*(cy-.09),0,h*(cy+.09)); gr.addColorStop(0,"rgba(50,30,18,0)"); gr.addColorStop(.5,"rgba(50,30,18,.16)"); gr.addColorStop(1,"rgba(50,30,18,0)"); g.fillStyle=gr; g.fillRect(0,h*(cy-.09),w,h*.18); }
     for(let i=0;i<7;i++){ g.fillStyle="rgba(60,40,30,.35)"; g.beginPath(); g.ellipse(Math.random()*w,h*(.2+Math.random()*.6),18+Math.random()*30,6+Math.random()*7,0,0,6.3); g.fill(); g.fillStyle="rgba(120,160,190,.18)"; g.beginPath(); g.ellipse(Math.random()*w,h*(.25+Math.random()*.5),10+Math.random()*16,3+Math.random()*4,0,0,6.3); g.fill(); }
     for(let i=0;i<420;i++){ const v=90+Math.random()*100; g.fillStyle=`rgba(${v},${v*.85},${v*.7},.6)`; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,Math.random()*2.4+.6,0,6.3); g.fill(); }
   },true);
@@ -93,11 +92,11 @@ export function buildWorld(lv, mapId){
     if(z < -3.2){
       const dz = -z-3.2;
       const n = fbm(x*.03+3.1, z*.03, 4);
-      h = base + .30*Math.pow(dz,1.25)*(.55+.9*n) + fbm(x*.08, z*.08, 3)*3.2*smooth(dz/10);
+      h = base + .62*Math.pow(dz,1.22)*(.5+1.0*n) + fbm(x*.08, z*.08, 3)*6*smooth(dz/10);
     } else if(z > 3.2){
       const dz = z-3.2;
-      h = base - .30*dz*(0.8+.5*fbm(x*.04,z*.04,3)) + (fbm(x*.1,z*.1,3)-.4)*2.2*smooth(dz/6);
-      h = Math.max(h, base-26);
+      h = base - .75*Math.pow(dz,1.08)*(0.8+.5*fbm(x*.04,z*.04,3)) + (fbm(x*.1,z*.1,3)-.4)*2.2*smooth(dz/6);
+      h = Math.max(h, base-48);
     } else {
       h = base + (fbm(x*.5,z*.5,2)-.5)*.0;
     }
@@ -139,7 +138,7 @@ export function buildWorld(lv, mapId){
   // গ্যাপের দেয়াল-ছায়া ছাড়া কালো খাদ — টেরেইনের নিচে ইতিমধ্যে নেমে গেছে (gapDepth)।
 
   // ---- দূরের পাহাড়ের স্তর ----
-  const ridges=[]; [[-150,52,.62],[-230,78,.45],[-330,105,.32]].forEach(([zr,hmax,mix],li)=>{
+  const ridges=[]; [[-150,95,.62],[-230,140,.45],[-330,190,.32]].forEach(([zr,hmax,mix],li)=>{
     const n=Math.ceil((L+700)/6), p=[],c=[],ix=[]; const base=new THREE.Color(th.fog).lerp(new THREE.Color().setRGB(.20,.38,.35,THREE.SRGBColorSpace),mix);
     for(let i=0;i<=n;i++){ const x=-300+i*6, h=hmax*(.35+.9*fbm(x*.006+li*9, li*3.3,4)); const cc=base.clone().multiplyScalar(.92+fbm(x*.02,li,2)*.2);
       p.push(x,-40,zr, x,h,zr); c.push(cc.r*.8,cc.g*.8,cc.b*.8, cc.r,cc.g,cc.b); if(i<n){ const a=i*2; ix.push(a,a+1,a+2, a+1,a+3,a+2); } }
@@ -175,6 +174,20 @@ export function buildWorld(lv, mapId){
     const signTex=canvasTex(128,128,(g)=>{ g.fillStyle="#f2c230"; g.fillRect(0,0,128,128); g.strokeStyle="#111"; g.lineWidth=8; g.strokeRect(6,6,116,116); g.fillStyle="#111"; g.beginPath(); g.moveTo(38,92); g.lineTo(38,50); g.lineTo(78,50); g.lineTo(78,36); g.lineTo(98,62); g.lineTo(78,88); g.lineTo(78,72); g.lineTo(58,72); g.lineTo(58,92); g.closePath(); g.fill(); });
     for(let x=46;x<L+60;x+=88){ if(lv.gaps.some(g=>x>g[0]-8&&x<g[0]+g[1]+8)) continue; const y=lv.hgt(x); const s=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5),new THREE.MeshStandardMaterial({map:signTex,roughness:.5,side:THREE.DoubleSide})); s.position.set(x,y+2.7,-4.6); s.castShadow=true; group.add(s); const pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,2.6,8),new THREE.MeshStandardMaterial({color:0x666a6e})); pole.position.set(x,y+1.3,-4.6); group.add(pole); }
   }
+
+  // ---- গ্যাপ (খাদ): সতর্ক-খুঁটি, সাইন, লিপের বেড়া, তলার কুয়াশা ----
+  { const stripeGeo=merged([0,1,2,3,4,5].map(i=>[new THREE.CylinderGeometry(.11,.11,.26,8),i%2?0xf2f2f2:0xff7a10,0,.13+i*.26,0])); const stripes=[];
+    const warn=canvasTex(256,256,(g)=>{ g.fillStyle="#ffcf1f"; g.beginPath(); g.moveTo(128,10); g.lineTo(246,230); g.lineTo(10,230); g.closePath(); g.fill(); g.lineWidth=14; g.strokeStyle="#111"; g.stroke(); g.fillStyle="#111"; g.font="bold 70px 'Noto Sans Bengali','Siyam Rupali',Arial"; g.textAlign="center"; g.fillText("খাদ",128,204); g.fillRect(120,70,16,70); g.fillRect(120,150,16,16); });
+    const hazard=canvasTex(256,64,(g)=>{ for(let i=-2;i<10;i++){ g.fillStyle=i%2?"#111":"#ffcf1f"; g.beginPath(); g.moveTo(i*40,64); g.lineTo(i*40+40,0); g.lineTo(i*40+80,0); g.lineTo(i*40+40,64); g.closePath(); g.fill(); } });
+    const mistT=cloudTex();
+    for(const gp of lv.gaps){ const gs=gp[0], ge=gp[0]+gp[1];
+      for(const x of [gs-.6, ge+.6]) for(const z of [-3.7,3.7]) stripes.push(mkM(x,lv.hgt(x),z,1.2,1.2,1.2));
+      const sx=gs-26, sg=new THREE.Mesh(new THREE.PlaneGeometry(2.6,2.6),new THREE.MeshStandardMaterial({map:warn,transparent:true,side:THREE.DoubleSide,roughness:.5})); sg.position.set(sx,lv.hgt(sx)+3.2,-4.4); sg.castShadow=true; group.add(sg);
+      const pl=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,3,8),new THREE.MeshStandardMaterial({color:0x555a60})); pl.position.set(sx,lv.hgt(sx)+1.5,-4.4); group.add(pl);
+      const bar=new THREE.Mesh(new THREE.BoxGeometry(.12,.5,7.4),new THREE.MeshStandardMaterial({map:hazard,roughness:.6})); bar.position.set(gs-.2,lv.hgt(gs)+.5,0); group.add(bar);
+      for(let k=0;k<5;k++){ const m=new THREE.Sprite(new THREE.SpriteMaterial({map:mistT,transparent:true,opacity:.55,depthWrite:false})); m.scale.set(26,10,1); m.position.set(gs+gp[1]/2+(k-2)*3,lv.hgt(gs)-11+k*.8,(k-2)*5); group.add(m); }
+    }
+    group.add(scatter(stripeGeo,vcMat({roughness:.5}),stripes,false)); }
 
   // ---- বাড়িঘর ----
   const houseMat=vcMat({roughness:.75});
