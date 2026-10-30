@@ -1,7 +1,7 @@
 // Hill Rush Bangladesh 3D — গাড়ির 3D মডেল (সব কোডে বানানো; কোনো বাইরের মডেল নেই)।
 // মডেল +x দিকে মুখ করা, চাকার অক্ষ z। গ্রুপের মূল বিন্দু = ফিজিক্সের COM; চাকা COM-এর (±wb/2, -hub) জায়গায়।
 import * as THREE from 'three';
-import { VEHICLES3D } from './physics3d.js';
+import { VEHICLES3D } from './track3d.js';
 
 // ---------- ছোট সাহায্যকারী ----------
 const mat = (color, o={}) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness:.6, metalness:.1 }, o));
@@ -219,14 +219,17 @@ export function createVehicle(vehIdx, colorOverride){
   for(let i=0;i<2;i++){ const ax=zcyl(.06,(b.front1&&i===1)?.2:(zs[0]*2),axleMat,8); wheels[i].add(ax); }
 
   let spin=[0,0];
+  const _eul = new THREE.Euler(0,0,0,'YZX');
   function setPose(S, dt){
-    group.position.set(S.x, S.y, 0); group.rotation.z = S.ang;
+    group.position.set(S.x, S.y, S.z);
+    _eul.set(-S.roll, -S.psi, S.pitch, 'YZX'); group.rotation.copy(_eul);
+    const sp = S.spin||0;
     for(let i=0;i<2;i++){
-      const W = S.wheels[i];
-      spin[i] -= W.spin*dt; // সামনে চললে চাকা ঘড়ির কাঁটার দিকে
+      spin[i] -= sp*dt; // সামনে চললে চাকা ঘুরবে
       for(const w of spinners[i]) w.rotation.z = spin[i];
-      wheels[i].position.y = -spec.hub + Math.min(.6, W.pen); // spring-এ ঢুকলে চাকা ওপরে ওঠে (সাসপেনশন)
+      wheels[i].position.y = -spec.hub + Math.min(.6, S.pen||0);
     }
+    wheels[1].rotation.y = -(S.steerV||0)*.42;
   }
   function dispose(){ group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ const m=Array.isArray(o.material)?o.material:[o.material]; m.forEach(x=>{ if(x.map) x.map.dispose(); x.dispose(); }); } }); }
   return { group, setPose, dispose, spec, body: b.body, wheels, spinners };

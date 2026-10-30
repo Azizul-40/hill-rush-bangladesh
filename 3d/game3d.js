@@ -1,6 +1,6 @@
 // Hill Rush Bangladesh 3D — মূল গেম: রেন্ডার, ইনপুট, মেনু, HUD, সেভ।
 import * as THREE from 'three';
-import { VEHICLES3D, MAPS3D, makeLevel, makeState, step, collect, respawnAt, COIN_VALUE_3D, levelLength } from './physics3d.js';
+import { VEHICLES3D, MAPS3D, makeTrack, makeState, step, collect, respawnAt, COIN_VALUE_3D } from './track3d.js';
 import { createVehicle, tryLoadGLB } from './vehicles3d.js';
 import { buildWorld } from './world3d.js';
 
@@ -24,7 +24,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(48, 1, .3, 1800);
+const camera = new THREE.PerspectiveCamera(58, 1, .3, 2400);
 function resize(){
   const w=innerWidth, h=innerHeight, dpr=Math.min(devicePixelRatio||1, 1.75);
   renderer.setPixelRatio(dpr); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
@@ -36,15 +36,17 @@ setInterval(()=>{ if(canvas.width!==Math.floor(innerWidth*Math.min(devicePixelRa
 // ---------- অবস্থা ----------
 let state = "menu";        // menu | play | pause | crash | complete
 let lv=null, S=null, world=null, veh=null, envTex=null, pmrem=null;
-let simT=0, camX=0, camY=0, shake=0, levelStart=0, usedCp=false, cpX=null, curLevel=1;
+let simT=0, camX=0, camY=0, camZ=0, camPsi=0, shake=0, levelStart=0, usedCp=false, cpS=null, curLevel=1;
 let coinsThisRun=0;
-const input = { gas:false, brake:false, tiltBack:false, tiltFwd:false, boost:false };
+const input = { gas:false, brake:false, left:false, right:false, tiltBack:false, tiltFwd:false, boost:false };
 const keys = {};
-window.__h3d = { get S(){return S;}, get lv(){return lv;}, get state(){return state;}, input, save, scene, camera, renderer, startLevel:(a,b,c)=>startLevel(a,b,c), get world(){return world;} };
-
+window.__h3d = { get S(){return S;}, get lv(){return lv;}, get tr(){return lv;}, get state(){return state;}, input, save, scene, camera, renderer, startLevel:(a,b,c)=>startLevel(a,b,c), get world(){return world;} };
+const NOINP = ()=>({gas:false,brake:false,left:false,right:false,boost:false,tiltBack:false,tiltFwd:false});
+function handleEvents(evs){ for(const e of evs){ if(e.type==="coin") coinsThisRun++; else if(e.type==="cp"){ cpS=e.item.s; toast("📍 CHECKPOINT "+e.n); } else if(e.type==="finish"&&state==="play"){ onComplete(); break; } } }
+function snapCam(){ camPsi=S.psi; camX=S.x; camY=S.y; camZ=S.z; }
 // টেস্টের জন্য: রেন্ডার ছাড়া নির্দিষ্ট সময় ফিজিক্স চালানো (ধীর সফটওয়্যার-GL-এ ফ্রেম কম বলে)
-window.__h3d.__step=(i)=>{ if(!S||!lv) return; step(lv,S,Object.assign({gas:false,brake:false,boost:false,tiltBack:false,tiltFwd:false},i||{}),1/60); const evs=collect(lv,S); for(const e of evs){ if(e.type==="coin") coinsThisRun++; else if(e.type==="cp") cpX=e.item.x; else if(e.type==="finish"&&state==="play") onComplete(); } if(S.crashed&&state==="play") onCrash(); };
-window.__h3d.advance=(sec,inp)=>{ if(!S||!lv) return; const i=Object.assign({gas:false,brake:false,tiltBack:false,tiltFwd:false,boost:false},inp||{}); for(let t=0;t<sec&&!S.crashed;t+=1/60){ step(lv,S,i,1/60); collect(lv,S); } camX=S.x+2; camY=S.y+1.6; };
+window.__h3d.__step=(i)=>{ if(!S||!lv) return; step(lv,S,Object.assign(NOINP(),i||{}),1/60); handleEvents(collect(lv,S)); if(S.crashed&&state==="play") onCrash(); };
+window.__h3d.advance=(sec,inp)=>{ if(!S||!lv) return; const i=Object.assign(NOINP(),inp||{}); for(let t=0;t<sec&&!S.crashed;t+=1/60){ step(lv,S,typeof inp==="function"?inp(S,lv):i,1/60); collect(lv,S); } snapCam(); };
 // ---------- ধুলো ----------
 const dustN=140, dustPos=new Float32Array(dustN*3), dustLife=new Float32Array(dustN), dustVel=new Float32Array(dustN*3);
 dustPos.fill(1e4);
@@ -53,7 +55,7 @@ const dustTex=(()=>{ const c=document.createElement("canvas"); c.width=c.height=
 const dustMat=new THREE.PointsMaterial({ size:1.7, map:dustTex, transparent:true, opacity:.5, depthWrite:false, color:0xb89a78 });
 const dust=new THREE.Points(dustGeo,dustMat); dust.frustumCulled=false; scene.add(dust);
 let dustI=0;
-function emitDust(x,y,vx,n=1){ for(let k=0;k<n;k++){ const i=dustI++%dustN; dustPos[i*3]=x+(Math.random()-.5)*.6; dustPos[i*3+1]=y+Math.random()*.3; dustPos[i*3+2]=(Math.random()-.5)*2.4; dustVel[i*3]=-vx*.15+(Math.random()-.5)*1.2; dustVel[i*3+1]=.8+Math.random()*1.8; dustVel[i*3+2]=(Math.random()-.5)*1.4; dustLife[i]=1; } }
+function emitDust(x,y,z,speed,n=1){ for(let k=0;k<n;k++){ const i=dustI++%dustN; dustPos[i*3]=x+(Math.random()-.5)*.8; dustPos[i*3+1]=y+Math.random()*.3; dustPos[i*3+2]=z+(Math.random()-.5)*.8; dustVel[i*3]=(Math.random()-.5)*1.6; dustVel[i*3+1]=.8+Math.random()*1.8; dustVel[i*3+2]=(Math.random()-.5)*1.6; dustLife[i]=1; } }
 function updateDust(dt){ for(let i=0;i<dustN;i++){ if(dustLife[i]<=0){ dustPos[i*3+1]=-1e4; continue; } dustLife[i]-=dt*1.3; dustPos[i*3]+=dustVel[i*3]*dt; dustPos[i*3+1]+=dustVel[i*3+1]*dt; dustPos[i*3+2]+=dustVel[i*3+2]*dt; dustVel[i*3+1]*=.98; } dustGeo.attributes.position.needsUpdate=true; }
 
 // ---------- লেভেল শুরু ----------
@@ -62,7 +64,7 @@ async function startLevel(level, mapIdx, vehIdx){
   // পুরনো দুনিয়া মুছে ফেলা
   if(world){ scene.remove(world.group); scene.remove(world.sky); world.dispose(); world=null; }
   if(veh){ scene.remove(veh.group); veh.dispose(); veh=null; }
-  lv = makeLevel(level, mapIdx, vehIdx); S = makeState(lv); usedCp=false; cpX=null; coinsThisRun=0;
+  lv = makeTrack(level, mapIdx, vehIdx); S = makeState(lv); usedCp=false; cpS=null; coinsThisRun=0;
   const mapId = MAPS3D[mapIdx].id;
   world = buildWorld(lv, mapId);
   scene.add(world.group); scene.add(world.sky);
@@ -76,7 +78,7 @@ async function startLevel(level, mapIdx, vehIdx){
   envTex = pmrem.fromScene(es, 0, .1, 2000).texture; scene.environment = envTex; scene.environmentIntensity = .85;
   veh = createVehicle(vehIdx); scene.add(veh.group);
   tryLoadGLB(veh, vehIdx);
-  camX = S.x; camY = S.y;
+  snapCam();
   setAllUI(); showOnly(null); $("hud").classList.remove("hidden"); $("controls").classList.remove("hidden");
   state = "play"; levelStart = performance.now(); simT = 0;
   updateHUD();
@@ -91,15 +93,15 @@ async function loadSkyHDR(w){
   }catch(e){}
 }
 // ---------- ইনপুট ----------
-const KEYMAP = { ArrowRight:"gas", KeyD:"gas", ArrowLeft:"brake", KeyA:"brake", ArrowUp:"tiltBack", KeyW:"tiltBack", ArrowDown:"tiltFwd", KeyS:"tiltFwd", Space:"boost", ShiftLeft:"boost", ShiftRight:"boost" };
+const KEYMAP = { ArrowUp:"gas", KeyW:"gas", ArrowDown:"brake", KeyS:"brake", ArrowLeft:"left", KeyA:"left", ArrowRight:"right", KeyD:"right", Space:"boost", ShiftLeft:"boost", ShiftRight:"boost", KeyE:"tiltBack", KeyQ:"tiltFwd" };
 addEventListener("keydown",e=>{ if(e.code==="Escape"||e.code==="KeyP"){ togglePause(); e.preventDefault(); return; } const k=KEYMAP[e.code]; if(k){ keys[k]=true; e.preventDefault(); } });
 addEventListener("keyup",e=>{ const k=KEYMAP[e.code]; if(k){ keys[k]=false; e.preventDefault(); } });
 addEventListener("blur",()=>{ for(const k in keys) keys[k]=false; for(const k in touch) touch[k]=false; });
 const touch = {};
 function bindBtn(id, key){ const el=$(id); if(!el) return; const on=e=>{ e.preventDefault(); touch[key]=true; el.classList.add("on"); }, off=e=>{ e.preventDefault(); touch[key]=false; el.classList.remove("on"); };
   el.addEventListener("pointerdown",on); el.addEventListener("pointerup",off); el.addEventListener("pointercancel",off); el.addEventListener("pointerleave",off); el.addEventListener("contextmenu",e=>e.preventDefault()); }
-bindBtn("bGas","gas"); bindBtn("bBrake","brake"); bindBtn("bBoost","boost"); bindBtn("bTiltB","tiltBack"); bindBtn("bTiltF","tiltFwd");
-function readInput(){ for(const k of ["gas","brake","tiltBack","tiltFwd","boost"]) input[k] = !!(keys[k]||touch[k]); }
+bindBtn("bGas","gas"); bindBtn("bBrake","brake"); bindBtn("bBoost","boost"); bindBtn("bTiltB","tiltBack"); bindBtn("bTiltF","tiltFwd"); bindBtn("bLeft","left"); bindBtn("bRight","right");
+function readInput(){ for(const k of ["gas","brake","left","right","tiltBack","tiltFwd","boost"]) input[k] = !!(keys[k]||touch[k]); }
 
 // ---------- মেনু ----------
 function showOnly(id){ for(const el of document.querySelectorAll(".screen")) el.classList.toggle("hidden", el.id!==id); }
@@ -118,7 +120,7 @@ $("pauseBtn").onclick=togglePause; $("resumeBtn").onclick=togglePause;
 $("pauseMenuBtn").onclick=goMenu; $("crashMenuBtn").onclick=goMenu; $("doneMenuBtn").onclick=goMenu;
 $("retryBtn").onclick=()=>startLevel(curLevel,save.map,save.vehicle); $("pauseRetryBtn").onclick=()=>startLevel(curLevel,save.map,save.vehicle);
 $("nextBtn").onclick=()=>startLevel(Math.min(100,curLevel+1),save.map,save.vehicle);
-$("cpBtn").onclick=()=>{ if(cpX==null) return; respawnAt(lv,S,cpX); usedCp=true; showOnly(null); state="play"; $("hud").classList.remove("hidden"); $("controls").classList.remove("hidden"); camX=S.x; camY=S.y; };
+$("cpBtn").onclick=()=>{ if(cpS==null) return; respawnAt(lv,S,cpS); usedCp=true; showOnly(null); state="play"; $("hud").classList.remove("hidden"); $("controls").classList.remove("hidden"); snapCam(); };
 function togglePause(){ if(state==="play"){ state="pause"; showOnly("pauseMenu"); } else if(state==="pause"){ state="play"; showOnly(null); } }
 
 // ---------- HUD ----------
@@ -127,9 +129,9 @@ function updateHUD(){
   $("fuelFill").style.width=Math.max(0,S.fuel)+"%"; $("fuelFill").classList.toggle("low",S.fuel<22);
   $("boostFill").style.width=Math.max(0,S.boostE)+"%";
   $("coinTxt").textContent=save.coins+coinsThisRun*COIN_VALUE_3D;
-  $("speedTxt").textContent=Math.round(Math.abs(S.vx)*3.6)+" km/h";
-  $("distTxt").textContent=Math.max(0,Math.round(S.x))+" / "+lv.L+" m";
-  $("progFill").style.width=Math.max(0,Math.min(100,S.x/lv.L*100))+"%";
+  $("speedTxt").textContent=Math.round(Math.abs(S.vf||0)*3.6)+" km/h";
+  $("distTxt").textContent=Math.max(0,Math.round(S.s))+" / "+lv.L+" m";
+  $("progFill").style.width=Math.max(0,Math.min(100,S.s/lv.L*100))+"%";
   $("timeTxt").textContent=fmt((performance.now()-levelStart)/1000);
 }
 const fmt = t => { const m=Math.floor(t/60), s=Math.floor(t%60), d=Math.floor((t*10)%10); return m+":"+String(s).padStart(2,"0")+"."+d; };
@@ -137,7 +139,7 @@ const fmt = t => { const m=Math.floor(t/60), s=Math.floor(t%60), d=Math.floor((t
 function onCrash(){
   state="crash"; shake=.6;
   $("crashText").textContent=S.reason;
-  $("cpBtn").style.display=(cpX!=null)?"":"none";
+  $("cpBtn").style.display=(cpS!=null)?"":"none";
   showOnly("crashMenu"); $("controls").classList.add("hidden");
 }
 function onComplete(){
@@ -160,37 +162,32 @@ function frame(now){
   requestAnimationFrame(frame);
   const dt=Math.min(.05,(now-last)/1000); last=now;
   if(state==="play"&&S&&lv){
-    readInput(); step(lv,S,input,dt); simT+=dt;
-    const evs=collect(lv,S);
-    for(const e of evs){
-      if(e.type==="coin"){ coinsThisRun++; }
-      else if(e.type==="fuel"){ /* সংগৃহীত */ }
-      else if(e.type==="cp"){ cpX=e.item.x; toast("📍 CHECKPOINT "+e.n); }
-      else if(e.type==="finish"){ onComplete(); break; }
-    }
-    // ধুলো
-    if(S.grounded&&Math.abs(S.vx)>4){ for(let i=0;i<2;i++){ const W=S.wheels[i]; if(W.on&&Math.random()<.6) emitDust(W.hub[0],W.gy+.15,S.vx,1); } }
+    readInput(); const wasAir=!S.grounded; step(lv,S,input,dt); simT+=dt;
+    handleEvents(collect(lv,S));
+    // ধুলো: পেছনের চাকা থেকে
+    if(S.grounded&&Math.abs(S.vf)>3.5&&Math.random()<.7){ const hw=lv.veh.wb/2; emitDust(S.x-Math.cos(S.psi)*hw,S.y-lv.veh.hub-lv.veh.R+.15,S.z-Math.sin(S.psi)*hw,S.vf,1); }
     // ল্যান্ডিং-শেক
-    if(S.grounded&&S._wasAir&&S.airT===0) shake=Math.max(shake,.25);
-    S._wasAir=!S.grounded;
-    if(S.crashed) onCrash();
+    if(S.grounded&&wasAir&&S.landed>5){ shake=Math.max(shake,Math.min(.7,S.landed*.05)); S.landed=0; }
+    if(S.crashed&&state==="play") onCrash();
     updateHUD();
   }
   if(S&&lv&&veh&&world){
     veh.setPose(S, state==="play"?dt:0);
-    // ক্যামেরা: গাড়ির পেছনে-বাইরে, সামান্য সামনে তাকিয়ে
-    const v=Math.abs(S.vx), big=lv.veh.id==="bus"?1.25:lv.veh.id==="truck"?1.12:1;
-    const tx=S.x+Math.min(7,v*.38)+2.0, ty=S.y+1.6;
-    camX+=(tx-camX)*Math.min(1,dt*4.0); camY+=(ty-camY)*Math.min(1,dt*2.6);
-    const dist=13.2*big, h=2.6*big;
+    // চেজ-ক্যামেরা: গাড়ির পেছনে, গাড়ির মুখের দিকে ধীরে ঘোরে
+    const v=Math.abs(S.vf||0), big=lv.veh.id==="bus"?1.3:lv.veh.id==="truck"?1.15:1;
+    let da=S.psi-camPsi; da=Math.atan2(Math.sin(da),Math.cos(da)); camPsi+=da*Math.min(1,dt*3.2);
+    camX+=(S.x-camX)*Math.min(1,dt*9); camY+=(S.y-camY)*Math.min(1,dt*4.5); camZ+=(S.z-camZ)*Math.min(1,dt*9);
+    const dist=(10.6+Math.min(3,v*.1))*big, h=(4.3+Math.min(1,v*.03))*big;
     shake=Math.max(0,shake-dt*1.6);
-    camera.position.set(camX-6.5*big+(Math.random()-.5)*shake*.35, camY+h+(Math.random()-.5)*shake*.35, dist*.92);
-    camera.lookAt(camX+3.2, camY-.2, 0);
-    camera.fov += ((46+Math.min(10,v*.45))-camera.fov)*Math.min(1,dt*2); camera.updateProjectionMatrix();
+    const cxp=camX-Math.cos(camPsi)*dist, czp=camZ-Math.sin(camPsi)*dist; let cyp=camY+h;
+    const gH=lv.hAt(cxp,czp); if(gH>-50) cyp=Math.max(cyp,gH+1.7);
+    camera.position.set(cxp+(Math.random()-.5)*shake*.35, cyp+(Math.random()-.5)*shake*.35, czp);
+    camera.lookAt(camX+Math.cos(camPsi)*9, camY+.4, camZ+Math.sin(camPsi)*9);
+    const fv=54+Math.min(12,v*.5); if(Math.abs(camera.fov-fv)>.05){ camera.fov += (fv-camera.fov)*Math.min(1,dt*2); camera.updateProjectionMatrix(); }
     world.update(camera.position,S,performance.now()/1000);
     updateDust(dt);
   }
-  renderer.render(scene,camera);
+  if(!window.__h3dNoRender) renderer.render(scene,camera);   // __h3dNoRender: শুধু টেস্টে (সফটওয়্যার-GL খুব ধীর)
 }
 let toastT=0;
 function toast(t){ const el=$("toast"); el.textContent=t; el.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("on"),1400); }
