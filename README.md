@@ -6,6 +6,9 @@ Browser-based monster truck hill-climb game. Plain HTML + CSS + JavaScript + Can
 **University:** Khwaja Yunus Ali University, Dept. of CSE (16th Batch)
 **Supervised by:** Md. Hasibur Rahman
 
+## 3D version (beta)
+`3d.html` — আলাদা Three.js ভার্সন (live: https://hill-rush-bangladesh.pages.dev/3d.html)। 2D গেম অক্ষত। বিস্তারিত: `CHANGELOG.md` v17।
+
 ## Run
 Live: https://hill-rush-bangladesh.pages.dev (Cloudflare Pages, auto-deploys from `main`).
 Or open `index.html` in a browser, or host the files on any static host.
