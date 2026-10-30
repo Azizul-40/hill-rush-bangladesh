@@ -1,4 +1,4 @@
-# গেম ডিজাইন (বর্তমান অবস্থা, v14)
+# গেম ডিজাইন (বর্তমান অবস্থা, v15)
 
 ## মূল গেমপ্লে
 - সাইড-ভিউ 2D (ট্রাক 3D-এর মতো আঁকা)। gas/brake/tilt দিয়ে পাহাড়ি রাস্তা পার হওয়া, কয়েন কুড়ানো, লেভেলের শেষে পৌঁছানো।
@@ -21,20 +21,40 @@
 - প্রতি ম্যাপে আলাদা স্থানীয় সেরা দূরত্ব (`save.endlessBest`) সংরক্ষিত থাকে।
 - রান শেষ হয় crash করলে, fuel ফুরিয়ে গাড়ি থেমে গেলে (২.৫ সেকেন্ড), বা (খুব কম ক্ষেত্রে) পুরো রুট শেষ করলে — ফলাফল স্ক্রিনে দূরত্ব ও সেরা রেকর্ড দেখায়।
 
-## ট্রাক (৪টা)
-TRAIL BLAZER (শুরুর, ফ্রি), DESERT BEAST, ROCK MONSTER, THUNDER X। প্রতিটার আলাদা speed/grip/suspension/boost মান আছে।
+## যানবাহন (১২টা)
+**৮টা monster truck:** TRAIL BLAZER (শুরুর, ফ্রি), RED RAMPAGE, OCEAN TITAN, JUNGLE KING, PURPLE FURY, BLACK BEAST, SUNSET KING, GOLDEN X।
+**৪টা বাংলাদেশি যানবাহন (v15, সব কোডে আঁকা নিজেদের ডিজাইন):**
+| যানবাহন | দাম | বৈশিষ্ট্য |
+|---|---|---|
+| RICKSHAW (রঙিন প্যাডেল রিকশা, হুড, বাংলাদেশের পতাকা) | ৮০০ | ধীর (speed ০.৯২) কিন্তু গ্রিপ ভালো (১.১২), সাসপেনশন ভালো |
+| EASY BIKE (ব্যাটারি অটো) | ১১০০ | বুস্ট ভালো (১.১৫) |
+| CNG AUTO (সবুজ CNG) | ১৫০০ | হালকা ও দ্রুত (speed ১.১০) |
+| MURIR TIN BUS (লোকাল বাস "মুড়ির টিন", টিনের তালি, ঢাকা সাইনবোর্ড) | ৩০০০ | ভারী; গ্রিপ (১.২৮) ও সাসপেনশন (১.৩০) সেরা |
+প্রতিটার আলাদা speed/grip/suspension/boost মান আছে।
 
 ## আপগ্রেড
 প্রতি ট্রাকে Engine, Tires, Suspension, Boost (লেভেল ১ থেকে বাড়ে)।
 
-## ম্যাপ (৮টা)
-GREEN HILLS, ICE VALLEY, JUNGLE RUN, DESERT STORM, VOLCANO RIDGE, NIGHT CITY, CANYON FALLS, AUTUMN PEAK। প্রতিটার রং, আকাশ ও পরিবেশ আলাদা; দাম আলাদা।
+## ম্যাপ (১৩টা)
+**৮টা আগের:** GREEN HILLS, ICE VALLEY, JUNGLE RUN, DESERT STORM, VOLCANO RIDGE, NIGHT CITY, CANYON FALLS, AUTUMN PEAK।
+**৫টা বাংলাদেশি (v15):** SAJEK VALLEY (মেঘের সমুদ্র, টিনের চালের কটেজ), BANDARBAN NILGIRI (কুয়াশা, ঝর্ণা, পাইন), SYLHET TEA HILLS (চা-বাগানের সারি, নদী; একটু পিচ্ছিল), KHAGRACHHARI (বাঁশবন, মাচাঘর, লাল মাটি), KAPTAI LAKE (সূর্যাস্তের হ্রদ, নৌকা)। প্রতিটার আকাশ, পেছনের দৃশ্য, মাটি/পানি আলাদা। কঠিনতা ম্যাপ-index থেকে বাড়লেও সর্বোচ্চ ১.৫-এ সীমিত।
 
 ## অন্যান্য ফিচার
 দৈনিক মিশন ও achievement, ghost (নিজের সেরা রানের ছায়া), আবহাওয়া (বৃষ্টি/কুয়াশা ইত্যাদি), দৈনিক বোনাস, সাউন্ড (mute/volume), pause।
+
+## Checkpoint ও recovery (v15, শুধু Level mode)
+- প্রতি লেভেলে রুটের ২৫%, ৫০%, ৭৫%-এ checkpoint-পতাকা (gap-এর ওপর নয়)। পার হলে "📍 CHECKPOINT n" লেখা আসে, পতাকা সবুজ হয়।
+- ক্র্যাশের পর "📍 CHECKPOINT থেকে" বাটনে ওই জায়গা থেকে চালু হয় (fuel ও boost ৬০ দিয়ে; menu-তে অপেক্ষার সময় টাইমারে গণ্য হয় না)।
+- **সততার নিয়ম:** checkpoint ব্যবহার করে শেষ করলে কয়েন পুরস্কার পাওয়া যায় কিন্তু সেরা সময় ও ghost বদলায় না। Endless mode-এ checkpoint নেই (র‍্যাংকিং ন্যায্য রাখতে)।
+
+## Customization (v15)
+গ্যারেজে selected গাড়ির রং (৯টা + ডিফল্ট) ও নম্বর প্লেট (সর্বোচ্চ ৮ অক্ষর: A-Z, 0-9, `-`, স্পেস)। গেমে ও গ্যারেজ preview-তে দেখা যায়। অবৈধ ইনপুট ছেঁকে ফেলা হয়।
+
+## Records (v15)
+মেইন মেনু → 📊 RECORDS: শেষ করা লেভেল, আনলকড, কয়েন, প্রতি ম্যাপে Endless সেরা দূরত্ব, লেভেলের সেরা সময়। শুধু এই ডিভাইসের local রেকর্ড (অনলাইন leaderboard নয়)।
 
 ## Save
 `localStorage`-এ (`hillRushFinalSaveV1`)। রিফ্রেশ দিলে সর্বশেষ খেলা লেভেল থেকে চালু হয় (v13 থেকে)। বিস্তারিত: `TECHNICAL_NOTES.md`।
 
 ## যা এখনো নেই
-Level mode-এর leaderboard UI, বাংলাদেশি যানবাহন ও ম্যাপ, checkpoint, vehicle customization, মোবাইল control-এর আলাদা যাচাই। coin economy-র ভারসাম্য শুধু মাপা হয়েছে, বদলানো হয়নি (মানুষ-খেলা ডেটা দরকার)। দেখুন `NEXT_LEVEL_PLAN.md`।
+অনলাইন leaderboard/cloud sync, 3D (সিদ্ধান্ত: 2D-ই ফাইনাল), coin economy-র মানুষ-খেলা-ভিত্তিক ভারসাম্য, আসল ফোন-ডিভাইসে হাতে টেস্ট (শুধু emulated touch টেস্ট হয়েছে)। দেখুন `NEXT_LEVEL_PLAN.md`।

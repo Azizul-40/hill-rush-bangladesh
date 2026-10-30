@@ -8,6 +8,8 @@
 - `tests/save_test.js` — সেভ সিস্টেমের স্বয়ংক্রিয় ব্রাউজার টেস্ট
 - `tests/economy_fuel_boost_endless_test.js` — fuel/boost/endless-এর স্বয়ংক্রিয় টেস্ট (২০টা assertion)
 - `tests/economy_measure.js` — coin economy মাপার bot (upper-bound measurement, সতর্কতাসহ)
+- `tests/v15_test.js` — v15-এর স্বয়ংক্রিয় টেস্ট (৩২টা assertion: যানবাহন, ম্যাপ, checkpoint, customization, records, touch, পারফরম্যান্স)
+- `tests/v15_bot_playability.js` — নতুন যানবাহন × নতুন ম্যাপে bot-খেলা (শুধু "চলে কি না" দেখায়)
 
 ## হোস্টিং
 GitHub (`Azizul-40/hill-rush-bangladesh`) → Netlify। `main`-এ push করলে স্বয়ংক্রিয় ডিপ্লয়: https://hill-rush-bangladesh.netlify.app
@@ -41,7 +43,17 @@ GitHub (`Azizul-40/hill-rush-bangladesh`) → Netlify। `main`-এ push কর�
 - `tests/economy_measure.js`: full-throttle autoplay bot দিয়ে প্রতি লেভেলে সময় ও কয়েন মাপা হয়েছে (level 1: ৫.২s/৫৭৫ কয়েন, level 10: ৬.৫s/৬৫০, level 25: ৮.৪s/৭৯৭, level 50: ১১.৮s/১৫৪৬)।
 - **সতর্কতা:** এই সংখ্যা bot-এর বারবার air-time/flip বোনাস পাওয়ার কারণে সতর্ক মানুষের খেলার চেয়ে বেশি দেখাতে পারে। তাই এই ডেটা দিয়ে দাম/পুরস্কার *বদলানো হয়নি*, শুধু পরিমাপ রেকর্ড করা হয়েছে।
 
+## v15 গঠন (script.js-এর শেষে "V15" অংশ)
+- **Wrap পদ্ধতি:** পুরনো ফাংশন (`drawTruck`, `drawScenario`, `drawBottomStrip`, `themeGripMul`, `weatherForLevel`, `mapDifficulty`, `startLevel`, `startEndless`, `updatePhysics`, `crash`, `completeLevel`, `renderGarage`, `miniTruckMarkup`, `hideScreens`, `showScreen`) পরিবর্তন না করে `const base=fn; fn=function(){...base()...}` দিয়ে মুড়ে নতুন আচরণ যোগ হয়েছে। (`script.js`-এ একই নামের একাধিক ঘোষণা আছে; শেষটাই কার্যকর, wrap সেটাকেই ধরে।)
+- **যানবাহন:** `vehiclesV22`-এর (= `premiumVehicles`) শেষে ৪টা entry, `kind` ফিল্ডসহ (`cng`/`rickshaw`/`ebike`/`bus`)। এগুলো পুরনো তালিকার ঠিক পরেই (ফাইলের মাঝখানে) ঘোষিত—কারণ startup-এর `renderGarage` তালিকার দৈর্ঘ্য দিয়ে `selectedVehicle` clamp করে; শেষে যোগ করলে রিফ্রেশে নতুন গাড়ি কেটে যেত (টেস্টে ধরা পড়া বাগ, ঠিক করা হয়েছে)। Sprite আঁকে `v15DrawVehicle(c,v,o)`, যা যেকোনো canvas context নেয় (গেম ও গ্যারেজ preview দুটোতেই)। Physics (চাকার অবস্থান `wheelBase 92`) সব যানবাহনে একই; শুধু চেহারা ও stat আলাদা।
+- **ম্যাপ:** `maps`-এ ৫টা entry (theme: `sajek`, `bandarban`, `sylhet`, `khagrachhari`, `kaptai`), শেষে যোগ—তাই পুরনো `selectedMap`/`ownedMaps`/`collected` key অক্ষত। দৃশ্য `v15Scenario(theme)`, নিচের strip `v15SoilStrip`/`v15Lake`।
+- **Checkpoint:** `v15Cps` (লেভেল শুরুতে `v15InitCps()`), `v15Checkpoint`, `v15Respawn()`; পতাকা `drawCheckpointFlags()` (`render()`-এ `drawFuelCans/BoostCans`-এর পরে বসানো)।
+- **Customization:** `save.custom={color,plate}`; `v15Custom()` প্রতিবার সব মান যাচাই/ছেঁকে নেয় (regex `^#[0-9a-fA-F]{6}$`, প্লেটে `[A-Z0-9- ]` ছাড়া সব বাদ)। `normalizeSave()`ও এটা ডাকে।
+- **Records:** `renderRecords()`, স্ক্রিন `#recordsMenu`।
+
 ## জানা সমস্যা / ঋণ
 - `script.js`-এ অনেক ফাংশন একাধিকবার ঘোষিত (শেষটাই কার্যকর) — ভার্সনে ভার্সনে যোগ হওয়ার ফল। ভবিষ্যতে পরিষ্কার করা দরকার।
 - `style.css`-এ অনেক স্তরের `!important` ওভাররাইড আছে; নতুন নিয়ম ফাইলের শেষে যোগ হয়।
-- Coin economy-র বাস্তব (মানুষ-খেলা) ভারসাম্য যাচাই এখনো বাকি।
+- Coin economy-র বাস্তব (মানুষ-খেলা) ভারসাম্য যাচাই এখনো বাকি। নতুন ম্যাপে লেভেল পুরস্কারে `map index × 10` যোগ হয় (index ১২-তে +১২০)—এটা পুরনো সূত্রই, আলাদা করে মাপা/বদলানো হয়নি।
+- Touch টেস্ট হয়েছে Chromium-এর emulated touch দিয়ে (CDP), আসল ফোনে হাতে নয়।
+- নতুন যানবাহনের sprite ও ম্যাপের দৃশ্য প্রতি ফ্রেমে canvas-এ আঁকা হয়; headless-এ গড় ফ্রেম (physics+render) প্রায় ১০ms, কিন্তু আসল কম-শক্তির ফোনে মাপা হয়নি।

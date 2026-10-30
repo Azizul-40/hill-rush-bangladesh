@@ -3465,3 +3465,34 @@ body #mainMenu .developerPlaque .supervisorName{
     bottom:calc(100% + max(4px,calc(9.28vh - 30px))) !important;
   }
 }
+
+/* ===== V15: বাংলাদেশি যানবাহনের sprite, customization, records ===== */
+.v15Sprite{display:block;height:auto;margin:0 auto;pointer-events:none;image-rendering:auto;}
+.garageVehicle .v15Sprite{height:148px !important;width:auto !important;max-width:none !important;transform:scaleX(-1);}
+.vehicleCard .v15Sprite.vehicleMini{position:absolute !important;left:50% !important;top:-14px !important;height:96px !important;width:auto !important;transform:translateX(-50%) !important;}
+.garageCustom{margin:8px auto;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.18);max-width:340px;}
+.gcTitle{font-weight:800;font-size:12px;letter-spacing:.08em;margin-bottom:6px;opacity:.9;}
+.gcSwatches{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.gcSwatch{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.55);cursor:pointer;padding:0;color:#fff;font-size:14px;line-height:1;background:#444;}
+.gcSwatch.on{border-color:#ffe14a;box-shadow:0 0 0 2px #ffe14a;}
+.gcPlate{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:12px;font-weight:700;}
+.gcPlate input{width:92px;padding:4px 6px;border-radius:6px;border:2px solid #222;background:#fffdf2;color:#111;font:700 13px monospace;text-align:center;text-transform:uppercase;}
+.recordsList{padding:10px 14px 24px;overflow-y:auto;max-height:calc(100% - 70px);}
+.recSummary{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;margin:6px 0 10px;font-weight:700;}
+.recH{margin:12px 0 6px;font-size:15px;}
+.recGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.recCard{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.16);}
+.recCard b{font-size:12px;opacity:.9;}
+.recCard span{font-size:16px;font-weight:800;color:#ffe14a;}
+.recCard.locked{opacity:.5;}
+.recEmpty{grid-column:1/-1;opacity:.8;padding:6px;}
+#recordsMenu{background:linear-gradient(#0d8bd8,#43caeb);flex-direction:column !important;justify-content:flex-start !important;align-items:center !important;overflow:auto !important;padding:16px 18px 30px !important;}
+.recordsList{width:min(900px,96vw);max-height:none !important;color:#fff;overflow:visible !important;}
+/* V15: ছোট (ল্যান্ডস্কেপ ফোন) স্ক্রিনে crash মেনু কমপ্যাক্ট, যাতে ৩টা বাটন control-এর পেছনে না যায় */
+@media (max-height:480px){
+  #crashMenu .modalCard{padding-top:10px !important;padding-bottom:10px !important;max-height:calc(100vh - 110px) !important;overflow:auto !important;}
+  #crashMenu .modalIcon{display:none !important;}
+  #crashMenu h2{margin:2px 0 !important;font-size:26px !important;}
+  #crashMenu p{margin:2px 0 6px !important;}
+  #crashMenu .actionBtn{min-height:40px !important;height:40px !important;margin:5px auto !important;font-size:15px !important;}
+}

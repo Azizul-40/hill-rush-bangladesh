@@ -86,6 +86,7 @@
       <button id="missionsBtn" type="button" class="actionBtn">🏆 MISSIONS</button>
       <!-- ধাপ ৩: ENDLESS/DISTANCE MODE—ফিক্সড লেভেল নয়, যতদূর সম্ভব যাওয়ার চেষ্টা। -->
       <button id="endlessBtn" type="button" class="actionBtn">🏁 ENDLESS</button>
+      <button id="recordsBtn" type="button" class="actionBtn">📊 RECORDS</button>
     </div>
 
     <!-- Version label। -->
@@ -273,6 +274,7 @@
       <div class="modalIcon">💥</div>
       <h2>CRASH!</h2>
       <p id="crashText">The truck crashed.</p>
+      <button id="cpRetryBtn" type="button" class="actionBtn primary" style="display:none">📍 CHECKPOINT থেকে</button>
       <button id="retryCrashBtn" type="button" class="actionBtn primary">↻ RETRY</button>
       <button id="crashLevelsBtn" type="button" class="actionBtn">▦ LEVELS</button>
     </div>
@@ -292,6 +294,18 @@
   </section>
 
   <!-- ধাপ ৩: Endless/Distance Mode-এর ফলাফল। -->
+  <section id="recordsMenu" class="screen hidden">
+    <div class="levelHeader">
+      <button id="backRecordsBtn" type="button" class="backBtn">‹ MENU</button>
+      <div class="headerTitle">
+        <span>HILL RUSH BANGLADESH</span>
+        <strong>RECORDS</strong>
+      </div>
+      <div style="width:90px"></div>
+    </div>
+    <div id="recordsList" class="recordsList"></div>
+  </section>
+
   <section id="endlessMenu" class="screen hidden">
     <div class="modalCard">
       <div class="modalIcon">🏁</div>

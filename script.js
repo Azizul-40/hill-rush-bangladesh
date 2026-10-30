@@ -139,6 +139,7 @@ function normalizeSave(){
   // পুরনো save-এ না থাকলে সবচেয়ে এগিয়ে থাকা (unlocked) level ধরা হয়।
   if(!Number.isFinite(Number(save.lastLevel))) save.lastLevel=save.unlocked;
   save.lastLevel=Math.max(1,Math.min(save.unlocked,Math.floor(Number(save.lastLevel))));
+  v15Custom();
   save.saveVersion=SAVE_VERSION;
 }
 normalizeSave();
@@ -3218,6 +3219,13 @@ const premiumVehicles=[
   {name:"GOLDEN X",color:"#d9a514",accent:"#fff1a1",price:4500,speed:1.35,grip:1.20,suspension:1.25,boost:1.35,desc:"Ultimate monster truck."}
 ];
 const vehiclesV22=premiumVehicles;
+// V15: বাংলাদেশি যানবাহন—startup-এর clamp-এর আগেই তালিকায় থাকা দরকার (নইলে রিফ্রেশে select করা গাড়ি আগের ৮টার মধ্যে কেটে যেত)।
+vehiclesV22.push(
+  {name:"CNG AUTO",kind:"cng",color:"#1f9d55",accent:"#ffd23a",price:1500,speed:1.10,grip:1.05,suspension:1.02,boost:1.00,desc:"ঢাকার সবুজ CNG অটো — হালকা ও ছটফটে।"},
+  {name:"RICKSHAW",kind:"rickshaw",color:"#e53b6a",accent:"#ffd23a",price:800,speed:.92,grip:1.12,suspension:1.20,boost:.90,desc:"রঙিন রিকশা — ধীর, কিন্তু পাহাড়ে দারুণ গ্রিপ।"},
+  {name:"EASY BIKE",kind:"ebike",color:"#f2b705",accent:"#2a6fdb",price:1100,speed:1.00,grip:1.00,suspension:1.08,boost:1.15,desc:"ব্যাটারিচালিত ইজি বাইক — বুস্ট ভালো।"},
+  {name:"MURIR TIN BUS",kind:"bus",color:"#d9482b",accent:"#ffd23a",price:3000,speed:1.04,grip:1.28,suspension:1.30,boost:1.00,desc:"লোকাল বাস 'মুড়ির টিন' — ভারী, গ্রিপ ও সাসপেনশন সেরা।"}
+);
 
 // ==============================
 // STARTUP
@@ -4707,7 +4715,7 @@ function updatePhysics(dt){
 
 // পর্দায় আঁকার ক্রম—ghost truck-এর পরে আসল truck, তারপর আবহাওয়া/রাত-দৃশ্যমানতা overlay।
 function render(){
-  drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawFuelCans();drawBoostCans();drawParticles();
+  drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawFuelCans();drawBoostCans();drawCheckpointFlags();drawParticles();
   drawGhost();
   drawTruck();
   drawWeather();
@@ -4858,3 +4866,566 @@ updateWeatherBadge();
 updateDamageBarUI();
 renderMissions();
 // ============================================================
+
+
+// =====================================================================
+// V15 — বাংলাদেশি যানবাহন, বাংলাদেশি ম্যাপ, checkpoint, customization, records
+// (সব নতুন কোড ফাইলের শেষে; আগের ফাংশন "wrap" করা হয়েছে যাতে পুরনো লজিক অক্ষত থাকে)
+// =====================================================================
+
+// ---------- ছোট helper (canvas context প্যারামিটার হিসেবে নেয়, তাই গ্যারেজের preview-তেও কাজ করে) ----------
+function v15Rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+function v15Grad(c,y0,y1,top,bot){const g=c.createLinearGradient(0,y0,0,y1);g.addColorStop(0,top);g.addColorStop(1,bot);return g;}
+function v15Wheel(c,x,y,r,spin,rim){
+  c.save();c.translate(x,y);
+  c.fillStyle="#0c1014";c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fill();
+  c.strokeStyle="#2b353d";c.lineWidth=3;c.beginPath();c.arc(0,0,r-3,0,Math.PI*2);c.stroke();
+  c.rotate(spin||0);
+  c.fillStyle=rim;c.beginPath();c.arc(0,0,r*.55,0,Math.PI*2);c.fill();
+  c.strokeStyle="rgba(0,0,0,.45)";c.lineWidth=2.5;
+  for(let i=0;i<6;i++){c.rotate(Math.PI/3);c.beginPath();c.moveTo(0,0);c.lineTo(r*.52,0);c.stroke();}
+  c.fillStyle="#d8dde2";c.beginPath();c.arc(0,0,r*.14,0,Math.PI*2);c.fill();
+  c.restore();
+}
+function v15Arch(c,x,y,r){c.save();c.beginPath();c.rect(x-r-2,-44,2*r+4,56);c.clip();c.fillStyle="#0c1014";c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}
+function v15Plate(c,text,x,y){
+  c.save();c.fillStyle="#fffdf2";c.strokeStyle="#1d1d1d";c.lineWidth=1.5;v15Rr(c,x,y,40,14,3);c.fill();c.stroke();
+  c.fillStyle="#0a7a3a";c.fillRect(x+2,y+2,36,2);
+  c.fillStyle="#111";c.font="bold 8px monospace";c.textAlign="center";c.textBaseline="middle";c.fillText(text,x+20,y+9);c.restore();
+}
+function v15Flag(c,x,y){c.save();c.strokeStyle="#4a3a2a";c.lineWidth=2;c.beginPath();c.moveTo(x,y);c.lineTo(x,y-26);c.stroke();c.fillStyle="#006a4e";c.fillRect(x,y-26,20,12);c.fillStyle="#f42a41";c.beginPath();c.arc(x+9,y-20,3.6,0,Math.PI*2);c.fill();c.restore();}
+
+// ---------- ১) CNG অটো-রিকশা ----------
+function v15CNG(c,v,o){
+  const body=v.color,dark=shadeColor(body,-.45),light=shadeColor(body,.35);
+  c.lineJoin="round";
+  c.fillStyle="#141b22";v15Rr(c,-64,4,128,12,5);c.fill();
+  // ভেতরের খোলা অংশ (ছায়া) ও সিট
+  c.fillStyle="#0e1f16";c.beginPath();c.moveTo(-58,-28);c.lineTo(-60,-60);c.lineTo(46,-60);c.lineTo(52,-28);c.closePath();c.fill();
+  c.fillStyle="#8a3a30";v15Rr(c,-50,-40,52,12,3);c.fill();c.fillRect(-52,-58,7,30);
+  c.fillStyle="#e0b08a";c.beginPath();c.arc(22,-47,7,0,Math.PI*2);c.fill();
+  c.fillStyle="#2d4a8a";v15Rr(c,15,-41,15,15,4);c.fill();
+  c.strokeStyle="#222";c.lineWidth=3;c.beginPath();c.moveTo(34,-42);c.lineTo(31,-33);c.stroke();
+  // নিচের বডি
+  c.fillStyle=v15Grad(c,-28,12,light,body);c.strokeStyle=dark;c.lineWidth=3;
+  c.beginPath();c.moveTo(-66,-12);c.lineTo(-61,-28);c.lineTo(38,-28);c.lineTo(62,-14);c.lineTo(69,-2);c.lineTo(62,10);c.lineTo(-62,10);c.lineTo(-68,-2);c.closePath();c.fill();c.stroke();
+  c.fillStyle=v.accent;c.fillRect(-64,-14,126,3);
+  // সামনের কাচ
+  c.fillStyle="rgba(190,235,250,.78)";c.beginPath();c.moveTo(36,-58);c.lineTo(48,-60);c.lineTo(61,-30);c.lineTo(44,-29);c.closePath();c.fill();c.strokeStyle=dark;c.lineWidth=2;c.stroke();
+  // ছাদ (hood)
+  c.fillStyle=v15Grad(c,-84,-52,light,body);c.strokeStyle=dark;c.lineWidth=3;
+  c.beginPath();c.moveTo(-64,-52);c.quadraticCurveTo(-64,-82,-36,-82);c.lineTo(24,-82);c.quadraticCurveTo(48,-82,56,-58);c.lineTo(58,-52);c.closePath();c.fill();c.stroke();
+  // থাম
+  c.strokeStyle=body;c.lineWidth=6;c.lineCap="round";c.beginPath();c.moveTo(-58,-52);c.lineTo(-57,-28);c.moveTo(38,-52);c.lineTo(46,-28);c.stroke();
+  // লেখা, হেডলাইট, প্লেট
+  c.fillStyle="#111";c.font="bold 13px sans-serif";c.textAlign="left";c.textBaseline="alphabetic";c.fillText("CNG",-50,2);
+  c.fillStyle="#fff7b0";c.shadowColor="#ffe66b";c.shadowBlur=8;c.beginPath();c.arc(65,-8,4.5,0,Math.PI*2);c.fill();c.shadowBlur=0;
+  c.fillStyle="#d22";c.fillRect(-69,-10,4,7);
+  v15Plate(c,o.plate,2,-12);
+  v15Arch(c,-39,32+o.rs,33);v15Arch(c,43,28+o.fs,36);
+  v15Wheel(c,-39,32+o.rs,27,o.spin,"#f2f2f2");v15Wheel(c,43,28+o.fs,30,o.spin,"#f2f2f2");
+}
+
+// ---------- ২) রিকশা (প্যাডেল) ----------
+function v15Rickshaw(c,v,o){
+  const body=v.color,acc=v.accent,dark=shadeColor(body,-.45);
+  c.lineJoin="round";c.lineCap="round";
+  // ফ্রেম
+  c.strokeStyle="#1b232a";c.lineWidth=5;
+  c.beginPath();c.moveTo(-39,32+o.rs);c.lineTo(-18,-4);c.lineTo(30,-4);c.lineTo(43,28+o.fs);c.stroke();
+  c.beginPath();c.moveTo(-18,-4);c.lineTo(8,20);c.lineTo(30,-4);c.stroke();
+  c.beginPath();c.moveTo(43,28+o.fs);c.lineTo(37,-30);c.lineTo(50,-35);c.stroke();
+  // মাডগার্ড
+  c.strokeStyle=acc;c.lineWidth=4;c.beginPath();c.arc(-39,32+o.rs,32,Math.PI*1.08,Math.PI*1.92);c.stroke();c.beginPath();c.arc(43,28+o.fs,35,Math.PI*1.1,Math.PI*1.9);c.stroke();
+  // যাত্রী সিট
+  c.fillStyle="#a8232b";v15Rr(c,-62,-14,48,10,3);c.fill();c.fillStyle="#7e1a21";c.fillRect(-64,-44,9,32);
+  // হুড (ডোম) + ডোরাকাটা সাজ
+  c.save();c.beginPath();c.moveTo(-66,-12);c.bezierCurveTo(-76,-86,-16,-96,2,-46);c.lineTo(-4,-12);c.closePath();
+  c.fillStyle=v15Grad(c,-86,-12,shadeColor(body,.3),body);c.fill();c.clip();
+  c.strokeStyle=acc;c.lineWidth=5;for(let i=-4;i<9;i++){c.beginPath();c.moveTo(-72+i*10,-92);c.lineTo(-52+i*10,-8);c.stroke();}
+  c.restore();
+  c.strokeStyle=dark;c.lineWidth=3;c.beginPath();c.moveTo(-66,-12);c.bezierCurveTo(-76,-86,-16,-96,2,-46);c.lineTo(-4,-12);c.stroke();
+  // পিছনের টিনের সাজ-ফলক
+  c.fillStyle=acc;v15Rr(c,-70,-42,8,30,2);c.fill();c.fillStyle="#e8399a";[-38,-28,-18].forEach(y=>{c.beginPath();c.arc(-66,y,2.6,0,Math.PI*2);c.fill();});
+  // চালক
+  c.fillStyle="#2a2f38";c.beginPath();c.ellipse(20,-21,9,3.5,0,0,Math.PI*2);c.fill();
+  c.strokeStyle="#2c3e8f";c.lineWidth=10;c.beginPath();c.moveTo(19,-24);c.lineTo(30,-52);c.stroke();
+  c.fillStyle="#e0b08a";c.beginPath();c.arc(33,-61,7,0,Math.PI*2);c.fill();
+  c.fillStyle="#e8e8e8";c.beginPath();c.arc(33,-65,7,Math.PI,0);c.fill();
+  c.strokeStyle="#e0b08a";c.lineWidth=4;c.beginPath();c.moveTo(30,-48);c.lineTo(43,-35);c.stroke();
+  c.strokeStyle="#6a4a2a";c.lineWidth=6;c.beginPath();c.moveTo(19,-22);c.lineTo(26,6);c.stroke();
+  c.fillStyle="#222";c.beginPath();c.arc(24,14,3,0,Math.PI*2);c.fill();
+  v15Flag(c,-26,-84);
+  v15Plate(c,o.plate,-30,-2);
+  v15Wheel(c,-39,32+o.rs,27,o.spin,"#cfd6dc");v15Wheel(c,43,28+o.fs,30,o.spin,"#cfd6dc");
+}
+
+// ---------- ৩) ইজি বাইক (ব্যাটারি অটো) ----------
+function v15Ebike(c,v,o){
+  const body=v.color,acc=v.accent,dark=shadeColor(body,-.5),light=shadeColor(body,.35);
+  c.lineJoin="round";c.lineCap="round";
+  c.fillStyle="#1a222a";v15Rr(c,-64,2,128,12,4);c.fill();
+  c.fillStyle="#3b4752";v15Rr(c,-28,12,58,10,3);c.fill();
+  c.strokeStyle="#ffd34e";c.lineWidth=2;c.beginPath();c.moveTo(2,13);c.lineTo(-3,18);c.lineTo(3,18);c.lineTo(-2,22);c.stroke();
+  // সিট
+  c.fillStyle="#8a3a3a";v15Rr(c,-56,-22,40,9,3);c.fill();c.fillRect(-58,-48,6,28);
+  c.fillStyle="#e0b08a";c.beginPath();c.arc(22,-44,6.5,0,Math.PI*2);c.fill();
+  c.fillStyle="#7a3b2e";v15Rr(c,16,-38,13,16,4);c.fill();
+  // সামনের কাউল
+  c.fillStyle=v15Grad(c,-32,8,light,body);c.strokeStyle=dark;c.lineWidth=3;
+  c.beginPath();c.moveTo(34,-32);c.lineTo(52,-32);c.lineTo(67,-8);c.lineTo(63,8);c.lineTo(28,8);c.closePath();c.fill();c.stroke();
+  c.fillStyle=acc;c.fillRect(30,-6,36,4);
+  // পাশের খোলা রেলিং
+  c.strokeStyle=body;c.lineWidth=4;c.beginPath();c.moveTo(-62,-8);c.lineTo(30,-8);c.stroke();
+  // সামনের কাচ
+  c.fillStyle="rgba(190,235,250,.78)";c.beginPath();c.moveTo(38,-70);c.lineTo(50,-68);c.lineTo(58,-32);c.lineTo(44,-32);c.closePath();c.fill();c.strokeStyle=dark;c.lineWidth=2;c.stroke();
+  // থাম ও ছাদ
+  c.strokeStyle="#2a3138";c.lineWidth=5;c.beginPath();c.moveTo(-58,-8);c.lineTo(-58,-70);c.moveTo(-14,-8);c.lineTo(-14,-70);c.moveTo(38,-32);c.lineTo(38,-70);c.stroke();
+  c.fillStyle=acc;c.strokeStyle=shadeColor(acc,-.5);c.lineWidth=2.5;v15Rr(c,-68,-80,124,11,5);c.fill();c.stroke();
+  c.fillStyle="#fff";c.fillRect(-60,-77,100,2);
+  c.fillStyle="#fff7b0";c.shadowColor="#ffe66b";c.shadowBlur=8;c.beginPath();c.arc(64,-12,4.5,0,Math.PI*2);c.fill();c.shadowBlur=0;
+  c.fillStyle="#d22";c.fillRect(-67,-14,4,8);
+  v15Plate(c,o.plate,-10,-4);
+  v15Arch(c,-39,32+o.rs,33);v15Arch(c,43,28+o.fs,36);
+  v15Wheel(c,-39,32+o.rs,27,o.spin,"#e8c23a");v15Wheel(c,43,28+o.fs,30,o.spin,"#e8c23a");
+}
+
+// ---------- ৪) লোকাল বাস "মুড়ির টিন" ----------
+function v15Bus(c,v,o){
+  const body=v.color,acc=v.accent,dark=shadeColor(body,-.5),light=shadeColor(body,.3);
+  c.lineJoin="round";c.lineCap="round";
+  c.fillStyle="#141b22";v15Rr(c,-72,6,148,10,4);c.fill();
+  // ছাদের মালপত্র
+  c.fillStyle="#7a5a3a";v15Rr(c,-58,-96,26,12,3);c.fill();c.fillStyle="#3a6a8a";v15Rr(c,-28,-93,22,9,3);c.fill();c.fillStyle="#9a3a3a";v15Rr(c,-2,-95,30,11,3);c.fill();
+  c.strokeStyle="#222";c.lineWidth=2;c.beginPath();c.moveTo(-64,-86);c.lineTo(36,-86);c.stroke();
+  // মূল বডি
+  c.fillStyle=v15Grad(c,-86,10,light,body);c.strokeStyle=dark;c.lineWidth=3;v15Rr(c,-74,-86,152,96,9);c.fill();c.stroke();
+  // টিনের তালি
+  const patch=["#c9d1d6","#e8b0a0","#9fb3c0","#d8c27a"];
+  [[-66,-6,22,12],[-34,0,18,9],[-8,-8,26,13],[28,-2,20,10],[52,-9,18,12]].forEach((p,i)=>{c.fillStyle=patch[i%4];c.globalAlpha=.85;c.fillRect(p[0],p[1],p[2],p[3]);c.globalAlpha=1;c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=1;c.strokeRect(p[0],p[1],p[2],p[3]);});
+  // রঙিন ডোরা
+  c.fillStyle=acc;c.fillRect(-74,-46,152,6);c.fillStyle="#1d7a3a";c.fillRect(-74,-38,152,3);
+  // জানালা + যাত্রী
+  for(let i=0;i<5;i++){const wx=-66+i*24;c.fillStyle="#13222b";v15Rr(c,wx-1.5,-79,22,28,3);c.fill();c.fillStyle="rgba(190,230,245,.92)";v15Rr(c,wx,-77.5,19,25,2);c.fill();
+    if(i!==2){c.fillStyle=["#d9a47a","#b8845e","#e0b08a","#8a5a3a"][i%4];c.beginPath();c.arc(wx+9.5,-62,5,0,Math.PI*2);c.fill();c.fillStyle=["#cc4444","#4477cc","#44aa66","#ddaa33"][i%4];c.fillRect(wx+3,-57,13,6);}}
+  // সামনের কাচ + গন্তব্য-ফলক
+  c.fillStyle="rgba(190,230,245,.92)";c.beginPath();c.moveTo(56,-78);c.lineTo(74,-74);c.lineTo(76,-48);c.lineTo(56,-50);c.closePath();c.fill();c.strokeStyle=dark;c.lineWidth=2;c.stroke();
+  c.fillStyle="#0c0c0c";v15Rr(c,44,-92,32,11,2);c.fill();c.fillStyle="#ffd23a";c.font="bold 9px sans-serif";c.textAlign="center";c.textBaseline="middle";c.fillText("ঢাকা",60,-86);
+  // দরজা
+  c.fillStyle="#1b1b1b";c.fillRect(30,-48,18,56);c.strokeStyle="#999";c.lineWidth=1;c.beginPath();c.moveTo(39,-48);c.lineTo(39,8);c.stroke();
+  // লেখা
+  c.fillStyle="#fff";c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=2.5;c.font="bold 12px sans-serif";c.textAlign="left";c.textBaseline="alphabetic";c.strokeText("মুড়ির টিন",-66,-18);c.fillText("মুড়ির টিন",-66,-18);
+  // টোল/ডেন্ট
+  c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=2;c.beginPath();c.moveTo(-48,-30);c.lineTo(-40,-26);c.lineTo(-34,-31);c.moveTo(8,-24);c.lineTo(15,-20);c.lineTo(20,-25);c.stroke();
+  // বাম্পার, হেডলাইট
+  c.fillStyle="#222";v15Rr(c,70,-4,12,12,3);c.fill();v15Rr(c,-80,-4,10,12,3);c.fill();
+  c.fillStyle="#fff7b0";c.shadowColor="#ffe66b";c.shadowBlur=8;c.beginPath();c.arc(74,-16,4.5,0,Math.PI*2);c.fill();c.shadowBlur=0;
+  c.fillStyle="#d22";c.fillRect(-76,-16,4,8);
+  v15Plate(c,o.plate,2,-30);
+  v15Arch(c,-39,32+o.rs,33);v15Arch(c,43,28+o.fs,36);
+  v15Wheel(c,-39,32+o.rs,27,o.spin,"#b9c2c9");v15Wheel(c,43,28+o.fs,30,o.spin,"#b9c2c9");
+}
+
+// kind অনুযায়ী সঠিক sprite আঁকা
+function v15DrawVehicle(c,v,o){
+  c.save();
+  if(v.kind==="cng")v15CNG(c,v,o);
+  else if(v.kind==="rickshaw")v15Rickshaw(c,v,o);
+  else if(v.kind==="ebike")v15Ebike(c,v,o);
+  else if(v.kind==="bus")v15Bus(c,v,o);
+  c.restore();
+}
+
+// ---------- নতুন যানবাহন তালিকায় যোগ (পুরনো index অপরিবর্তিত, তাই পুরনো save নিরাপদ) ----------
+
+// ---------- Customization (রং + নম্বর প্লেট), selected গাড়ির জন্য ----------
+const V15_COLORS=["","#e53935","#168ee8","#22a447","#8b42d9","#ff6b1a","#202830","#f7b900","#ff4fa3","#e9eef2"];
+function v15Custom(){
+  if(typeof save.custom!=="object"||save.custom===null||Array.isArray(save.custom)) save.custom={};
+  const c=save.custom;
+  if(typeof c.color!=="string"||!/^#[0-9a-fA-F]{6}$/.test(c.color)) c.color="";
+  if(typeof c.plate!=="string") c.plate="";
+  c.plate=c.plate.toUpperCase().replace(/[^A-Z0-9\- ]/g,"").slice(0,8);
+  return c;
+}
+function v15PlateText(){return v15Custom().plate||"HR-BD";}
+// selected গাড়িতে custom রং বসানো একটা কপি (মূল তালিকা বদলায় না)
+function v15Eff(v){
+  if(!v||v!==vehiclesV22[save.selectedVehicle]) return v;
+  const cu=v15Custom();
+  if(!cu.color) return v;
+  return Object.assign({},v,{color:cu.color,accent:shadeColor(cu.color,.45)});
+}
+
+// ---------- গেমে গাড়ি আঁকা: নতুন kind হলে sprite, নইলে আগের ট্রাক (custom রং/প্লেট সহ) ----------
+const v15DrawTruckBase=drawTruck;
+drawTruck=function(){
+  const base=vehiclesV22[save.selectedVehicle]||vehiclesV22[0];
+  const v=v15Eff(base);
+  if(base.kind){
+    ctx.save();ctx.translate(truck.x-camera.x,truck.y);ctx.rotate(truck.angle);
+    ctx.translate(0,-(truck.onGround?Math.sin(performance.now()*.012)*1.1:0));
+    ctx.fillStyle="rgba(0,0,0,.24)";ctx.beginPath();ctx.ellipse(0,45,72,11,0,0,Math.PI*2);ctx.fill();
+    v15DrawVehicle(ctx,v,{rs:truck.rearSusp||0,fs:truck.frontSusp||0,spin:truck.wheelSpin||0,plate:v15PlateText()});
+    ctx.restore();
+    return;
+  }
+  if(v!==base){
+    const oc=base.color,oa=base.accent;base.color=v.color;base.accent=v.accent;
+    try{v15DrawTruckBase();}finally{base.color=oc;base.accent=oa;}
+  }else v15DrawTruckBase();
+  // ট্রাকের পিছনে নম্বর প্লেট
+  ctx.save();ctx.translate(truck.x-camera.x,truck.y);ctx.rotate(truck.angle);v15Plate(ctx,v15PlateText(),-92,-4);ctx.restore();
+};
+
+// ---------- গ্যারেজের preview: নতুন kind-এর জন্য sprite ছবি (data URL), আগের CSS truck অপরিবর্তিত ----------
+const v15SpriteCache={};
+function v15SpriteURL(v){
+  const plate=v15PlateText();
+  const key=[v.kind,v.color,v.accent,plate].join("|");
+  if(v15SpriteCache[key]) return v15SpriteCache[key];
+  const cv=document.createElement("canvas");cv.width=180;cv.height=180;
+  const c=cv.getContext("2d");c.translate(90,118);
+  v15DrawVehicle(c,v,{rs:0,fs:0,spin:.4,plate});
+  return v15SpriteCache[key]=cv.toDataURL("image/png");
+}
+const v15MiniBase=miniTruckMarkup;
+miniTruckMarkup=function(v,scale=""){
+  const e=v15Eff(v);
+  if(v&&v.kind) return `<img class="v15Sprite ${scale}" alt="${v.name}" src="${v15SpriteURL(e)}">`;
+  return v15MiniBase(e,scale);
+};
+
+// =====================================================================
+// V15 — বাংলাদেশি ম্যাপ (৫টা)। পুরনো ম্যাপের index অপরিবর্তিত, নতুনগুলো শেষে।
+// =====================================================================
+maps.push(
+  {name:"SAJEK VALLEY",desc:"মেঘের রাজ্য — রাঙামাটির সাজেকের পাহাড়ি পথ।",price:2200,sky1:"#4fa3e0",sky2:"#fbe3c8",grass:"#4fc05e",dirt:"#b98558",water:"#7fbbe0",theme:"sajek"},
+  {name:"BANDARBAN NILGIRI",desc:"কুয়াশাঢাকা সবুজ পাহাড় ও ঝর্ণা।",price:2600,sky1:"#5a9fc2",sky2:"#dcebe4",grass:"#3aa65a",dirt:"#8a6a48",water:"#4a9ec0",theme:"bandarban"},
+  {name:"SYLHET TEA HILLS",desc:"জাফলংয়ের চা-বাগান ও স্বচ্ছ নদী।",price:3000,sky1:"#3b9be0",sky2:"#cfeeff",grass:"#5fcf5c",dirt:"#a56b45",water:"#1fb7c9",theme:"sylhet"},
+  {name:"KHAGRACHHARI",desc:"বাঁশবন, মাচাঘর আর লাল মাটির পাহাড়।",price:3600,sky1:"#4eb0e8",sky2:"#fff0c8",grass:"#58c04e",dirt:"#c0603a",water:"#3aa0b8",theme:"khagrachhari"},
+  {name:"KAPTAI LAKE",desc:"সূর্যাস্তের হ্রদ, নৌকা আর পাহাড়।",price:4000,sky1:"#5b3a8c",sky2:"#ffb070",grass:"#3f9a55",dirt:"#7a5a40",water:"#e0894a",theme:"kaptai"}
+);
+const V15_BD_THEMES=["sajek","bandarban","sylhet","khagrachhari","kaptai"];
+
+// ---------- ছোট দৃশ্য-helper ----------
+function v15RidgeY(x,baseY,amp,freq,par,seed){
+  const wx=x+camera.x*par;
+  return baseY-amp*(Math.sin(wx*freq+seed)*.5+Math.sin(wx*freq*2.3+seed*1.7)*.3+Math.sin(wx*freq*.5+seed*.4)*.4);
+}
+function v15Ridge(baseY,amp,freq,par,seed,top,bot){
+  ctx.beginPath();ctx.moveTo(0,H);
+  for(let x=0;x<=W+12;x+=12)ctx.lineTo(x,v15RidgeY(x,baseY,amp,freq,par,seed));
+  ctx.lineTo(W+12,H);ctx.closePath();
+  const g=ctx.createLinearGradient(0,baseY-amp,0,baseY+90);g.addColorStop(0,top);g.addColorStop(1,bot);
+  ctx.fillStyle=g;ctx.fill();
+}
+function v15Mist(y,alpha,par,col){
+  ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=col||"#fff";
+  const P=W+380;
+  for(let i=0;i<9;i++){const x=(((i*190-camera.x*par)%P)+P)%P-190;ctx.beginPath();ctx.ellipse(x,y+(i%3)*8,120,15,0,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+}
+// world-fixed জিনিস (ঘর, গাছ) ridge-এর parallax-এর সাথে চলে
+function v15OnRidge(count,spacing,off,baseY,amp,freq,par,seed,fn){
+  const P=count*spacing;
+  for(let i=0;i<count;i++){
+    const sx=(((i*spacing+off-camera.x*par)%P)+P)%P-spacing;
+    if(sx<-60||sx>W+60)continue;
+    fn(sx,v15RidgeY(sx,baseY,amp,freq,par,seed),i);
+  }
+}
+function v15Cottage(x,y,s,roof){
+  ctx.fillStyle="#f1e4c4";ctx.fillRect(x-9*s,y-10*s,18*s,10*s);
+  ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(x-12*s,y-10*s);ctx.lineTo(x,y-20*s);ctx.lineTo(x+12*s,y-10*s);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#6b4a2b";ctx.fillRect(x-2*s,y-6*s,4*s,6*s);
+}
+function v15StiltHouse(x,y,s){
+  ctx.fillStyle="#5a3d22";[-8,-3,3,8].forEach(d=>ctx.fillRect(x+d*s-1,y-10*s,2*s,10*s));
+  ctx.fillStyle="#8a6a3a";ctx.fillRect(x-11*s,y-14*s,22*s,5*s);
+  ctx.fillStyle="#c9a85a";ctx.fillRect(x-9*s,y-24*s,18*s,10*s);
+  ctx.fillStyle="#b08a3a";ctx.beginPath();ctx.moveTo(x-14*s,y-23*s);ctx.lineTo(x,y-35*s);ctx.lineTo(x+14*s,y-23*s);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#3a2a18";ctx.fillRect(x-2*s,y-21*s,4*s,7*s);
+}
+function v15Bamboo(x,y,s){
+  ctx.lineCap="round";
+  for(let k=0;k<5;k++){
+    const dx=(k-2)*6*s,top=y-(70+((k*37)%23))*s;
+    ctx.strokeStyle=k%2?"#7cc24a":"#5aa83a";ctx.lineWidth=3*s;
+    ctx.beginPath();ctx.moveTo(x+dx,y);ctx.lineTo(x+dx*1.8,top);ctx.stroke();
+    ctx.fillStyle="#4f9a34";
+    for(let j=0;j<3;j++){const ly=top+j*14*s;ctx.beginPath();ctx.ellipse(x+dx*1.8+6*s,ly,9*s,2.6*s,.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(x+dx*1.8-6*s,ly+4*s,9*s,2.6*s,-.5,0,Math.PI*2);ctx.fill();}
+  }
+}
+function v15Tree(x,y,s){ctx.fillStyle="#5a3d22";ctx.fillRect(x-2*s,y-26*s,4*s,26*s);ctx.fillStyle="#2f8a3a";ctx.beginPath();ctx.arc(x,y-34*s,15*s,0,Math.PI*2);ctx.arc(x-10*s,y-27*s,11*s,0,Math.PI*2);ctx.arc(x+10*s,y-27*s,11*s,0,Math.PI*2);ctx.fill();}
+function v15Boat(x,y,s,phase){
+  const b=Math.sin(performance.now()*.002+phase)*2;
+  ctx.save();ctx.translate(x,y+b);
+  ctx.fillStyle="#3a2414";ctx.beginPath();ctx.moveTo(-26*s,0);ctx.quadraticCurveTo(0,10*s,26*s,0);ctx.lineTo(20*s,-5*s);ctx.lineTo(-20*s,-5*s);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#6a4a2a";ctx.lineWidth=2*s;ctx.beginPath();ctx.moveTo(-8*s,-5*s);ctx.quadraticCurveTo(0,-20*s,12*s,-5*s);ctx.stroke();
+  ctx.fillStyle="rgba(255,200,120,.45)";ctx.fillRect(-26*s,5*s,52*s,2*s);
+  ctx.restore();
+}
+
+// ---------- প্রতিটা ম্যাপের পেছনের দৃশ্য ----------
+function v15Scenario(theme){
+  if(theme==="sajek"){
+    const sg=ctx.createRadialGradient(W*.78,H*.2,4,W*.78,H*.2,90);sg.addColorStop(0,"#fff6d8");sg.addColorStop(1,"rgba(255,246,216,0)");ctx.fillStyle=sg;ctx.beginPath();ctx.arc(W*.78,H*.2,90,0,Math.PI*2);ctx.fill();
+    drawClouds(3,60,"#ffffff",.5);
+    v15Ridge(H*.50,60,.0042,.02,1.3,"#b4c9de","#e8eef2");
+    v15Mist(H*.50,.55,.05);
+    v15Ridge(H*.57,70,.0056,.05,3.1,"#55a85e","#2f7a45");
+    const roofs=["#d0392f","#2f6fd0","#d09a2f","#2f9a5a"];
+    v15OnRidge(7,300,90,H*.57,70,.0056,.05,3.1,(x,y,i)=>v15Cottage(x,y+4,1.1,roofs[i%4]));
+    v15Mist(H*.63,.65,.09);
+    v15Ridge(H*.66,48,.0072,.1,5.2,"#3a9a52","#1f6a38");
+  }else if(theme==="bandarban"){
+    drawClouds(3,70,"#ffffff",.4);
+    v15Ridge(H*.46,80,.0038,.02,0.7,"#7a9db8","#c4d6df");
+    v15Mist(H*.48,.5,.04);
+    v15Ridge(H*.55,90,.0050,.05,2.2,"#34777a","#1d5252");
+    // ঝর্ণা
+    const fx=((420-camera.x*.05)%1800+1800)%1800-200;
+    if(fx>-40&&fx<W+40){const fy=v15RidgeY(fx,H*.55,90,.0050,.05,2.2);const g=ctx.createLinearGradient(0,fy,0,fy+120);g.addColorStop(0,"rgba(255,255,255,.95)");g.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=g;ctx.fillRect(fx-5,fy,10,120);ctx.strokeStyle="rgba(255,255,255,.8)";ctx.lineWidth=2;ctx.setLineDash([8,10]);ctx.lineDashOffset=-performance.now()/40;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy+110);ctx.stroke();ctx.setLineDash([]);}
+    v15Mist(H*.60,.55,.08);
+    v15Ridge(H*.65,60,.0064,.1,4.4,"#2a8a52","#16603a");
+    v15OnRidge(12,170,40,H*.65,60,.0064,.1,4.4,(x,y,i)=>drawPine(x,y+6,.9,i%2?"#0e6a3a":"#17804a"));
+  }else if(theme==="sylhet"){
+    drawClouds(4,70,"#ffffff",.55);
+    v15Ridge(H*.44,70,.0040,.015,0.4,"#6f9cc6","#b9d4ea");
+    v15Mist(H*.47,.5,.04);
+    v15Ridge(H*.55,55,.0050,.04,2.6,"#7ad07a","#3f9a4e");
+    // চা-বাগানের সারি
+    for(let r=0;r<7;r++){
+      ctx.strokeStyle=r%2?"#2f8a42":"#4aa85a";ctx.lineWidth=5;ctx.beginPath();
+      for(let x=0;x<=W+12;x+=12){const y=v15RidgeY(x,H*.55,55,.0050,.04,2.6)+12+r*9;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+      ctx.stroke();
+    }
+    v15OnRidge(8,230,60,H*.55,55,.0050,.04,2.6,(x,y)=>v15Tree(x,y+4,1.1));
+    v15Ridge(H*.68,40,.0075,.09,5.0,"#3f9a4e","#2a7a3a");
+  }else if(theme==="khagrachhari"){
+    drawClouds(3,60,"#ffffff",.45);
+    v15Ridge(H*.50,64,.0044,.02,1.9,"#79b88a","#bfe0c4");
+    v15Ridge(H*.58,70,.0054,.05,3.7,"#3f9a4a","#276f36");
+    v15OnRidge(6,320,100,H*.58,70,.0054,.05,3.7,(x,y)=>v15StiltHouse(x,y+4,1.0));
+    v15Ridge(H*.67,46,.0070,.1,0.9,"#2f8a3c","#1c5f2a");
+    v15OnRidge(9,210,30,H*.67,46,.0070,.1,0.9,(x,y)=>v15Bamboo(x,y+6,.85));
+  }else if(theme==="kaptai"){
+    const sx=W*.62,sy=H*.36;
+    const sg=ctx.createRadialGradient(sx,sy,6,sx,sy,170);sg.addColorStop(0,"rgba(255,244,200,1)");sg.addColorStop(.25,"rgba(255,190,110,.75)");sg.addColorStop(1,"rgba(255,150,90,0)");ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,170,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#fff3c8";ctx.beginPath();ctx.arc(sx,sy,34,0,Math.PI*2);ctx.fill();
+    drawClouds(3,90,"#ffd2a8",.45);
+    v15Ridge(H*.52,60,.0040,.02,1.1,"#6a4a8a","#a8708a");
+    v15Ridge(H*.60,56,.0052,.05,2.9,"#3a4f6a","#2a3a52");
+    v15Ridge(H*.67,40,.0066,.09,4.6,"#2a5a46","#1c3f32");
+  }
+}
+
+// ---------- নিচের strip: মাটি/পানির নতুন ধরন ----------
+function v15SoilStrip(m){
+  const stripY=H-118;
+  const g=ctx.createLinearGradient(0,stripY,0,H);
+  const top=m.theme==="khagrachhari"?"#b4563a":m.theme==="bandarban"?"#5b4a30":"#8a6a40";
+  g.addColorStop(0,top);g.addColorStop(1,shadeColor(top,-.55));
+  ctx.fillStyle=g;ctx.fillRect(0,stripY,W,H-stripY);
+  for(let i=0;i<34;i++){const x=((i*67-camera.x*.32)%(W+120)+W+120)%(W+120)-60,y=stripY+6+(i%5)*4;ctx.fillStyle=i%2?"#58b34a":"#3f9a3c";ctx.beginPath();ctx.moveTo(x,y+14);ctx.lineTo(x+4,y-6);ctx.lineTo(x+8,y+14);ctx.closePath();ctx.fill();}
+  ctx.globalAlpha=.4;ctx.fillStyle=shadeColor(top,-.35);
+  for(let i=0;i<11;i++){const x=((i*211-camera.x*.28)%(W+200)+W+200)%(W+200)-100,y=stripY+48+(i%4)*14;ctx.beginPath();ctx.ellipse(x,y,26+(i%3)*8,6,0,0,Math.PI*2);ctx.fill();}
+  ctx.globalAlpha=1;
+}
+function v15Lake(){
+  const waterY=H-118;
+  const g=ctx.createLinearGradient(0,waterY,0,H);g.addColorStop(0,"#f0a060");g.addColorStop(.35,"#b0607a");g.addColorStop(1,"#1c2c52");
+  ctx.fillStyle=g;ctx.fillRect(0,waterY,W,H-waterY);
+  const sx=W*.62;
+  for(let i=0;i<9;i++){const y=waterY+6+i*11,w=70-i*4+Math.sin(performance.now()*.003+i)*6;ctx.fillStyle="rgba(255,225,160,"+(0.5-i*.04)+")";ctx.beginPath();ctx.ellipse(sx,y,w,2.4,0,0,Math.PI*2);ctx.fill();}
+  for(let row=0;row<10;row++){const y=waterY+10+row*10;ctx.strokeStyle="rgba(255,235,200,"+(row%3===0?.5:.22)+")";ctx.lineWidth=row%3===0?2:1.2;ctx.beginPath();for(let x=-20;x<=W+30;x+=24){const yy=y+Math.sin((x+camera.x*.5)*.012+row)*2.4;if(x===-20)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();}
+  const P=W+400;
+  [[120,0.9,0],[520,1.2,1.7],[900,0.8,3.1],[1300,1.0,4.4]].forEach(b=>{const x=(((b[0]-camera.x*.18)%P)+P)%P-200;if(x>-60&&x<W+60)v15Boat(x,waterY+24+(b[2]%3)*14,b[1],b[2]);});
+}
+
+// ---------- hook: পুরনো ফাংশনে নতুন theme যোগ ----------
+const v15ScenarioBase=drawScenario;
+drawScenario=function(theme){ if(V15_BD_THEMES.includes(theme)) v15Scenario(theme); else v15ScenarioBase(theme); };
+
+const v15BottomBase=drawBottomStrip;
+drawBottomStrip=function(){
+  const m=maps[save.selectedMap]||maps[0];
+  if(m.theme==="kaptai") v15Lake();
+  else if(m.theme==="sylhet") drawPremiumWater();
+  else if(m.theme==="sajek"||m.theme==="bandarban"||m.theme==="khagrachhari") v15SoilStrip(m);
+  else v15BottomBase();
+};
+
+const v15GripBase=themeGripMul;
+themeGripMul=function(theme){ if(theme==="sylhet") return .95; if(theme==="khagrachhari") return .96; return v15GripBase(theme); };
+
+const v15WeatherBase=weatherForLevel;
+weatherForLevel=function(){
+  const m=maps[save.selectedMap]||maps[0];
+  if(!V15_BD_THEMES.includes(m.theme)) return v15WeatherBase();
+  const pools={sajek:["clear","wind","rain"],bandarban:["clear","rain"],sylhet:["rain","clear","rain"],khagrachhari:["clear","rain","wind"],kaptai:["clear","wind"]};
+  const pool=pools[m.theme];
+  const h=hashSeed(currentLevel*131.7+(save.selectedMap||0)*977.3);
+  return pool[Math.min(pool.length-1,Math.floor(h*pool.length))];
+};
+
+// নতুন ম্যাপগুলো সূচক-ভিত্তিক কঠিনতায় অতিরিক্ত কঠিন না হয়ে যায়—সীমা বসানো (সবচেয়ে কঠিন পুরনো ম্যাপের কাছাকাছি)
+const v15DiffBase=mapDifficulty;
+mapDifficulty=function(){ return Math.min(1.5,v15DiffBase()); };
+
+// =====================================================================
+// V15 — Checkpoint ও recovery (শুধু Level mode; Endless-এর র‍্যাংকিং অক্ষত রাখতে সেখানে নেই)
+// =====================================================================
+let v15Cps=[], v15Checkpoint=null, v15UsedCp=false, v15CrashAt=0;
+
+function v15InitCps(){
+  v15Cps=[];v15Checkpoint=null;v15UsedCp=false;
+  if(endlessMode) return;
+  const end=finishX();
+  [0.25,0.5,0.75].forEach(f=>{
+    let x=Math.round(250+(end-250)*f);
+    for(let k=0;k<40&&spanHasGap(x-110,x+110);k++) x+=40;
+    v15Cps.push({x,hit:false});
+  });
+}
+const v15StartLevelBase=startLevel;
+startLevel=function(id){ v15StartLevelBase(id); v15InitCps(); };
+const v15StartEndlessBase=startEndless;
+startEndless=function(){ v15StartEndlessBase(); v15InitCps(); };
+
+const v15UpdateBase=updatePhysics;
+updatePhysics=function(dt){
+  v15UpdateBase(dt);
+  if(state!=="play"||endlessMode) return;
+  for(let i=0;i<v15Cps.length;i++){
+    const cp=v15Cps[i];
+    if(!cp.hit&&truck.x>=cp.x){
+      cp.hit=true;v15Checkpoint={x:cp.x,n:i+1};
+      spawnFloatText(truck.x,truck.y-95,"📍 CHECKPOINT "+(i+1),"#4cff9a");
+      tone(740,.08,.06);
+    }
+  }
+};
+
+const v15CrashBase=crash;
+crash=function(reason){
+  const was=state;
+  v15CrashBase(reason);
+  if(was==="play"&&state==="crash") v15CrashAt=performance.now();
+  const b=document.getElementById("cpRetryBtn");
+  if(b) b.style.display=(state==="crash"&&v15Checkpoint&&!endlessMode)?"":"none";
+};
+
+function v15Respawn(){
+  if(!v15Checkpoint||endlessMode) return;
+  const cp=v15Checkpoint;
+  state="play";hideScreens();
+  document.getElementById("hud").classList.remove("hidden");document.getElementById("controls").classList.remove("hidden");
+  resetTruck();
+  truck.x=cp.x;truck.angle=terrainSlope(cp.x);truck.y=terrainY(cp.x)-truck.wheelR-31;truck.lastGroundY=truck.y;
+  // checkpoint পুরো ভর্তি নয়—শুধু চলার মতো fuel/boost দেয়
+  truck.fuel=Math.min(FUEL_CONFIG.cap,60);truck.boostEnergy=60;
+  camera.x=Math.max(0,truck.x-W*.30);
+  // menu-তে অপেক্ষার সময় টাইমারে গণ্য হবে না
+  if(v15CrashAt) levelStart+=performance.now()-v15CrashAt;
+  v15UsedCp=true;
+  resumeAudio();setAudioSuppressed(false);engineStart();updateHUD();
+}
+
+// checkpoint ব্যবহার করে শেষ করলে সময়-রেকর্ড ও ghost বদলাবে না (সৎ র‍্যাংকিং), কয়েন পুরস্কার আগের মতোই
+const v15CompleteBase=completeLevel;
+completeLevel=function(){
+  if(!v15UsedCp) return v15CompleteBase();
+  const old=save.best[currentLevel];
+  const ghostBase=saveGhostIfBest;
+  saveGhostIfBest=function(){};
+  try{ v15CompleteBase(); }finally{ saveGhostIfBest=ghostBase; }
+  if(old===undefined) delete save.best[currentLevel]; else save.best[currentLevel]=old;
+  persist();
+  const rt=document.getElementById("rewardText");
+  if(rt) rt.textContent+=" · checkpoint ব্যবহার — সময় রেকর্ডে গণ্য নয়";
+};
+
+function drawCheckpointFlags(){
+  if(endlessMode||!v15Cps.length) return;
+  for(const cp of v15Cps){
+    const sx=cp.x-camera.x;
+    if(sx<-60||sx>W+60) continue;
+    const gy=terrainY(cp.x);
+    ctx.save();
+    ctx.strokeStyle="#2b2b2b";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(sx,gy);ctx.lineTo(sx,gy-92);ctx.stroke();
+    ctx.fillStyle=cp.hit?"#2ecc71":"#ffffff";ctx.strokeStyle="#111";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(sx,gy-92);ctx.lineTo(sx+46,gy-79);ctx.lineTo(sx,gy-66);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle="#111";ctx.font="bold 10px sans-serif";ctx.textAlign="left";ctx.fillText("CP",sx+6,gy-75);
+    ctx.restore();
+  }
+}
+
+// =====================================================================
+// V15 — গ্যারেজে customization প্যানেল (রং + নম্বর প্লেট)
+// =====================================================================
+const v15GarageBase=renderGarage;
+renderGarage=function(){
+  v15GarageBase();
+  const btn=document.getElementById("selectVehicleBtn");
+  if(!btn) return;
+  let panel=document.getElementById("garageCustom");
+  if(!panel){panel=document.createElement("div");panel.id="garageCustom";panel.className="garageCustom";btn.parentElement.insertBefore(panel,btn);}
+  const cu=v15Custom();
+  panel.innerHTML=`<div class="gcTitle">🎨 CUSTOMIZE</div><div class="gcSwatches">${V15_COLORS.map(c=>`<button type="button" class="gcSwatch${cu.color===c?" on":""}" data-c="${c}" style="${c?"background:"+c:""}" aria-label="${c||"default colour"}">${c?"":"↺"}</button>`).join("")}</div><label class="gcPlate">নম্বর প্লেট <input id="gcPlateInput" maxlength="8" value="${cu.plate}" placeholder="HR-BD" autocomplete="off" spellcheck="false"></label>`;
+  panel.querySelectorAll(".gcSwatch").forEach(b=>{b.onclick=()=>{v15Custom().color=b.dataset.c;persist();selectSound();renderGarage();};});
+  const inp=panel.querySelector("#gcPlateInput");
+  inp.oninput=()=>{
+    const c=v15Custom();c.plate=inp.value;v15Custom();inp.value=c.plate;persist();
+    const prev=document.getElementById("garageVehicle");
+    if(prev) prev.innerHTML=miniTruckMarkup(vehiclesV22[save.selectedVehicle]||vehiclesV22[0]);
+  };
+};
+
+// =====================================================================
+// V15 — Records স্ক্রিন (শুধু local; Endless সেরা দূরত্ব + লেভেলের সেরা সময়)
+// =====================================================================
+function v15FmtTime(t){const s=Math.max(0,Number(t)||0);const m=Math.floor(s/60);return m+":"+String(Math.floor(s%60)).padStart(2,"0");}
+function renderRecords(){
+  const box=document.getElementById("recordsList");
+  if(!box) return;
+  const eb=save.endlessBest||{};
+  const done=Object.keys(save.completed||{}).length;
+  let html=`<div class="recSummary"><span>✅ শেষ করা লেভেল: <b>${done}</b> / ${TOTAL_LEVELS}</span><span>🔓 আনলকড: <b>${save.unlocked}</b></span><span>🪙 কয়েন: <b>${coins}</b></span></div>`;
+  html+=`<h3 class="recH">🏁 Endless — সেরা দূরত্ব (প্রতি ম্যাপে)</h3><div class="recGrid">`;
+  maps.forEach((m,i)=>{const v=Number(eb[String(i)])||0;const owned=save.ownedMaps.includes(i);html+=`<div class="recCard${owned?"":" locked"}"><b>${m.name}</b><span>${v?v+" মিটার":(owned?"—":"🔒")}</span></div>`;});
+  html+=`</div><h3 class="recH">⏱ লেভেলের সেরা সময়</h3><div class="recGrid recLevels">`;
+  const lv=Object.keys(save.best||{}).map(Number).filter(n=>n>=1&&n<=TOTAL_LEVELS).sort((a,b)=>a-b);
+  if(!lv.length) html+=`<div class="recEmpty">এখনো কোনো লেভেল শেষ করা হয়নি।</div>`;
+  lv.forEach(n=>{html+=`<div class="recCard"><b>Level ${n}</b><span>${v15FmtTime(save.best[n])}</span></div>`;});
+  html+=`</div>`;
+  box.innerHTML=html;
+}
+const v15HideBase=hideScreens;
+hideScreens=function(){
+  v15HideBase();
+  const el=document.getElementById("recordsMenu");
+  if(el){el.classList.add("hidden");el.style.display="none";el.style.visibility="hidden";el.style.pointerEvents="none";}
+};
+const v15ShowBase=showScreen;
+showScreen=function(id){
+  v15ShowBase(id);
+  if(id==="recordsMenu"){document.getElementById("hud").classList.add("hidden");document.getElementById("controls").classList.add("hidden");}
+};
+
+// =====================================================================
+// V15 — বাটন বাঁধা + প্রথমবার তালিকা নতুন করে আঁকা
+// =====================================================================
+(function v15Wire(){
+  const rb=document.getElementById("recordsBtn");
+  if(rb) rb.onclick=()=>{resumeAudio();tone(500,.06,.05);renderRecords();showScreen("recordsMenu");};
+  const rbk=document.getElementById("backRecordsBtn");
+  if(rbk) rbk.onclick=()=>{tone(330,.06,.05);goMain();};
+  const cb=document.getElementById("cpRetryBtn");
+  if(cb) cb.onclick=()=>{resumeAudio();tone(520,.07,.06);v15Respawn();};
+  v15Custom();
+  if(typeof renderMaps==="function") renderMaps();
+  renderGarage();
+  if(typeof renderStore==="function") renderStore();
+})();
