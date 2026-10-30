@@ -66,6 +66,7 @@ async function startLevel(level, mapIdx, vehIdx){
   const mapId = MAPS3D[mapIdx].id;
   world = buildWorld(lv, mapId);
   scene.add(world.group); scene.add(world.sky);
+  world.applyExternalTextures(); loadSkyHDR(world);
   scene.fog = new THREE.FogExp2(world.theme.fog, world.theme.fogD);
   scene.background = null;
   // আকাশ থেকে পরিবেশ-প্রতিফলন (ধাতব/চকচকে অংশের জন্য)
@@ -81,6 +82,14 @@ async function startLevel(level, mapIdx, vehIdx){
   updateHUD();
 }
 
+// ঐচ্ছিক আকাশ: 3d/textures/sky.hdr থাকলে আকাশ ও প্রতিফলন সেটা থেকে আসে (RGBE .hdr, equirectangular)
+async function loadSkyHDR(w){
+  try{ const h=await fetch("./3d/textures/sky.hdr",{method:"HEAD"}); if(!h.ok) return;
+    const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+    const tex = await new RGBELoader().loadAsync("./3d/textures/sky.hdr"); tex.mapping=THREE.EquirectangularReflectionMapping;
+    if(world!==w) return; scene.background=tex; w.sky.visible=false; if(envTex) envTex.dispose(); envTex=pmrem.fromEquirectangular(tex).texture; scene.environment=envTex; scene.environmentIntensity=1;
+  }catch(e){}
+}
 // ---------- ইনপুট ----------
 const KEYMAP = { ArrowRight:"gas", KeyD:"gas", ArrowLeft:"brake", KeyA:"brake", ArrowUp:"tiltBack", KeyW:"tiltBack", ArrowDown:"tiltFwd", KeyS:"tiltFwd", Space:"boost", ShiftLeft:"boost", ShiftRight:"boost" };
 addEventListener("keydown",e=>{ if(e.code==="Escape"||e.code==="KeyP"){ togglePause(); e.preventDefault(); return; } const k=KEYMAP[e.code]; if(k){ keys[k]=true; e.preventDefault(); } });
@@ -175,8 +184,8 @@ function frame(now){
     camX+=(tx-camX)*Math.min(1,dt*4.0); camY+=(ty-camY)*Math.min(1,dt*2.6);
     const dist=13.2*big, h=2.6*big;
     shake=Math.max(0,shake-dt*1.6);
-    camera.position.set(camX-1.5+(Math.random()-.5)*shake*.35, camY+h+(Math.random()-.5)*shake*.35, dist);
-    camera.lookAt(camX+1.5, camY-.4, 0);
+    camera.position.set(camX-6.5*big+(Math.random()-.5)*shake*.35, camY+h+(Math.random()-.5)*shake*.35, dist*.92);
+    camera.lookAt(camX+3.2, camY-.2, 0);
     camera.fov += ((46+Math.min(10,v*.45))-camera.fov)*Math.min(1,dt*2); camera.updateProjectionMatrix();
     world.update(camera.position,S,performance.now()/1000);
     updateDust(dt);

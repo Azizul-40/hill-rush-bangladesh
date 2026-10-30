@@ -4,10 +4,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // ম্যাপ-অনুযায়ী পরিবেশ
 export const THEMES = {
-  sajek:        { zenith:0x3d86d6, horizon:0xd6e8f2, fog:0xcfe0ea, fogD:.0105, sun:[.55,.62,.35], sunC:0xfff0d0, sunI:2.6, hemiSky:0xbfdcff, hemiGnd:0x4d6b3a, grass:[.30,.55,.20], grass2:[.22,.45,.15], soil:0x8a6a4a, road:"asphalt", trees:"broad", cloudSea:.8 },
-  sylhet:       { zenith:0x4aa2e4, horizon:0xdcf0ea, fog:0xd2eae3, fogD:.0100, sun:[.45,.70,.30], sunC:0xfff4dc, sunI:2.8, hemiSky:0xc6e6ff, hemiGnd:0x3d7a2e, grass:[.26,.62,.18], grass2:[.18,.50,.13], soil:0x8b6a4a, road:"asphalt", trees:"broad", tea:true, cloudSea:.2 },
-  bandarban:    { zenith:0x5a8db8, horizon:0xdde6ea, fog:0xd0dbe0, fogD:.0150, sun:[.35,.55,.55], sunC:0xffe8c0, sunI:2.2, hemiSky:0xb8d0e8, hemiGnd:0x35523a, grass:[.22,.45,.22], grass2:[.15,.36,.17], soil:0x7a5a40, road:"asphalt", trees:"pine", stupa:true, cloudSea:.9 },
-  kaptai:       { zenith:0x2f6db0, horizon:0xffd9a0, fog:0xf0d6b0, fogD:.0105, sun:[-.55,.28,.45], sunC:0xffb870, sunI:3.0, hemiSky:0xffe0b8, hemiGnd:0x4a6a3a, grass:[.30,.52,.22], grass2:[.22,.42,.16], soil:0x8a6244, road:"asphalt", trees:"broad", lake:true, cloudSea:.1 },
+  sajek:        { zenith:0x3d86d6, horizon:0xd6e8f2, fog:0xcfe0ea, fogD:.0105, sun:[.55,.62,.35], sunC:0xfff0d0, sunI:2.6, hemiSky:0xbfdcff, hemiGnd:0x4d6b3a, grass:[.30,.55,.20], grass2:[.22,.45,.15], soil:0x8a6a4a, road:"dirt", trees:"broad", cloudSea:.8 },
+  sylhet:       { zenith:0x4aa2e4, horizon:0xdcf0ea, fog:0xd2eae3, fogD:.0100, sun:[.45,.70,.30], sunC:0xfff4dc, sunI:2.8, hemiSky:0xc6e6ff, hemiGnd:0x3d7a2e, grass:[.26,.62,.18], grass2:[.18,.50,.13], soil:0x8b6a4a, road:"dirt", trees:"broad", tea:true, cloudSea:.2 },
+  bandarban:    { zenith:0x5a8db8, horizon:0xdde6ea, fog:0xd0dbe0, fogD:.0150, sun:[.35,.55,.55], sunC:0xffe8c0, sunI:2.2, hemiSky:0xb8d0e8, hemiGnd:0x35523a, grass:[.22,.45,.22], grass2:[.15,.36,.17], soil:0x7a5a40, road:"dirt", trees:"pine", stupa:true, cloudSea:.9 },
+  kaptai:       { zenith:0x2f6db0, horizon:0xffd9a0, fog:0xf0d6b0, fogD:.0105, sun:[-.55,.28,.45], sunC:0xffb870, sunI:3.0, hemiSky:0xffe0b8, hemiGnd:0x4a6a3a, grass:[.30,.52,.22], grass2:[.22,.42,.16], soil:0x8a6244, road:"dirt", trees:"broad", lake:true, cloudSea:.1 },
   khagrachhari: { zenith:0x4b97d6, horizon:0xeadcc0, fog:0xe0d8c0, fogD:.0105, sun:[.5,.64,.40], sunC:0xffeed0, sunI:2.7, hemiSky:0xc8dcf0, hemiGnd:0x6a5030, grass:[.34,.52,.20], grass2:[.26,.42,.14], soil:0x9a6040, road:"dirt", trees:"bamboo", stilt:true, cloudSea:.3 },
 };
 
@@ -28,15 +28,15 @@ function noiseTex(base=215,amp=40,size=256){
 }
 function roadTex(kind){
   return canvasTex(512,256,(g,w,h)=>{
-    const dirt = kind==="dirt";
-    g.fillStyle = dirt? "#8a5a3a" : "#3b3e42"; g.fillRect(0,0,w,h);
-    const id=g.getImageData(0,0,w,h); for(let i=0;i<w*h;i++){ const n=(vnoise((i%w)*.12,(i/w|0)*.12)-.5)*34+(Math.random()-.5)*26; id.data[i*4]+=n; id.data[i*4+1]+=n; id.data[i*4+2]+=n; } g.putImageData(id,0,0);
-    // টায়ারের দাগ ও তালি
-    g.fillStyle="rgba(0,0,0,.12)"; g.fillRect(0,h*.30,w,h*.09); g.fillRect(0,h*.60,w,h*.09);
-    for(let i=0;i<5;i++){ g.fillStyle=`rgba(${dirt?"60,35,20":"20,22,25"},.22)`; g.beginPath(); g.ellipse(Math.random()*w,Math.random()*h*.8+h*.1,30+Math.random()*40,10+Math.random()*14,0,0,6.3); g.fill(); }
-    if(!dirt){ g.strokeStyle="rgba(10,10,10,.5)"; g.lineWidth=1.2; for(let i=0;i<7;i++){ g.beginPath(); let x=Math.random()*w,y=Math.random()*h; g.moveTo(x,y); for(let k=0;k<6;k++){ x+=Math.random()*26-4; y+=Math.random()*14-7; g.lineTo(x,y);} g.stroke(); }
-      g.fillStyle="#e8e8e8"; g.fillRect(0,h*.045,w,5); g.fillRect(0,h*.955-5,w,5);          // কিনারার সাদা দাগ
-      g.fillStyle="#f2c230"; for(let x=0;x<w;x+=128) g.fillRect(x+10,h*.5-3,70,6); }          // মাঝের হলুদ ভাঙা দাগ
+    // মাটির রাস্তা: লালচে-বাদামি, চাকার দাগ (rut), নুড়ি, ভেজা দাগ
+    g.fillStyle="#8c6040"; g.fillRect(0,0,w,h);
+    const id=g.getImageData(0,0,w,h); for(let i=0;i<w*h;i++){ const x=i%w,y=i/w|0; const n=(vnoise(x*.05,y*.05)-.5)*46+(vnoise(x*.2,y*.2)-.5)*28+(Math.random()-.5)*20; id.data[i*4]+=n; id.data[i*4+1]+=n*.85; id.data[i*4+2]+=n*.7; } g.putImageData(id,0,0);
+    // মাঝখানে ঘাসের ফিতা ও চাকার খাঁজ
+    g.fillStyle="rgba(70,90,40,.35)"; g.fillRect(0,h*.44,w,h*.12);
+    g.fillStyle="rgba(40,22,12,.38)"; g.fillRect(0,h*.22,w,h*.08); g.fillRect(0,h*.70,w,h*.08);
+    g.fillStyle="rgba(190,150,110,.22)"; g.fillRect(0,h*.30,w,h*.04); g.fillRect(0,h*.78,w,h*.04);
+    for(let i=0;i<7;i++){ g.fillStyle="rgba(60,40,30,.35)"; g.beginPath(); g.ellipse(Math.random()*w,h*(.2+Math.random()*.6),18+Math.random()*30,6+Math.random()*7,0,0,6.3); g.fill(); g.fillStyle="rgba(120,160,190,.18)"; g.beginPath(); g.ellipse(Math.random()*w,h*(.25+Math.random()*.5),10+Math.random()*16,3+Math.random()*4,0,0,6.3); g.fill(); }
+    for(let i=0;i<420;i++){ const v=90+Math.random()*100; g.fillStyle=`rgba(${v},${v*.85},${v*.7},.6)`; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,Math.random()*2.4+.6,0,6.3); g.fill(); }
   },true);
 }
 function softCircleTex(){ return canvasTex(64,64,(g)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,255,255,.9)"); gr.addColorStop(1,"rgba(255,255,255,0)"); g.fillStyle=gr; g.fillRect(0,0,64,64); }); }
@@ -170,9 +170,7 @@ export function buildWorld(lv, mapId){
 
   // ---- গার্ডরেইল (সামনের দিকে) ও রাস্তার সাইন ----
   { const post=[], rail=[]; const railMat=vcMat({roughness:.5,metalness:.6}); const pg=paintGeo(new THREE.BoxGeometry(.14,1.0,.14),0xb8bcc0), rg=paintGeo(new THREE.BoxGeometry(4,.28,.08),0xd0d4d8);
-    for(let x=6;x<L+70;x+=4){ if(lv.gaps.some(g=>x>g[0]-5&&x<g[0]+g[1]+5)) continue; const y=lv.hgt(x), y2=lv.hgt(x+4), a=Math.atan2(y2-y,4);
-      post.push(mkM(x,y+.5,3.9,1,1,1)); rail.push(mkM(x+2,(y+y2)/2+.78,3.9,1.0,1,1,0,a)); }
-    group.add(scatter(pg,railMat,post)); group.add(scatter(rg,railMat,rail));
+
     // হলুদ বাঁকের সাইন
     const signTex=canvasTex(128,128,(g)=>{ g.fillStyle="#f2c230"; g.fillRect(0,0,128,128); g.strokeStyle="#111"; g.lineWidth=8; g.strokeRect(6,6,116,116); g.fillStyle="#111"; g.beginPath(); g.moveTo(38,92); g.lineTo(38,50); g.lineTo(78,50); g.lineTo(78,36); g.lineTo(98,62); g.lineTo(78,88); g.lineTo(78,72); g.lineTo(58,72); g.lineTo(58,92); g.closePath(); g.fill(); });
     for(let x=46;x<L+60;x+=88){ if(lv.gaps.some(g=>x>g[0]-8&&x<g[0]+g[1]+8)) continue; const y=lv.hgt(x); const s=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5),new THREE.MeshStandardMaterial({map:signTex,roughness:.5,side:THREE.DoubleSide})); s.position.set(x,y+2.7,-4.6); s.castShadow=true; group.add(s); const pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,2.6,8),new THREE.MeshStandardMaterial({color:0x666a6e})); pole.position.set(x,y+1.3,-4.6); group.add(pole); }
@@ -238,6 +236,15 @@ export function buildWorld(lv, mapId){
 
   const sky=makeSky(th);
 
+  // ঐচ্ছিক: 3d/textures/road_color.jpg, road_normal.jpg, ground_color.jpg, ground_normal.jpg থাকলে ব্যবহার হয় (না থাকলে কোডে-আঁকা টেক্সচার)
+  async function applyExternalTextures(){
+    const load=async(name,srgb,rep)=>{ try{ const h=await fetch(`./3d/textures/${name}`,{method:"HEAD"}); if(!h.ok) return null; const t=await new THREE.TextureLoader().loadAsync(`./3d/textures/${name}`); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; if(srgb) t.colorSpace=THREE.SRGBColorSpace; if(rep) t.repeat.set(...rep); return t; }catch(e){ return null; } };
+    const rc=await load("road_color.jpg",true,[1,1]), rn=await load("road_normal.jpg",false,[1,1]);
+    if(rc){ rc.repeat.set(1,1); road.material.map=rc; road.material.color.set(0xffffff); } if(rn){ rn.repeat.copy(road.material.map?road.material.map.repeat:new THREE.Vector2(1,1)); road.material.normalMap=rn; }
+    const gc=await load("ground_color.jpg",true,[1,1]), gn=await load("ground_normal.jpg",false,[1,1]);
+    if(gc){ gc.repeat.set(.9,.9); terrain.material.map=gc; } if(gn){ gn.repeat.set(.9,.9); terrain.material.normalMap=gn; }
+    road.material.needsUpdate=true; terrain.material.needsUpdate=true; return !!(rc||gc);
+  }
   function update(camPos, S, t){
     sky.position.copy(camPos);
     sun.position.set(S.x+sunDir.x*120,S.y+sunDir.y*120,sunDir.z*120); sun.target.position.set(S.x,S.y,0);
@@ -250,5 +257,5 @@ export function buildWorld(lv, mapId){
     cpFlags.forEach(f=>{ f.flag.material.color.set(f.cp.hit?0x2ecc71:0xffffff); f.flag.rotation.y=Math.PI/2+Math.sin(t*3+f.cp.x)*.12; });
   }
   function dispose(){ group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ const m=Array.isArray(o.material)?o.material:[o.material]; m.forEach(x=>{ if(x.map) x.map.dispose(); x.dispose(); }); } }); sun.shadow.map&&sun.shadow.map.dispose(); }
-  return { group, sky, update, dispose, theme:th, terrainY:T, sun };
+  return { group, sky, update, dispose, theme:th, terrainY:T, sun, applyExternalTextures };
 }
