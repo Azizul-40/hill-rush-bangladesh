@@ -104,7 +104,11 @@ const ok=(name,cond,extra='')=>{ if(cond){pass++;console.log('PASS',name,extra);
   // ---- ৭) মোবাইল touch control ----
   const mctx=await b.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true});
   const mp2=await mctx.newPage();const merrs=[];mp2.on('pageerror',e=>merrs.push(String(e)));
-  await mp2.goto('file://'+dir+'/index.html');await mp2.waitForTimeout(400);
+  // v33: টাচ-ডিভাইসে index.html একটা খোলস (shell) — আসল গেম iframe-এ চলে (index.html?embed=1)। আগে খোলসটা ঠিক আছে কিনা দেখা, তারপর গেমটা সরাসরি embed মোডে পরীক্ষা
+  await mp2.goto('file://'+dir+'/index.html');await mp2.waitForTimeout(800);
+  const shellOk=await mp2.evaluate(()=>!!window.__SHELL&&!!document.getElementById('shellFrame')&&typeof startLevel==='undefined');
+  ok('টাচ-ডিভাইসে খোলস + iframe-এ গেম',shellOk,String(shellOk));
+  await mp2.goto('file://'+dir+'/index.html?embed=1');await mp2.waitForTimeout(400);
   await mp2.evaluate(()=>{startLevel(1);});await mp2.waitForTimeout(300);
   const cdp=await mctx.newCDPSession(mp2);
   const center=async sel=>{const r=await mp2.evaluate(s=>{const e=document.querySelector(s).getBoundingClientRect();return {x:e.x+e.width/2,y:e.y+e.height/2,w:e.width,h:e.height,inView:e.left>=0&&e.right<=innerWidth&&e.top>=0&&e.bottom<=innerHeight};},sel);return r;};

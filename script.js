@@ -5766,7 +5766,9 @@ drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1) return v172GaugeBas
     try{ if(!document.fullscreenElement&&document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen({navigationUI:"hide"}); }catch(e){}
     try{ if(screen.orientation&&screen.orientation.lock) await screen.orientation.lock("landscape"); }catch(e){}
   }
-  addEventListener("pointerup",function once(e){ if(e.pointerType==="touch"){ lockLandscape(); removeEventListener("pointerup",once); } });
+  // v33: খোলসের (shell) iframe-এর ভেতরে থাকলে পুরো পর্দা/লক বাইরের পাতা করে — প্রতিটা টাচে অনুরোধ পাঠানো হয় (পুরো পর্দা থেকে বেরিয়ে গেলেও আবার ঢোকে)
+  if(window.__EMBED&&window.parent!==window){ addEventListener("pointerup",e=>{ if(e.pointerType==="touch"){ try{ window.parent.postMessage("hr-fullscreen","*"); }catch(_){} } }); }
+  else addEventListener("pointerup",function once(e){ if(e.pointerType==="touch"){ lockLandscape(); removeEventListener("pointerup",once); } });
 })();
 
 // ============================================================
@@ -5988,20 +5990,22 @@ const V21=(function(){
   const TILE=512, cache=new Map(); let key="";
   function renderTile(i){
     // v29: ৪px বেশি চওড়া (দুই পাশে ২px) — পাশাপাশি টাইলের জোড়ায় সরু দাগ না পড়ার জন্য
-    const c=document.createElement("canvas"); c.width=Math.ceil((TILE+4)*DPR); c.height=Math.ceil(H*DPR);
+    // v33: উঁচু পাহাড়ের জন্য টাইলের উপরে বাড়তি জায়গা (EX) — ক্যামেরা উপরে উঠলে চূড়া কাটা না যায়
+    const EX=(window.V33&&V33.EX)||0;
+    const c=document.createElement("canvas"); c.width=Math.ceil((TILE+4)*DPR); c.height=Math.ceil((H+EX)*DPR);
     const cx=c.getContext("2d"), sx=camera.x, sw=W;
     C=cx; camera.x=i*TILE-2; W=TILE+4;
-    try{ cx.setTransform(DPR,0,0,DPR,0,0); draw(); } finally { C=ctx; camera.x=sx; W=sw; }
+    try{ cx.setTransform(DPR,0,0,DPR,0,EX*DPR); draw(); } finally { C=ctx; camera.x=sx; W=sw; }
     return c; }
   function drawTiles(){
-    const k=[currentLevel,save.selectedMap,H,DPR,(typeof endlessMode!=="undefined"&&endlessMode)?1:0,window.__treeVer||0].join("|");
+    const k=[currentLevel,save.selectedMap,H,DPR,(typeof endlessMode!=="undefined"&&endlessMode)?1:0,window.__treeVer||0,(window.V33&&V33.EX)||0].join("|");
     if(k!==key){ cache.clear(); key=k; }
     const first=Math.floor(camera.x/TILE), lastT=Math.floor((camera.x+W)/TILE);
     let made=0;
     for(let i=first;i<=lastT+1;i++){ let c=cache.get(i);
       if(!c){ if(i>lastT&&made>0) continue; c=renderTile(i); made++; }
       cache.delete(i); cache.set(i,c);
-      if(i<=lastT) ctx.drawImage(c,i*TILE-2-camera.x,0,TILE+4,H); }
+      if(i<=lastT){ const EX=(window.V33&&V33.EX)||0; ctx.drawImage(c,i*TILE-2-camera.x,-EX,TILE+4,H+EX); } }
     while(cache.size>7) cache.delete(cache.keys().next().value); }
   return {draw,water,drawTiles,BIOME};
 })();
@@ -6101,6 +6105,8 @@ function timeOfDay(){
     lx.fillStyle=tod==="night"?`rgba(3,8,22,${dark})`:`rgba(28,22,40,${dark})`; lx.fillRect(0,0,sw,shh);
     lx.globalCompositeOperation="destination-out"; lx.drawImage(bc,0,0);
     if(flash>0){ lx.fillStyle=`rgba(0,0,0,${Math.min(1,flash)*.85})`; lx.fillRect(0,0,sw,shh); flash-=.06; }
+    const OY=(window.V33&&V33.off)||0; ctx.save(); ctx.translate(0,OY);   // v33: ক্যামেরা উপরে উঠলে অন্ধকার-মুখোশও সাথে সরে; উপরের ফাঁকা পট্টি অন্ধকারে ভরা
+    if(OY>0){ ctx.fillStyle=tod==="night"?`rgba(3,8,22,${dark})`:`rgba(28,22,40,${dark})`; ctx.fillRect(0,-OY-2,W,OY+2); }
     ctx.save(); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="low"; ctx.drawImage(lc,0,0,W,H);
     // ৪) আলোর উষ্ণ আভা
     if(lightsOn){ ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=.40; ctx.drawImage(bc,0,0,W,H); ctx.globalAlpha=1; }
@@ -6111,6 +6117,7 @@ function timeOfDay(){
       // পেছনের লাল বাতি
       const TL=(typeof v27Tail!=="undefined"&&v27Tail)?v27Tail:[-62,-12], tx=truck.x-camera.x+ca*TL[0]-sa*TL[1], ty=truck.y+sa*TL[0]+ca*TL[1]; const tg=ctx.createRadialGradient(tx,ty,0,tx,ty,15); tg.addColorStop(0,"rgba(255,60,50,.85)"); tg.addColorStop(1,"rgba(255,40,30,0)"); ctx.fillStyle=tg; ctx.beginPath(); ctx.arc(tx,ty,15,0,6.3); ctx.fill();
       ctx.restore(); }
+    ctx.restore();
     // রাতে চাঁদ (মেঘ/বৃষ্টি না থাকলে)
     if(LT.moon>.04&&LT.rain<.6){ const mx=LT.mx, my=LT.my; ctx.save(); ctx.globalAlpha=LT.moon*(1-LT.rain); const mg=ctx.createRadialGradient(mx,my,10,mx,my,90); mg.addColorStop(0,"rgba(230,238,255,.35)"); mg.addColorStop(1,"rgba(230,238,255,0)"); ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(mx,my,90,0,6.3); ctx.fill();
       ctx.fillStyle="#eef2ff"; ctx.beginPath(); ctx.arc(mx,my,20,0,6.3); ctx.fill(); ctx.fillStyle="rgba(180,190,215,.5)"; ctx.beginPath(); ctx.arc(mx-6,my-4,4,0,6.3); ctx.arc(mx+6,my+6,3,0,6.3); ctx.fill(); ctx.restore(); }
@@ -6508,11 +6515,12 @@ drawGaugeCluster=function(){
     const L=[...document.querySelectorAll(".controlLeft .driveControl")].map(b=>b.getBoundingClientRect()).filter(r=>r.width>0);
     const R=[...document.querySelectorAll(".controlRight .driveControl")].map(b=>b.getBoundingClientRect()).filter(r=>r.width>0);
     v31Gap=(L.length&&R.length)?[Math.max(...L.map(r=>r.right)),Math.min(...R.map(r=>r.left))]:null; }catch(e){ v31Gap=null; } }
-  if(!v31Gap||!v31Gap[0]) return v31GaugeBase.apply(this,arguments);
-  const [a,b]=v31Gap, half=128;
-  if(W/2-half>=a+4&&W/2+half<=b-4) return v31GaugeBase.apply(this,arguments);
-  const s=Math.max(.5,Math.min(1,(b-a-8)/(half*2))), cx=(a+b)/2, cy=H-58;
-  ctx.save(); ctx.translate(cx,cy+(1-s)*20); ctx.scale(s,s); ctx.translate(-W/2,-cy);
+  const small=H<=520, k0=small?(H<=380?.58:.64):1, half=128; // v33: ফোনে (নিচু পর্দা) ঘড়ি ছোট ও নিচে, বাটনও ছোট
+  if((!v31Gap||!v31Gap[0])&&!small) return v31GaugeBase.apply(this,arguments);
+  const [a,b]=v31Gap&&v31Gap[0]?v31Gap:[0,W];
+  if(!small&&W/2-half>=a+4&&W/2+half<=b-4) return v31GaugeBase.apply(this,arguments);
+  const s=Math.max(.45,Math.min(k0,(b-a-8)/(half*2))), cx=(a+b)/2, cy=H-58, ty=small?H-37:cy+(1-s)*20;
+  ctx.save(); ctx.translate(cx,ty); ctx.scale(s,s); ctx.translate(-W/2,-cy);
   try{ return v31GaugeBase.apply(this,arguments); } finally{ ctx.restore(); }
 };
 
@@ -6591,3 +6599,32 @@ renderMaps=function(){
     img.src="models/maps/"+i+".webp"; });
 };
 renderMaps();
+
+// ============================================================
+// v33 — ক্যামেরা উপরে-নিচে গাড়ির সাথে চলে: উঁচু পাহাড়ে গাড়ি আর পর্দার উপরে (HUD-এর নিচে) হারিয়ে যায় না।
+// পুরো দুনিয়া (পাহাড়, কয়েন, গাড়ি, কণা, লেখা, রাতের আলো) নিচে সরে; আকাশ আর নিচের পানি/মাটির পট্টি জায়গায় থাকে।
+// শুধু আঁকা বদলায় — terrainY/ফিজিক্স/ক্র্যাশ আগের মতো।
+// ============================================================
+window.V33={off:0,EX:0,key:"",last:0,seenTo:0};
+function v33Prep(){
+  const k=currentLevel+"|"+save.selectedMap+"|"+H+"|"+((typeof endlessMode!=="undefined"&&endlessMode)?1:0);
+  const end=(typeof endlessMode!=="undefined"&&endlessMode)?camera.x+W+3000:Math.min(finishX()+800,60000);
+  if(k!==V33.key){ V33.key=k; V33.off=0; V33.EX=0; V33.seenTo=0; }
+  if(end<=V33.seenTo) return;
+  let mn=1e9; for(let x=Math.max(0,V33.seenTo-200);x<end;x+=30){ if(!isGap(x)) mn=Math.min(mn,terrainY(x)); }
+  V33.seenTo=end+((typeof endlessMode!=="undefined"&&endlessMode)?3000:0);
+  const need=Math.max(0,Math.min(900,Math.ceil(H*.46-(mn-80))));
+  if(need>V33.EX) V33.EX=Math.ceil(need/40)*40;
+}
+function v33Update(){
+  const now=performance.now(), dt=V33.last?Math.min(.1,(now-V33.last)/1000):0; V33.last=now;
+  if(state==="menu"){ V33.off=0; return; }
+  try{ v33Prep(); }catch(e){}
+  const target=Math.max(0,Math.min(V33.EX,H*.46-truck.y));
+  V33.off+=(target-V33.off)*Math.min(1,dt*(target>V33.off?5:2.5));
+  if(Math.abs(target-V33.off)<.3) V33.off=target;
+}
+function v33Wrap(name){ const base=window[name]; if(typeof base!=="function") return; window[name]=function(){ if(!V33.off) return base.apply(this,arguments); ctx.save(); ctx.translate(0,V33.off); try{ return base.apply(this,arguments); } finally{ ctx.restore(); } }; }
+["drawTerrain","drawBridges","drawFinish","drawCoins","drawFuelCans","drawBoostCans","drawCheckpointFlags","drawParticles","drawGhost","drawTruck","drawFloatTexts"].forEach(v33Wrap);
+const v33RenderBase=render;
+render=function(){ try{ v33Update(); }catch(e){} return v33RenderBase.apply(this,arguments); };

@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>HILL RUSH BANGLADESH — Monster Truck</title>
   <link rel="stylesheet" href="style.css">
+  <script>
+  /* v33: ফোনে অটো-রোটেট বন্ধ থাকলেও গেম আড়াআড়ি চলবে। টাচ-ডিভাইসে এই পাতা একটা "খোলস" (shell) হয়ে যায়:
+     আসল গেম একটা iframe-এ চলে (index.html?embed=1), আর ফোন লম্বা ধরা থাকলে iframe-টা ৯০° ঘুরিয়ে পুরো পর্দায় বসে।
+     iframe-এর ভেতরে মাপ সবসময় আড়াআড়ি, তাই গেম, CSS আর বাটন সব আগের মতোই কাজ করে। */
+  (function(){ try{
+    window.__EMBED=/[?&]embed=1(&|$)/.test(location.search);
+    if(window.__EMBED||/[?&]noshell=1/.test(location.search)) return;
+    if(!(window.matchMedia&&matchMedia("(pointer:coarse)").matches)) return;
+    window.__SHELL=true; document.documentElement.className+=" hrShell";
+  }catch(e){} })();
+  </script>
+  <style>
+    html.hrShell,html.hrShell body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#06131d;}
+    html.hrShell body>*:not(#shellFrame){display:none !important;}
+    #shellFrame{position:fixed;top:0;left:0;border:0;display:block;background:#06131d;}
+  </style>
 </head>
 <body>
 
@@ -370,8 +386,26 @@
   <div id="toast" class="toast hidden"></div>
 
   <script type="importmap">{"imports":{"three":"./3d/lib/three.module.min.js","three/addons/":"./3d/lib/jsm/"}}</script>
-  <script src="script.js"></script>
-  <script>/* ৩D ট্রাক শুধু ওয়েব সার্ভার থেকে খুললে (file:// এ মডিউল ব্লক হয়) */ if(/^https?:/.test(location.protocol)){ const m=document.createElement("script"); m.type="module"; m.src="truck3d.js"; document.body.appendChild(m); }</script>
+  <script>/* খোলস (shell) হলে গেমের কোড এখানে চলে না — চলে iframe-এর ভেতরে */ if(!window.__SHELL) document.write('<script src="script.js"><\/script>');</script>
+  <script>/* ৩D ট্রাক শুধু ওয়েব সার্ভার থেকে খুললে (file:// এ মডিউল ব্লক হয়) */ if(!window.__SHELL&&/^https?:/.test(location.protocol)){ const m=document.createElement("script"); m.type="module"; m.src="truck3d.js"; document.body.appendChild(m); }</script>
+  <script>
+  (function(){ if(!window.__SHELL) return;
+    var q=location.search?location.search+"&embed=1":"?embed=1";
+    var f=document.createElement("iframe"); f.id="shellFrame"; f.title="Hill Rush Bangladesh"; f.src="index.html"+q+location.hash;
+    f.setAttribute("allow","fullscreen; autoplay; screen-wake-lock"); f.setAttribute("allowfullscreen","");
+    document.body.appendChild(f);
+    function lay(){ var w=window.innerWidth,h=window.innerHeight;
+      if(h>w*1.05){ f.style.width=h+"px"; f.style.height=w+"px"; f.style.transformOrigin="0 0"; f.style.transform="translateX("+w+"px) rotate(90deg)"; document.documentElement.setAttribute("data-rot","1"); }
+      else { f.style.width=w+"px"; f.style.height=h+"px"; f.style.transform="none"; document.documentElement.removeAttribute("data-rot"); } }
+    addEventListener("resize",lay); addEventListener("orientationchange",function(){ setTimeout(lay,120); });
+    if(window.visualViewport) visualViewport.addEventListener("resize",lay); lay(); setInterval(lay,1000);
+    // ভেতরের গেমে প্রথম টাচে: পুরো পর্দা + আড়াআড়ি লক চেষ্টা (Android-এ কাজ করে; না হলে ঘোরানো iframe তো আছেই)
+    addEventListener("message",function(e){ if(e.source!==f.contentWindow||e.data!=="hr-fullscreen") return;
+      var d=document.documentElement; try{ var p=(!document.fullscreenElement&&d.requestFullscreen)?d.requestFullscreen({navigationUI:"hide"}):null;
+        Promise.resolve(p).then(function(){ if(screen.orientation&&screen.orientation.lock) return screen.orientation.lock("landscape"); }).catch(function(){}).then(function(){ setTimeout(lay,200); }); }catch(err){} });
+    try{ f.focus(); }catch(e){}
+  })();
+  </script>
 <div id="rotateOverlay"><div class="rotBox"><div class="rotIcon">📱</div><div class="rotTxt">ফোনটা আড়াআড়ি করো</div><div class="rotSub">গেম আড়াআড়ি (landscape) মোডে খেলতে হয়</div></div></div>
 </body>
 </html>

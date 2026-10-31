@@ -3587,3 +3587,15 @@ body #mainMenu .developerPlaque .supervisorName{
 /* v32: ম্যাপ কার্ডের আসল দৃশ্য */
 .mapThumb.v32Thumb{background:#1b4a66 !important;}
 .mapThumb .v32MapImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;display:block;}
+/* v33: ফোনে (নিচু পর্দা) উপরের HUD আর নিচের বাটন ছোট ও পাতলা — গাড়ি আর রাস্তা বেশি দেখা যায়। রাস্তা/পাহাড় PC-র মতোই। */
+@media (max-height:520px){
+  #hud{transform:scale(.7);transform-origin:0 0;right:auto !important;width:calc((100vw - 20px)/.7) !important;top:6px !important;left:8px !important;}
+  #controls{left:6px !important;right:6px !important;bottom:4px !important;}
+  #controls .controlLeft,#controls .controlRight{gap:6px !important;}
+  #controls .driveControl{width:48px !important;height:48px !important;min-width:48px !important;font-size:16px !important;opacity:.86;}
+  #controls .driveControl span{font-size:7px !important;margin-top:0 !important;letter-spacing:.2px !important;}
+}
+@media (max-height:380px){
+  #hud{transform:scale(.62);width:calc((100vw - 20px)/.62) !important;}
+  #controls .driveControl{width:44px !important;height:44px !important;min-width:44px !important;font-size:15px !important;}
+}
