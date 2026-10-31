@@ -5663,3 +5663,67 @@ function v163DrawDetails(){
 }
 const v163TerrainBase=drawTerrain;
 drawTerrain=function(){ const r=v163TerrainBase.apply(this,arguments); try{ v163DrawDetails(); }catch(e){} return r; };
+
+// ============================================================
+// v17 — লিডারবোর্ড + প্রোফাইল (গেস্ট / ইমেইল রেজিস্টার)
+// অনলাইন অংশ Cloudflare Pages Functions + D1 (functions/api/*, db/schema.sql)। সার্ভার না থাকলে শুধু এই ডিভাইসের রেকর্ড দেখায়।
+// ============================================================
+const V17_PROFILE_KEY="hillrush_profile_v1";
+function v17Profile(){ try{ const p=JSON.parse(localStorage.getItem(V17_PROFILE_KEY)||"null"); return p&&p.id&&p.token?p:null; }catch(e){ return null; } }
+function v17SetProfile(p){ try{ if(p) localStorage.setItem(V17_PROFILE_KEY,JSON.stringify(p)); else localStorage.removeItem(V17_PROFILE_KEY); }catch(e){} }
+const v17Esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function v17Api(path,opt){
+  const r=await fetch(path,Object.assign({headers:{"content-type":"application/json"}},opt||{}));
+  const ct=r.headers.get("content-type")||""; if(!ct.includes("json")) throw new Error("server-off");
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||"error"); return j;
+}
+async function v17Submit(){
+  const p=v17Profile(); if(!p||endlessMode) return;
+  try{ await v17Api("/api/submit",{method:"POST",body:JSON.stringify({id:p.id,token:p.token,map:save.selectedMap||0,level:currentLevel,time:save.best[currentLevel],unlocked:save.unlocked,completed:Object.keys(save.completed||{}).length,coins:Math.floor(save.coins||0)})}); }catch(e){}
+}
+const v17CompleteBase=completeLevel;
+completeLevel=function(){ const was=state; const r=v17CompleteBase.apply(this,arguments); if(was==="play"&&state==="complete") v17Submit(); return r; };
+let v17Tab="overall", v17Msg="";
+function v17Fmt(t){ return typeof v15FmtTime==="function"?v15FmtTime(t):Number(t).toFixed(2)+"s"; }
+async function v17Render(){
+  const box=document.getElementById("leaderBody"); if(!box) return;
+  const p=v17Profile(); const mapOpts=maps.map((m,i)=>`<option value="${i}"${i===(save.selectedMap||0)?" selected":""}>${v17Esc(m.name)}</option>`).join("");
+  let html=`<div class="lbBox"><h3>👤 প্রোফাইল</h3>`;
+  if(p){ html+=`<div class="lbRow2"><b>${v17Esc(p.name)}</b> <span>${p.guest?"(গেস্ট)":"(নিবন্ধিত)"}</span><button class="lbBtn gray" id="lbLogout">এই ডিভাইস থেকে সরাও</button></div><div class="lbNote">লেভেল শেষ করলে স্কোর নিজে থেকে জমা হবে।${p.guest?" গেস্ট প্রোফাইল শুধু এই ডিভাইসে থাকে।":""}</div>`; }
+  else { html+=`<div class="lbNote">স্কোর লিডারবোর্ডে দেখাতে গেস্ট হও অথবা রেজিস্টার করো।</div><div class="lbRow2"><button class="lbBtn blue" id="lbGuest">👤 গেস্ট হিসেবে খেলো</button></div><div class="lbRow2" style="margin-top:8px"><input id="lbName" placeholder="নাম" maxlength="20"><input id="lbEmail" type="email" placeholder="ইমেইল"><button class="lbBtn" id="lbReg">রেজিস্টার</button></div><div class="lbNote">ইমেইল যাচাই করা হয় না, পাসওয়ার্ডও নেই; অন্য ডিভাইসে একই প্রোফাইল ফেরানো যাবে না।</div>`; }
+  if(v17Msg) html+=`<div class="lbNote lbErr">${v17Esc(v17Msg)}</div>`;
+  html+=`</div><div class="lbTabs"><button class="lbBtn${v17Tab==="overall"?" on":""}" id="lbTabO">🏆 সামগ্রিক</button><button class="lbBtn${v17Tab==="level"?" on":""}" id="lbTabL">⏱ লেভেল অনুযায়ী</button></div>`;
+  if(v17Tab==="level") html+=`<div class="lbBox"><div class="lbRow2"><select id="lbMap">${mapOpts}</select><input id="lbLevel" type="number" min="1" max="${TOTAL_LEVELS}" value="${currentLevel||1}"><button class="lbBtn blue" id="lbGo">দেখাও</button></div></div>`;
+  html+=`<div id="lbList" class="lbBox"><div class="lbNote">লোড হচ্ছে…</div></div>`;
+  box.innerHTML=html;
+  const $=id=>document.getElementById(id);
+  if($("lbGuest")) $("lbGuest").onclick=async()=>{ try{ const j=await v17Api("/api/register",{method:"POST",body:JSON.stringify({guest:true})}); v17SetProfile({id:j.id,token:j.token,name:j.name,guest:true}); v17Msg=""; v17Submit(); }catch(e){ v17Msg=e.message==="server-off"?"অনলাইন সার্ভার এখনো সংযুক্ত নয়।":e.message; } v17Render(); };
+  if($("lbReg")) $("lbReg").onclick=async()=>{ try{ const j=await v17Api("/api/register",{method:"POST",body:JSON.stringify({name:$("lbName").value,email:$("lbEmail").value})}); v17SetProfile({id:j.id,token:j.token,name:j.name,guest:false}); v17Msg=""; v17Submit(); }catch(e){ v17Msg=e.message==="server-off"?"অনলাইন সার্ভার এখনো সংযুক্ত নয়।":e.message; } v17Render(); };
+  if($("lbLogout")) $("lbLogout").onclick=()=>{ v17SetProfile(null); v17Msg=""; v17Render(); };
+  $("lbTabO").onclick=()=>{ v17Tab="overall"; v17Render(); }; $("lbTabL").onclick=()=>{ v17Tab="level"; v17Render(); };
+  if($("lbGo")) $("lbGo").onclick=()=>v17Load();
+  v17Load();
+}
+async function v17Load(){
+  const list=document.getElementById("lbList"); if(!list) return; const me=v17Profile();
+  try{
+    let q="type=overall"; if(v17Tab==="level"){ const m=document.getElementById("lbMap"), l=document.getElementById("lbLevel"); q=`type=level&map=${m?m.value:(save.selectedMap||0)}&level=${l?l.value:(currentLevel||1)}`; }
+    const j=await v17Api("/api/leaderboard?"+q);
+    if(!j.rows.length){ list.innerHTML=`<div class="lbNote">এখনো কেউ স্কোর দেয়নি। প্রথম হও!</div>`; return; }
+    const head=v17Tab==="level"?"<tr><th>#</th><th>নাম</th><th>সময়</th></tr>":"<tr><th>#</th><th>নাম</th><th>শেষ করা</th><th>আনলকড</th><th>কয়েন</th></tr>";
+    const rows=j.rows.map((r,i)=>{ const mine=me&&r.name===me.name; const nm=v17Esc(r.name)+(r.guest?" <small>(গেস্ট)</small>":"");
+      return v17Tab==="level"?`<tr class="${mine?"me":""}"><td>${i+1}</td><td>${nm}</td><td>${v17Fmt(r.time)}</td></tr>`:`<tr class="${mine?"me":""}"><td>${i+1}</td><td>${nm}</td><td>${r.completed}</td><td>${r.unlocked}</td><td>${r.coins}</td></tr>`; }).join("");
+    list.innerHTML=`<table class="lbTable">${head}${rows}</table>`;
+  }catch(e){
+    const best=Object.keys(save.best||{}).map(Number).sort((a,b)=>a-b).map(n=>`<tr><td>Level ${n}</td><td>${v17Fmt(save.best[n])}</td></tr>`).join("");
+    list.innerHTML=`<div class="lbNote lbErr">${e.message==="server-off"||e instanceof TypeError?"অনলাইন সার্ভার এখনো সংযুক্ত নয়, তাই বিশ্বব্যাপী তালিকা দেখানো যাচ্ছে না।":v17Esc(e.message)}</div><h3>এই ডিভাইসের সেরা সময়</h3>${best?`<table class="lbTable">${best}</table>`:'<div class="lbNote">এখনো কোনো লেভেল শেষ করা হয়নি।</div>'}`;
+  }
+}
+const v17HideBase=hideScreens;
+hideScreens=function(){ v17HideBase(); const el=document.getElementById("leaderMenu"); if(el){el.classList.add("hidden");el.style.display="none";el.style.visibility="hidden";el.style.pointerEvents="none";} };
+const v17ShowBase=showScreen;
+showScreen=function(id){ v17ShowBase(id); if(id==="leaderMenu"){ document.getElementById("hud").classList.add("hidden"); document.getElementById("controls").classList.add("hidden"); } };
+(function v17Wire(){
+  const b=document.getElementById("leaderBtn"); if(b) b.onclick=()=>{ resumeAudio(); tone(500,.06,.05); showScreen("leaderMenu"); v17Render(); };
+  const k=document.getElementById("backLeaderBtn"); if(k) k.onclick=()=>{ tone(330,.06,.05); goMain(); };
+})();

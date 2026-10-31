@@ -3499,3 +3499,17 @@ body #mainMenu .developerPlaque .supervisorName{
 
 /* v16.3: ডুপ্লিকেট PAUSE/RESTART/SOUND বাটন সরানো (উপরের HUD-এ pause ও ⚙ settings আছে) */
 #controls .controlTop{display:none!important}
+
+/* v17: লিডারবোর্ড */
+#leaderMenu{background:linear-gradient(#0d8bd8,#43caeb);flex-direction:column !important;justify-content:flex-start !important;align-items:center !important;overflow:auto !important;padding:16px 18px 30px !important;}
+#leaderBody{width:min(760px,96vw);color:#fff;overflow:visible !important;max-height:none !important;}
+.lbBox{background:rgba(0,0,0,.30);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px;margin:8px 0;}
+.lbBox h3{margin:0 0 8px;font-size:15px}
+.lbRow2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbBox input,.lbBox select{padding:8px 10px;border-radius:10px;border:0;font-size:15px;min-width:0;flex:1 1 140px}
+.lbBtn{padding:9px 14px;border-radius:12px;border:0;font-weight:800;color:#fff;background:linear-gradient(#37d25a,#0c8a30);cursor:pointer}
+.lbBtn.blue{background:linear-gradient(#3b8fd4,#154e80)}.lbBtn.gray{background:linear-gradient(#6a7480,#3c4550)}
+.lbTabs{display:flex;gap:8px;margin:8px 0}.lbTabs .lbBtn{flex:1;opacity:.6}.lbTabs .lbBtn.on{opacity:1}
+.lbTable{width:100%;border-collapse:collapse}.lbTable td,.lbTable th{padding:7px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.14)}
+.lbTable tr.me td{background:rgba(255,225,74,.18);font-weight:800}
+.lbNote{font-size:13px;opacity:.9;margin:6px 0}.lbErr{color:#ffd0d0}
