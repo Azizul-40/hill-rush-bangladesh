@@ -78,7 +78,14 @@
       </div>
       <input id="volumeSlider" class="volumeSlider" type="range" min="0" max="100" value="55">
       <label class="muteRow"><input id="muteToggle" type="checkbox"> <span>🔇 MUTE SOUND</span></label>
-      <details class="modelCredits"><summary>3D মডেল ক্রেডিট</summary>
+      <button id="closeSettingsBtn" class="settingsCloseBtn" type="button" aria-label="Close settings">×</button>
+    </div>
+  </section>
+
+  <section id="creditsMenu" class="settingsOverlay hidden">
+    <div class="settingsCard creditsCard">
+      <div class="settingsTitle">© CREDITS</div>
+      <div class="modelCredits">
         <p>"Rickshaw" — asrafullislamsiam, CC BY 4.0</p>
         <p>"Autorikshaw - Indian Tuk Tuk" — bhagathartworks, CC BY 4.0</p>
         <p>"Tuk-Tuk (Passenger)" — Potater_King, CC BY 4.0</p>
@@ -89,8 +96,8 @@
         <p>মাটি/রাস্তা/খাদের টেক্সচার: "[UPDATE] Dirt Road Through Forest" — 99.Miles; "Sand Dunes" — Helindu; "American Road Snow in Winter" — jimbogies (সব CC BY 4.0)</p>
         <p>প্রাণী: "Wolf", "Rabbit" (Realistic 3D Model Demo Free) — WildMesh 3D (CC BY-NC 4.0); "Common Myna" — iRahulRajput (CC BY 4.0); "Birds" — Zacxophone (Sketchfab Standard)</p>
         <p>সব মডেল Sketchfab/Gumroad থেকে; গেমের জন্য হালকা করা ও রং বদলানো হয়েছে।</p>
-      </details>
-      <button id="closeSettingsBtn" class="settingsCloseBtn" type="button" aria-label="Close settings">×</button>
+            </div>
+      <button id="closeCreditsBtn" class="settingsCloseBtn" type="button" aria-label="Close credits">×</button>
     </div>
   </section>
 
@@ -116,9 +123,10 @@
       <button id="endlessBtn" type="button" class="actionBtn"><i>🏁</i><span>ENDLESS</span></button>
       <button id="recordsBtn" type="button" class="actionBtn"><i>📊</i><span>RECORDS</span></button>
       <button id="leaderBtn" type="button" class="actionBtn"><i>🏅</i><span>LEADERBOARD</span></button>
-      <a id="play3dLink" class="actionBtn" href="3d.html"><i>🎮</i><span>3D (BETA)</span></a>
     </div>
 
+    <!-- v38: ক্রেডিট (CC BY লাইসেন্সে নাম দেখানো দরকার) — সেটিংস থেকে সরিয়ে মেনুর কোণে ছোট লিংকে -->
+    <button id="creditsLink" type="button" class="creditsLink">© Credits</button>
     <!-- Version label। -->
     <div class="version">HILL RUSH BANGLADESH</div>
 
@@ -369,16 +377,16 @@
     </div>
 
     <!-- বাম পাশে শুধু Brake থাকবে। -->
-    <!-- v36: বামে GAS + DRIVE একসাথে (GAS আর BOOST এক বাটনে — চেপে ধরলে GAS, দুবার দ্রুত চেপে ধরলে BOOST); ডানে REVERSE + BRAKE -->
+    <!-- v38: বামে BRAKE + REVERSE, ডানে DRIVE + GAS (GAS আর BOOST এক বাটনে — চেপে ধরলে GAS, দুবার দ্রুত চেপে ধরলে BOOST)। সেটিংসে নিজের মতো সাজানো যায়। -->
     <div class="controlSide controlLeft">
-      <button class="driveControl gasControl" data-key="gas">▲<span>GAS</span><em class="gasHint">২× বুস্ট</em></button>
-      <button class="driveControl driveButton" data-key="right">▶<span>DRIVE</span></button>
+      <button class="driveControl brakeControl" data-key="brake">■<span>BRAKE</span></button>
+      <button class="driveControl reverseControl" data-key="left">◀<span>REVERSE</span></button>
     </div>
 
     <!-- ডান পাশে Drive + Gas + নতুন BOOST/NITRO বাটন। -->
     <div class="controlSide controlRight">
-      <button class="driveControl reverseControl" data-key="left">◀<span>REVERSE</span></button>
-      <button class="driveControl brakeControl" data-key="brake">■<span>BRAKE</span></button>
+      <button class="driveControl driveButton" data-key="right">▶<span>DRIVE</span></button>
+      <button class="driveControl gasControl" data-key="gas">▲<span>GAS</span><em class="gasHint">২× বুস্ট</em></button>
     </div>
   </div>
 

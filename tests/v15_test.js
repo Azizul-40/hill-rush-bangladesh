@@ -114,7 +114,7 @@ const ok=(name,cond,extra='')=>{ if(cond){pass++;console.log('PASS',name,extra);
   const center=async sel=>{const r=await mp2.evaluate(s=>{const e=document.querySelector(s).getBoundingClientRect();return {x:e.x+e.width/2,y:e.y+e.height/2,w:e.width,h:e.height,inView:e.left>=0&&e.right<=innerWidth&&e.top>=0&&e.bottom<=innerHeight};},sel);return r;};
   // v36: আলাদা BOOST বাটন নেই — GAS (বামে) দুবার দ্রুত চেপে ধরলে BOOST; DRIVE ডানে
   const gas=await center('.gasControl'),drive=await center('.driveButton'),brake=await center('.brakeControl');
-  ok('GAS/DRIVE/BRAKE বাটন স্ক্রিনের ভেতরে ও ৪০px+ বড়, GAS বামে, DRIVE তার পাশে',[gas,drive,brake].every(r=>r.inView&&r.w>=40&&r.h>=40)&&gas.x<brake.x&&gas.x<drive.x,JSON.stringify([gas,drive,brake].map(r=>[Math.round(r.x),Math.round(r.w)])));
+  ok('GAS/DRIVE/BRAKE বাটন স্ক্রিনের ভেতরে ও ৪০px+ বড়; ডানে DRIVE আর GAS (GAS সবচেয়ে ডানে), বামে BRAKE',[gas,drive,brake].every(r=>r.inView&&r.w>=40&&r.h>=40)&&gas.x>drive.x&&drive.x>brake.x,JSON.stringify([gas,drive,brake].map(r=>[Math.round(r.x),Math.round(r.w)])));
   const T=(type,pts)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:pts});
   await T('touchStart',[{x:gas.x,y:gas.y,id:1}]);await mp2.waitForTimeout(60);
   const k1=await mp2.evaluate(()=>({gas:keys.gas,boost:keys.boost}));

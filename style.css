@@ -3631,11 +3631,11 @@ body #mainMenu .developerPlaque .supervisorName{
   .screen .modalCard .resultStars{font-size:22px !important;margin:0 !important;line-height:1.1 !important;}
   .screen .modalCard .actionBtn{min-height:38px !important;height:38px !important;padding:0 14px !important;font-size:15px !important;margin:6px auto 0 !important;width:100% !important;max-width:300px !important;}
 }
-/* v36.1: বামে GAS আর DRIVE পাশাপাশি, ডানে REVERSE আর BRAKE */
-#controls .controlLeft .gasControl{order:0 !important;margin-right:0 !important;}
-#controls .controlLeft .driveButton{order:1 !important;}
-#controls .controlRight .reverseControl{order:0 !important;}
-#controls .controlRight .brakeControl{order:1 !important;}
+/* v38: বামে BRAKE আর REVERSE, ডানে DRIVE আর GAS (GAS সবচেয়ে ডানে) */
+#controls .controlLeft .brakeControl{order:0 !important;}
+#controls .controlLeft .reverseControl{order:1 !important;}
+#controls .controlRight .driveButton{order:0 !important;}
+#controls .controlRight .gasControl{order:1 !important;margin-right:0 !important;}
 #controls .controlLeft,#controls .controlRight{gap:16px !important;}
 @media (max-height:520px){ #controls .controlLeft,#controls .controlRight{gap:10px !important;} }
 
@@ -3735,3 +3735,17 @@ body #mainMenu .developerPlaque .supervisorName{
 #controls.ceEditing .driveControl{z-index:215 !important;cursor:grab;outline:2px dashed rgba(255,255,255,.7);outline-offset:3px;}
 #controls.ceEditing .driveControl.ceSel{outline:3px solid #ffd23a;outline-offset:4px;}
 @media (max-height:520px){ #ctlEditor .ceBar{padding:5px 8px;gap:4px 8px;font-size:11px;} #ctlEditor .ceBar b{font-size:12px;} #ctlEditor .ceTip{display:none;} #ctlEditor .ceSize input{width:90px;} #ctlEditor button{padding:5px 9px;font-size:11px;} .ctlEditBtn{padding:7px 10px;font-size:12px;margin-top:6px;} }
+
+/* v38: সাজানো বাটন ছোট-বড় করলে ভেতরের চিহ্ন আর লেখাও একসাথে ছোট-বড় হয় (পুরো বাটন scale) */
+#controls .driveControl.v37Placed{transform:scale(var(--ctlS,1)) !important;transform-origin:50% 50% !important;}
+#controls .driveControl.v37Placed.pressed,#controls .driveControl.v37Placed:active{transform:translateY(4px) scale(calc(var(--ctlS,1)*.96)) !important;}
+/* v38: মেনুর কোণে ক্রেডিট লিংক আর ক্রেডিট পাতা */
+.creditsLink{position:absolute;right:12px;bottom:10px;z-index:30;border:0;border-radius:10px;padding:4px 10px;font-size:11px;font-weight:700;color:#eaf6ff;background:rgba(8,30,48,.55);cursor:pointer;}
+#creditsMenu .creditsCard{max-height:calc(100vh - 30px);overflow:auto;}
+#creditsMenu .modelCredits{max-height:none;font-size:12px;}
+/* v38: ভাষা বাছাই */
+.langRow{display:flex !important;align-items:center !important;justify-content:space-between !important;gap:10px !important;}
+.langRow .langBtns{display:flex;gap:6px;}
+.langRow .langBtns button{border:0;border-radius:10px;padding:6px 12px;font-weight:800;font-size:13px;background:#dbe7ef;color:#123c59;cursor:pointer;}
+.langRow .langBtns button.on{background:#2f8fd8;color:#fff;}
+@media (max-height:520px){ .langRow .langBtns button{padding:4px 9px;font-size:11px;} }

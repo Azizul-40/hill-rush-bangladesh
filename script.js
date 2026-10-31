@@ -6682,12 +6682,14 @@ const V37=(function(){
   const id=b=>b.dataset.key;
   const load=()=>{ try{ const j=JSON.parse(localStorage.getItem(KEY)||"null"); return j&&j.items?j:null; }catch(e){ return null; } };
   const store=l=>{ try{ if(l) localStorage.setItem(KEY,JSON.stringify(l)); else localStorage.removeItem(KEY); }catch(e){} };
-  const clear=b=>{ ["position","left","top","right","bottom","width","height","min-width","min-height","margin","z-index","order","transform"].forEach(p=>b.style.removeProperty(p)); };
+  const clear=b=>{ ["position","left","top","right","bottom","width","height","min-width","min-height","margin","z-index","order","transform","--ctlS"].forEach(p=>b.style.removeProperty(p)); b.classList.remove("v37Placed"); };
   const baseSize=b=>{ if(!b.dataset.v37base){ const r=b.getBoundingClientRect(); if(r.width>10) b.dataset.v37base=String(Math.round(r.width)); } return +(b.dataset.v37base||64); };
-  function place(b,it){ const sz=Math.round((it.base||baseSize(b))*(it.s||1)), x=it.x*innerWidth-sz/2, y=it.y*innerHeight-sz/2;
+  // v38: বাটনের মাপ আসল মাপেই থাকে, পুরো বাটন (ভেতরের চিহ্ন-লেখাসহ) transform দিয়ে ছোট-বড় হয়
+  function place(b,it){ const base=Math.round(it.base||baseSize(b)), s=it.s||1, vis=base*s, cx=Math.max(vis/2,Math.min(innerWidth-vis/2,it.x*innerWidth)), cy=Math.max(vis/2,Math.min(innerHeight-vis/2,it.y*innerHeight));
     const set=(p,v)=>b.style.setProperty(p,v,"important");
-    set("position","fixed"); set("left",Math.max(0,Math.min(innerWidth-sz,x))+"px"); set("top",Math.max(0,Math.min(innerHeight-sz,y))+"px");
-    set("right","auto"); set("bottom","auto"); set("width",sz+"px"); set("height",sz+"px"); set("min-width",sz+"px"); set("min-height",sz+"px"); set("margin","0"); set("z-index","215"); }
+    set("position","fixed"); set("left",(cx-base/2)+"px"); set("top",(cy-base/2)+"px");
+    set("right","auto"); set("bottom","auto"); set("width",base+"px"); set("height",base+"px"); set("min-width",base+"px"); set("min-height",base+"px"); set("margin","0"); set("z-index","215");
+    b.style.setProperty("--ctlS",String(s)); b.classList.add("v37Placed"); }
   function apply(){ const l=load(); btns().forEach(b=>{ clear(b); }); if(!l) return; btns().forEach(b=>{ baseSize(b); }); btns().forEach(b=>{ const it=l.items[id(b)]; if(it) place(b,it); }); }
   // ---------- সম্পাদক ----------
   let ed=null, cur=null, sel=null, drag=null, ctlWasHidden=false;
@@ -6744,3 +6746,82 @@ const V37=(function(){
   setTimeout(apply,0);
   return {open,close,apply,load,KEY};
 })();
+
+// ============================================================
+// v38 — ক্রেডিট পাতা (মেনুর কোণে "© Credits") আর বাংলা / English ভাষা বাছাই (সেটিংসে)
+// ============================================================
+(function v38Credits(){
+  const m=document.getElementById("creditsMenu"), l=document.getElementById("creditsLink"), c=document.getElementById("closeCreditsBtn"); if(!m||!l) return;
+  const show=v=>{ m.classList.toggle("hidden",!v); m.style.display=v?"flex":"none"; m.style.visibility=v?"visible":"hidden"; m.style.pointerEvents=v?"auto":"none"; m.style.zIndex="99999"; };
+  l.onclick=()=>{ try{ resumeAudio(); tone(520,.05,.04); }catch(e){} show(true); }; if(c) c.onclick=()=>show(false);
+  m.addEventListener("click",e=>{ if(e.target===m) show(false); });
+})();
+const V38=(function(){
+  const KEY="hillrush_lang";
+  // [English, বাংলা] — দুই দিকেই খোঁজা হয়। বড় হাতের ইংরেজি মেনু-লেখা, বর্ণনা, বার্তা।
+  const P=[
+    ["PLAY","খেলো"],["LEVELS","লেভেল"],["MAPS","ম্যাপ"],["GARAGE","গ্যারেজ"],["STORE","দোকান"],["MISSIONS","মিশন"],["ENDLESS","এন্ডলেস"],["RECORDS","রেকর্ড"],["LEADERBOARD","লিডারবোর্ড"],
+    ["MENU","মেনু"],["MAIN MENU","প্রধান মেনু"],["LEVEL SELECT","লেভেল বাছাই"],["MAP GARAGE","ম্যাপ গ্যারেজ"],["SETTINGS","সেটিংস"],["VOLUME","শব্দ"],["MUTE SOUND","শব্দ বন্ধ"],
+    ["PAUSED","থামানো আছে"],["RESUME","চালিয়ে যাও"],["CRASH!","দুর্ঘটনা!"],["RETRY","আবার চেষ্টা"],["LEVEL COMPLETE","লেভেল শেষ!"],["NEXT LEVEL","পরের লেভেল"],
+    ["SELECT","বেছে নাও"],["SELECTED","বাছাই করা"],["✓ SELECTED","✓ বাছাই করা"],["UPGRADES","আপগ্রেড"],["ENGINE","ইঞ্জিন"],["TIRES","টায়ার"],["SUSPENSION","সাসপেনশন"],["BOOST","বুস্ট"],
+    ["SPEED","গতি"],["GRIP","গ্রিপ"],["POWER","শক্তি"],["CUSTOMIZE","নিজের মতো সাজাও"],["CONDITION","অবস্থা"],["FULL CONDITION","পুরোপুরি ঠিক আছে"],
+    ["GAS","গ্যাস"],["DRIVE","চালাও"],["REVERSE","পেছনে"],["BRAKE","ব্রেক"],["BEST:","সেরা:"],["LEVEL","লেভেল"],
+    ["DAILY BONUS","দৈনিক বোনাস"],["COIN PACK","কয়েন প্যাক"],["BOOST PACK","বুস্ট প্যাক"],["MAP BUNDLE","ম্যাপ বান্ডেল"],["VEHICLE BUNDLE","গাড়ির বান্ডেল"],["VIP UPGRADE","ভিআইপি আপগ্রেড"],
+    ["Collect a free coin pack.","একটা ফ্রি কয়েন প্যাক নাও।"],["Get a small starter pack.","ছোট একটা শুরুর প্যাক নাও।"],["Instant boost upgrade token.","সাথে সাথে বুস্ট আপগ্রেডের টোকেন।"],
+    ["One-time boost to ALL upgrades (+1 level).","একবারে সব আপগ্রেড +১ লেভেল।"],["Unlock every remaining map at once, discounted.","বাকি সব ম্যাপ একসাথে, ছাড়ে।"],["Unlock every remaining truck at once, discounted.","বাকি সব গাড়ি একসাথে, ছাড়ে।"],
+    ["DEVELOPED BY","বানিয়েছে"],["SUPERVISED BY","তত্ত্বাবধানে"],["DAILY MISSIONS","দৈনিক মিশন"],["ACHIEVEMENTS","অর্জন"],["MISSIONS & ACHIEVEMENTS","মিশন ও অর্জন"],["ENDLESS RUN","এন্ডলেস দৌড়"],
+    ["The truck crashed.","গাড়ি দুর্ঘটনায় পড়েছে।"],["You fell off the mountain!","পাহাড় থেকে পড়ে গেছ!"],["You fell into the gap!","খাদে পড়ে গেছ!"],["The truck rolled over!","গাড়ি উল্টে গেছে!"],["The truck landed upside down!","গাড়ি উল্টো হয়ে পড়েছে!"],
+    ["Landed on its back! (ease off GAS in the air)","পেছনে উল্টে পড়েছে! (বাতাসে GAS কম চাপো)"],["Nose-dived into the ground!","সামনে মুখ থুবড়ে পড়েছে!"],
+    ["2× boost","২× বুস্ট"],["🎮 Arrange buttons (move / resize)","🎮 বাটন সাজাও (সরাও / ছোট-বড়)"],["🌦 Weather · 🔧 Vehicle condition","🌦 আবহাওয়া · 🔧 গাড়ির অবস্থা"],
+    ["Arrange buttons","বাটন সাজাও"],["Drag to move · tap to pick, then resize","বাটন টেনে সরাও · ছুঁয়ে বেছে নিয়ে সাইজ বদলাও"],["Size","সাইজ"],["All together","সব একসাথে"],["↺ Default","↺ আগের মতো"],["Cancel","বাতিল"],["✓ Save","✓ সেভ"],
+    ["Button layout saved ✓","বাটনের জায়গা সেভ হয়েছে ✓"],["📍 FROM CHECKPOINT","📍 CHECKPOINT থেকে"],["↻ PLAY AGAIN","↻ আবার চালাও"],
+    ["Rotate your phone","ফোনটা আড়াআড়ি করো"],["The game is played in landscape mode","গেম আড়াআড়ি (landscape) মোডে খেলতে হয়"],
+    ["Balanced all-round monster truck.","সব দিকে ভালো মনস্টার ট্রাক।"],["Balanced starter truck.","শুরুর জন্য ভালো ট্রাক।"],["Quick red truck with strong acceleration.","দ্রুত লাল ট্রাক, জোরে টান।"],
+    ["Stable blue truck for rough terrain.","এবড়োখেবড়ো পথে স্থির নীল ট্রাক।"],["Maximum grip for steep tracks.","খাড়া পথে সবচেয়ে বেশি গ্রিপ।"],["Fast and agile with strong boost.","দ্রুত ও চটপটে, বুস্ট জোরালো।"],
+    ["Heavy monster with extreme suspension.","ভারী মনস্টার, দারুণ সাসপেনশন।"],["High-speed orange machine.","দ্রুতগামী কমলা গাড়ি।"],["Ultimate monster truck.","সেরা মনস্টার ট্রাক।"],
+    ["Heavy truck with huge grip.","অনেক গ্রিপের ভারী ট্রাক।"],["High-speed extreme machine.","খুব দ্রুত গাড়ি।"],["Fast desert runner.","মরুভূমির দ্রুত গাড়ি।"],
+    ["Small green CNG auto from Dhaka — light and lively.","ঢাকার সবুজ CNG অটো — হালকা ও ছটফটে।"],["Colourful rickshaw — slow, but great grip on hills.","রঙিন রিকশা — ধীর, কিন্তু পাহাড়ে দারুণ গ্রিপ।"],
+    ["Battery easy bike — good boost.","ব্যাটারিচালিত ইজি বাইক — বুস্ট ভালো।"],["Local 'murir tin' bus — heavy, best grip and suspension.","লোকাল বাস 'মুড়ির টিন' — ভারী, গ্রিপ ও সাসপেনশন সেরা।"],
+    ["Sunny mountains, lake & waterfall.","রোদেলা পাহাড়, হ্রদ আর ঝর্ণা।"],["Frozen peaks with slippery roads.","বরফে ঢাকা চূড়া, পিছলে যাওয়া পথ।"],["Dense jungle and deep ravines.","ঘন জঙ্গল আর গভীর খাদ।"],
+    ["Hot dunes and rocky canyon jumps.","গরম বালিয়াড়ি আর পাথুরে লাফ।"],["Lava glow and black rock climbs.","লাভার আভা আর কালো পাথুরে চড়াই।"],["Neon night road and city lights.","নিয়নের রাতের রাস্তা আর শহরের আলো।"],
+    ["Huge cliffs, bridges and waterfalls.","বিশাল খাড়া পাহাড়, সেতু আর ঝর্ণা।"],["Red forests and golden roads.","লাল বন আর সোনালি রাস্তা।"],
+    ["Cloud kingdom — the hill roads of Sajek, Rangamati.","মেঘের রাজ্য — রাঙামাটির সাজেকের পাহাড়ি পথ।"],["Misty green hills and waterfalls.","কুয়াশাঢাকা সবুজ পাহাড় ও ঝর্ণা।"],
+    ["Tea gardens of Jaflong and clear rivers.","জাফলংয়ের চা-বাগান ও স্বচ্ছ নদী।"],["Bamboo forests, stilt houses and red-soil hills.","বাঁশবন, মাচাঘর আর লাল মাটির পাহাড়।"],["Kaptai lake of Rangamati, hanging bridge and boats.","রাঙামাটির কাপ্তাই হ্রদ, ঝুলন্ত সেতু আর নৌকা।"],
+    ["Language","ভাষা"],["Weather · 🔧 Vehicle condition","আবহাওয়া · 🔧 গাড়ির অবস্থা"],["Arrange buttons (move / resize)","বাটন সাজাও (সরাও / ছোট-বড়)"],["Default","আগের মতো"],["Save","সেভ"],
+    ["Boost cooling down…","বুস্ট ঠান্ডা হচ্ছে…"],["FROM CHECKPOINT","CHECKPOINT থেকে"],["PLAY AGAIN","আবার চালাও"],["Best: 0 m","সেরা: 0 মিটার"],["0 m","0 মিটার"]
+  ];
+  const E2B=new Map(), B2E=new Map(); P.forEach(([e,b])=>{ E2B.set(e,b); B2E.set(b,e); });
+  const PAT=[ // [English regex, Bangla template] আর উল্টো
+    [/^BUY (\d[\d,]*)$/,"কেনো $1",/^কেনো (\d[\d,]*)$/,"BUY $1"],[/^BUY BUNDLE (\d[\d,]*)$/,"বান্ডেল কেনো $1",/^বান্ডেল কেনো (\d[\d,]*)$/,"BUY BUNDLE $1"],
+    [/^LV (\d+)$/,"লেভেল $1",/^লেভেল (\d+)$/,"LV $1"],[/^CLAIM (\+\d+)$/,"নাও $1",/^নাও (\+\d+)$/,"CLAIM $1"],[/^GET (\+\d+.*)$/,"নাও $1",/^নাও (\+\d+ \(.*)$/,"GET $1"],
+    [/^\+(\d+) coins$/,"+$1 কয়েন",/^\+(\d+) কয়েন$/,"+$1 coins"],[/^LEVEL (\d+) — (.+)$/,"লেভেল $1 — $2",/^লেভেল (\d+) — (.+)$/,"LEVEL $1 — $2"]
+  ];
+  let lang="en"; try{ lang=localStorage.getItem(KEY)||"en"; }catch(e){}
+  const orig=new WeakMap();
+  const split=t=>{ const m=t.match(/^([^\p{L}\p{N}+"'(]*)([\s\S]*?)([^\p{L}\p{N}\p{M}!?.)%]*)$/u); return m?[m[1],m[2],m[3]]:["",t,""]; };
+  function tr(core,to){ if(!core) return null; const D=to==="bn"?E2B:B2E; if(D.has(core)) return D.get(core);
+    for(const p of PAT){ const re=to==="bn"?p[0]:p[2], rep=to==="bn"?p[1]:p[3]; if(re.test(core)) return core.replace(re,rep); } return null; }
+  function doNode(n){
+    if(n.nodeType!==3) return; const par=n.parentNode; if(!par||par.closest&&par.closest("[data-noi18n],script,style,textarea,#creditsMenu .modelCredits")) return;
+    const cur=n.data; if(!cur||!cur.trim()) return;
+    let o=orig.get(n); if(!o||(o.shown!==cur)){ o={src:cur}; }   // গেম নিজে লেখা বদলালে নতুনটাই মূল
+    let out=o.src; const full=o.src.trim(), tf=tr(full,lang);
+    if(tf!=null) out=o.src.replace(full,tf); else { const [a,core,z]=split(o.src); const t1=tr(core.trim(),lang); if(t1!=null) out=a+t1+z; }
+    o.shown=out; orig.set(n,o); if(out!==cur) n.data=out;
+  }
+  function walk(root){ if(!root) return; if(root.nodeType===3) return doNode(root); const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); let x; while((x=w.nextNode())) doNode(x); }
+  let busy=false;
+  const mo=new MutationObserver(ms=>{ if(busy) return; busy=true; try{ for(const m of ms){ if(m.type==="characterData") doNode(m.target); else m.addedNodes.forEach(walk); } } finally{ busy=false; } });
+  function set(l){ lang=l==="bn"?"bn":"en"; try{ localStorage.setItem(KEY,lang); }catch(e){} document.documentElement.lang=lang==="bn"?"bn":"en"; busy=true; try{ walk(document.body); } finally{ busy=false; } paint(); }
+  function paint(){ document.querySelectorAll(".langBtns button").forEach(b=>b.classList.toggle("on",b.dataset.l===lang)); }
+  // সেটিংসে ভাষার সারি
+  (function(){ const card=document.querySelector("#settingsMenu .settingsCard"); if(!card) return; const row=document.createElement("div"); row.className="settingsRow langRow";
+    row.innerHTML='<span>🌐 <span>Language</span></span><span class="langBtns" data-noi18n><button type="button" data-l="bn">বাংলা</button><button type="button" data-l="en">English</button></span>';
+    const title=card.querySelector(".settingsTitle"); if(title&&title.nextSibling) card.insertBefore(row,title.nextSibling); else card.appendChild(row);
+    row.querySelectorAll(".langBtns button").forEach(b=>b.onclick=()=>{ try{ tone(520,.05,.04); }catch(e){} set(b.dataset.l); }); })();
+  mo.observe(document.body,{childList:true,subtree:true,characterData:true});
+  set(lang);
+  return {set,get:()=>lang,tr};
+})();
+// v38: "BEST: --:--.--" — এই লেভেলে আগে কোনো রেকর্ড না থাকলে লাইনটা লুকানো থাকে, রেকর্ড হলে দেখায়
+setInterval(()=>{ try{ const b=document.getElementById("best"), line=b&&b.closest(".bestLine"); if(line){ const empty=!/\d/.test(b.textContent)||/^[-:.\s]+$/.test(b.textContent); line.style.display=empty?"none":""; } }catch(e){} },400);
