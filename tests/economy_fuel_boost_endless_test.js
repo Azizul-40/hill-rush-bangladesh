@@ -40,8 +40,8 @@ const { chromium } = require('playwright');
   await p.evaluate(()=>startLevel(3));
   const bCount=await p.evaluate(()=>levelBoostCans.length);
   if(bCount>0){
-    await p.evaluate(()=>{truck.boostEnergy=30;truck.x=-99999;collectBoost();});
-    const beNoPick=await p.evaluate(()=>truck.boostEnergy);
+    // একই evaluate-এ পড়া হচ্ছে — মাঝে গেম-ফ্রেম চললে boost নিজে থেকে ভরে যায় (আগে এতে টেস্ট মাঝে মাঝে ভুল FAIL দিত)
+    const beNoPick=await p.evaluate(()=>{truck.boostEnergy=30;truck.x=-99999;collectBoost();return truck.boostEnergy;});
     ok('দূরে থাকলে boost pickup কাজ করে না (negative control)',Math.abs(beNoPick-30)<0.3,beNoPick);
     await p.evaluate(()=>{truck.boostEnergy=30;const c=levelBoostCans[0];truck.x=c.x;truck.y=c.y+30;collectBoost();});
     const be=await p.evaluate(()=>truck.boostEnergy);
