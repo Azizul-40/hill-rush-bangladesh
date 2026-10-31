@@ -3599,3 +3599,9 @@ body #mainMenu .developerPlaque .supervisorName{
   #hud{transform:scale(.54);width:calc((100vw - 16px)/.54) !important;}
   #controls .driveControl{width:44px !important;height:44px !important;min-width:44px !important;font-size:15px !important;}
 }
+
+/* v34: আবহাওয়া/অবস্থা প্যানেল এখন সেটিংসে */
+.v34StatusRow{display:flex !important;align-items:center !important;justify-content:space-between !important;gap:10px !important;}
+.v34StatusRow .hudStatus{position:static !important;transform:none !important;display:flex !important;margin:0 !important;background:#173a52 !important;}
+.v34StatusRow .weatherBadge{color:#fff !important;opacity:1 !important;filter:none !important;font-size:18px !important;}
+@media (max-height:520px){ .settingsOverlay{padding:8px !important;align-items:center !important;} .settingsCard{max-height:calc(100vh - 16px) !important;overflow:auto !important;} }

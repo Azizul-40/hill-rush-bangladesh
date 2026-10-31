@@ -875,9 +875,11 @@ function updateFloatTexts(dt){
 function drawFloatTexts(){
   floatTexts.forEach(f=>{
     const a=Math.max(0,Math.min(1,f.life/f.max));
-    ctx.save();ctx.globalAlpha=a;ctx.font="900 26px system-ui, sans-serif";ctx.textAlign="center";
-    ctx.lineWidth=5;ctx.strokeStyle="rgba(0,0,0,.55)";ctx.strokeText(f.text,f.x-camera.x,f.y);
-    ctx.fillStyle=f.color;ctx.fillText(f.text,f.x-camera.x,f.y);
+    // v34: ফোনে ছোট লেখা, আর উপরের HUD-এর নিচে ঢোকে না
+    const ph=innerHeight<=520, fs=ph?18:26, off=(window.V33&&V33.off)||0, fy=Math.max(f.y,H*.24-off);
+    ctx.save();ctx.globalAlpha=a;ctx.font="900 "+fs+"px system-ui, sans-serif";ctx.textAlign="center";
+    ctx.lineWidth=ph?4:5;ctx.strokeStyle="rgba(0,0,0,.55)";ctx.strokeText(f.text,f.x-camera.x,fy);
+    ctx.fillStyle=f.color;ctx.fillText(f.text,f.x-camera.x,fy);
     ctx.restore();
   });
 }
@@ -5734,7 +5736,9 @@ showScreen=function(id){ v17ShowBase(id); if(id==="leaderMenu"){ document.getEle
 // ============================================================
 window.__k=1; let v172Last="";
 resizeCanvas=function(){
-  const iw=innerWidth, ih=innerHeight, k=1; /* v17.3: portrait-স্কেল বন্ধ — ফোনে আড়াআড়ি ধরতে বলা হয় */
+  /* v34: নিচু পর্দায় (ফোন আড়াআড়ি) দুনিয়াটা একটু দূর থেকে দেখানো হয় — ভার্চুয়াল উচ্চতা অন্তত ৫৬০, যাতে PC-র মতো
+     অনেক পাহাড়, উঁচু-নিচু রাস্তা, গাছ একসাথে দেখা যায়। পাহাড়/ফিজিক্স একই, শুধু ক্যামেরা পিছিয়ে। */
+  const iw=innerWidth, ih=innerHeight, k=(iw>ih&&ih<560)?Math.max(.6,ih/560):1;
   window.__k=k; W=iw/k; H=ih/k; DPR=Math.min(window.devicePixelRatio||1,window.__dprCap||2);
   canvas.width=Math.floor(iw*DPR); canvas.height=Math.floor(ih*DPR);
   ctx.setTransform(DPR*k,0,0,DPR*k,0,0); v172Last=iw+"x"+ih+"@"+DPR;
@@ -5746,7 +5750,7 @@ v16CheckSize=function(){
 resizeCanvas();
 // portrait: ঘড়িগুলো (RPM/FUEL/BOOST) নিচের বাটনের পেছনে ঢেকে যেত — বাটনের ওপরে তুলে আঁকা
 const v172GaugeBase=drawGaugeCluster;
-drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1) return v172GaugeBase.apply(this,arguments); ctx.save(); ctx.translate(0,-165/k); try{ return v172GaugeBase.apply(this,arguments); } finally { ctx.restore(); } };
+drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1||innerWidth>innerHeight) return v172GaugeBase.apply(this,arguments); ctx.save(); ctx.translate(0,-165/k); try{ return v172GaugeBase.apply(this,arguments); } finally { ctx.restore(); } };
 
 // ============================================================
 // v17.3 — ফোন সবসময় আড়াআড়ি (landscape): লম্বা ধরলে "ফোন ঘোরাও" পর্দা + গেম থামে; PLAY চাপলে ফুলস্ক্রিন+landscape-lock চেষ্টা
@@ -5992,13 +5996,14 @@ const V21=(function(){
     // v29: ৪px বেশি চওড়া (দুই পাশে ২px) — পাশাপাশি টাইলের জোড়ায় সরু দাগ না পড়ার জন্য
     // v33: উঁচু পাহাড়ের জন্য টাইলের উপরে বাড়তি জায়গা (EX) — ক্যামেরা উপরে উঠলে চূড়া কাটা না যায়
     const EX=(window.V33&&V33.EX)||0;
-    const c=document.createElement("canvas"); c.width=Math.ceil((TILE+4)*DPR); c.height=Math.ceil((H+EX)*DPR);
+    const R=DPR*(window.__k||1); // v34: পর্দা ছোট করে দেখালে টাইলও সেই রেজোলিউশনে (অপচয় নেই)
+    const c=document.createElement("canvas"); c.width=Math.ceil((TILE+4)*R); c.height=Math.ceil((H+EX)*R);
     const cx=c.getContext("2d"), sx=camera.x, sw=W;
     C=cx; camera.x=i*TILE-2; W=TILE+4;
-    try{ cx.setTransform(DPR,0,0,DPR,0,EX*DPR); draw(); } finally { C=ctx; camera.x=sx; W=sw; }
+    try{ cx.setTransform(R,0,0,R,0,EX*R); draw(); } finally { C=ctx; camera.x=sx; W=sw; }
     return c; }
   function drawTiles(){
-    const k=[currentLevel,save.selectedMap,H,DPR,(typeof endlessMode!=="undefined"&&endlessMode)?1:0,window.__treeVer||0,(window.V33&&V33.EX)||0].join("|");
+    const k=[currentLevel,save.selectedMap,H,DPR,window.__k||1,(typeof endlessMode!=="undefined"&&endlessMode)?1:0,window.__treeVer||0,(window.V33&&V33.EX)||0].join("|");
     if(k!==key){ cache.clear(); key=k; }
     const first=Math.floor(camera.x/TILE), lastT=Math.floor((camera.x+W)/TILE);
     let made=0;
@@ -6509,12 +6514,12 @@ drawTruck=function(){ try{ V28A.update(); V28A.drawGround(); }catch(e){} return 
 let v31Gap=null, v31GapKey="";
 const v31GaugeBase=drawGaugeCluster;
 drawGaugeCluster=function(){
-  if((window.__k||1)<1) return v31GaugeBase.apply(this,arguments);
-  const key=innerWidth+"x"+innerHeight;
+  const kk=window.__k||1; if(kk<1&&innerHeight>innerWidth) return v31GaugeBase.apply(this,arguments);
+  const key=innerWidth+"x"+innerHeight+"@"+kk;
   if(key!==v31GapKey||!v31Gap){ v31GapKey=key; try{
     const L=[...document.querySelectorAll(".controlLeft .driveControl")].map(b=>b.getBoundingClientRect()).filter(r=>r.width>0);
     const R=[...document.querySelectorAll(".controlRight .driveControl")].map(b=>b.getBoundingClientRect()).filter(r=>r.width>0);
-    v31Gap=(L.length&&R.length)?[Math.max(...L.map(r=>r.right)),Math.min(...R.map(r=>r.left))]:null; }catch(e){ v31Gap=null; } }
+    v31Gap=(L.length&&R.length)?[Math.max(...L.map(r=>r.right))/kk,Math.min(...R.map(r=>r.left))/kk]:null; }catch(e){ v31Gap=null; } }
   const small=H<=520, k0=small?(H<=380?.58:.64):1, half=128; // v33: ফোনে (নিচু পর্দা) ঘড়ি ছোট ও নিচে, বাটনও ছোট
   if((!v31Gap||!v31Gap[0])&&!small) return v31GaugeBase.apply(this,arguments);
   const [a,b]=v31Gap&&v31Gap[0]?v31Gap:[0,W];
@@ -6632,3 +6637,13 @@ function v33Wrap(name){ const base=window[name]; if(typeof base!=="function") re
 ["drawTerrain","drawBridges","drawFinish","drawCoins","drawFuelCans","drawBoostCans","drawCheckpointFlags","drawParticles","drawGhost","drawTruck","drawFloatTexts"].forEach(v33Wrap);
 const v33RenderBase=render;
 render=function(){ try{ v33Update(); }catch(e){} return v33RenderBase.apply(this,arguments); };
+
+// ============================================================
+// v34 — আবহাওয়া + গাড়ির অবস্থার ছোট প্যানেল (☀ ▬▬) আর খেলার পর্দায় সবসময় থাকে না; সেটিংসের ভেতরে দেখা যায়।
+// ============================================================
+(function v34Status(){
+  const st=document.getElementById("hudStatus"), card=document.querySelector("#settingsMenu .settingsCard"); if(!st||!card) return;
+  const row=document.createElement("div"); row.className="settingsRow v34StatusRow";
+  row.innerHTML='<span>🌦 আবহাওয়া · 🔧 গাড়ির অবস্থা</span>'; row.appendChild(st);
+  const ref=card.querySelector(".volumeSlider"); if(ref&&ref.nextSibling) card.insertBefore(row,ref.nextSibling); else card.appendChild(row);
+})();
