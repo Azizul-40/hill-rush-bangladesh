@@ -101,11 +101,79 @@ T.render = function(opts){
 // lamp = হেডলাইটের আসল জায়গা (মডেল-একক, x সামনে, y মাটি থেকে উপরে) — পাশ থেকে গ্রিড-রেন্ডার মেপে বসানো।
 // রিকশায় আসল বাতি নেই, তাই হ্যান্ডেলের সামনে একটা ছোট বাতি (bulb) বসানো হয়।
 const VEH = {
-  cng:      { file:'models/cng.glb',      Rt:14, lamp:[0.99, 0.84] },   // Rt = পেছনের চাকার ব্যাসার্ধ, গেমের পিক্সেলে (এটাই মাপ ঠিক করে)
-  rickshaw: { file:'models/rickshaw.glb', Rt:23, lamp:[1.56, 2.58], bulb:0.07 },
-  ebike:    { file:'models/ebike.glb',    Rt:17, lamp:[1.17, 1.09] },
-  bus:      { file:'models/bus.glb',      Rt:10, lamp:[11.15, 3.2] }
+  cng:      { file:'models/cng.glb',      Rt:14, lamp:[0.99, 0.84],
+              drv:{ upm:.93, hip:[0.16,0.70], feet:[0.60,0.32], hands:[0.78,0.90], lean:16 } },   // Rt = পেছনের চাকার ব্যাসার্ধ, গেমের পিক্সেলে (এটাই মাপ ঠিক করে)
+  rickshaw: { file:'models/rickshaw.glb', Rt:23, lamp:[1.56, 2.58], bulb:0.07,
+              drv:{ upm:2.8, hip:[-0.02,2.88], pedal:{ c:[0.355,1.02], r:0.42, lift:0.2 }, hands:[1.28,2.70], lean:24 } },
+  ebike:    { file:'models/ebike.glb',    Rt:17, lamp:[1.17, 1.09],
+              drv:{ upm:1,   hip:[0.28,0.90], feet:[0.64,0.33], hands:[0.84,1.10], lean:6 } },
+  bus:      { file:'models/bus.glb',      Rt:10, lamp:[11.15, 3.2],
+              drv:{ upm:3.3, hip:[8.15,4.45], feet:[9.35,3.15], hands:[9.10,5.45], lean:4 } }
 };
+// ---------- চালক: "indian man in pattern shirt" (Pixel_Monster, CC BY 4.0) — Mixamo-ধরনের হাড়।
+// কোডে বসানো হয়: হাড়গুলো IK দিয়ে পা প্যাডেল/মেঝেতে, হাত হ্যান্ডেল/স্টিয়ারিংয়ে। রিকশায় প্যাডেল ঘোরে।
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion();
+function aimBone(bone, end, target){
+  bone.updateWorldMatrix(true, true);
+  const p = bone.getWorldPosition(new THREE.Vector3()), e = end.getWorldPosition(new THREE.Vector3());
+  const cur = e.sub(p); if(cur.lengthSq() < 1e-12) return; cur.normalize();
+  const des = target.clone().sub(p); if(des.lengthSq() < 1e-12) return; des.normalize();
+  _q1.setFromUnitVectors(cur, des); bone.getWorldQuaternion(_q2); bone.parent.getWorldQuaternion(_q3);
+  bone.quaternion.copy(_q3.invert().multiply(_q1.multiply(_q2))); bone.updateWorldMatrix(false, true);
+}
+function ik2(a, b, c, T, hint){
+  a.updateWorldMatrix(true, true);
+  const A = a.getWorldPosition(new THREE.Vector3()), B = b.getWorldPosition(new THREE.Vector3()), C = c.getWorldPosition(new THREE.Vector3());
+  const l1 = A.distanceTo(B), l2 = B.distanceTo(C); const toT = T.clone().sub(A); let d = toT.length(); if(d < 1e-6) return;
+  const u = toT.divideScalar(d); d = Math.min(d, (l1+l2)*.999); d = Math.max(d, Math.abs(l1-l2)+1e-4);
+  const x = (l1*l1 - l2*l2 + d*d)/(2*d), h = Math.sqrt(Math.max(0, l1*l1 - x*x));
+  const v = hint.clone().addScaledVector(u, -hint.dot(u)); if(v.lengthSq() < 1e-8) v.set(0,1,0); v.normalize();
+  const Bt = A.clone().addScaledVector(u, x).addScaledVector(v, h), Ct = A.clone().addScaledVector(u, d);
+  aimBone(a, b, Bt); aimBone(b, c, Ct);
+}
+function setupDriver(rec, cfg, root, holder){
+  const D = cfg.drv; if(!D) return;
+  new GLTFLoader().load('models/driver.glb', g => { try{
+    const man = g.scene; const B = {}; man.traverse(o => { if(o.isBone){ const n = o.name.replace(/_\d+$/, ''); if(!B[n]) B[n] = o; } if(o.isMesh){ o.frustumCulled = false; const ms = Array.isArray(o.material)?o.material:[o.material]; ms.forEach(m => { if(m){ m.side = THREE.DoubleSide; m.roughness = Math.max(m.roughness||0, .7); m.metalness = 0; } }); } });
+    const need = ['Hips','Spine','Neck','LeftUpLeg','LeftLeg','LeftFoot','RightUpLeg','RightLeg','RightFoot','LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand'];
+    if(need.some(n => !B[n])){ console.warn('driver bones missing', need.filter(n=>!B[n])); return; }
+    man.rotation.y = Math.PI/2; root.add(man); holder.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(man), hLocal = (bb.max.y - bb.min.y) / rec.s;
+    man.scale.multiplyScalar(1.72*D.upm / hLocal); holder.updateMatrixWorld(true);
+    const hipL = root.worldToLocal(B.Hips.getWorldPosition(new THREE.Vector3()));
+    man.position.x += D.hip[0]-hipL.x; man.position.y += D.hip[1]-hipL.y; man.position.z += -hipL.z; holder.updateMatrixWorld(true);
+    const rest = new Map(); man.traverse(o => { if(o.isBone) rest.set(o, o.quaternion.clone()); });
+    rec.drv = { B, rest, D, root };
+    poseDriver(rec, 0);
+  }catch(e){ console.warn('driver setup failed', e); } }, undefined, e => console.warn('driver load failed', e));
+}
+function poseDriver(rec, crank){
+  const R = rec.drv; if(!R) return; const { B, rest, D, root } = R;
+  for(const [b, q] of rest) b.quaternion.copy(q);
+  root.updateMatrixWorld(true);
+  const W = (x,y,z) => root.localToWorld(new THREE.Vector3(x,y,z));
+  const dirW = (x,y,z) => W(x,y,z).sub(W(0,0,0)).normalize();
+  // শরীর একটু সামনে ঝুঁকে
+  const hipW = B.Hips.getWorldPosition(new THREE.Vector3()), neckW = B.Neck.getWorldPosition(new THREE.Vector3()), tl = hipW.distanceTo(neckW), lr = (D.lean||0)*Math.PI/180;
+  aimBone(B.Spine, B.Neck, hipW.clone().addScaledVector(dirW(Math.sin(lr), Math.cos(lr), 0), tl));
+  // পা
+  for(const side of ['Left','Right']){
+    const up = B[side+'UpLeg'], z = root.worldToLocal(up.getWorldPosition(new THREE.Vector3())).z;
+    let fx, fy;
+    if(D.pedal){ const th = -crank + (side==='Left' ? 0 : Math.PI); fx = D.pedal.c[0] + Math.cos(th)*D.pedal.r; fy = D.pedal.c[1] + Math.sin(th)*D.pedal.r + (D.pedal.lift||0); }
+    else { fx = D.feet[0]; fy = D.feet[1]; }
+    ik2(up, B[side+'Leg'], B[side+'Foot'], W(fx, fy, z*1.05), dirW(1, .6, 0));
+    // পায়ের পাতা সমান রাখা
+    const toe = B[side+'ToeBase']; if(toe){ const f = B[side+'Foot'].getWorldPosition(new THREE.Vector3()); aimBone(B[side+'Foot'], toe, f.clone().addScaledVector(dirW(1, -.15, 0), 1)); }
+  }
+  // হাত
+  for(const side of ['Left','Right']){
+    const arm = B[side+'Arm'], z = root.worldToLocal(arm.getWorldPosition(new THREE.Vector3())).z;
+    ik2(arm, B[side+'ForeArm'], B[side+'Hand'], W(D.hands[0], D.hands[1], z*.85), dirW(-.4, -1, z>0?.5:-.5));
+  }
+  // মাথা সোজা সামনে
+  const head = B.Head; if(head && B.HeadTop_End){ const hp = head.getWorldPosition(new THREE.Vector3()); aimBone(head, B.HeadTop_End, hp.clone().addScaledVector(dirW(.12, 1, 0), 1)); }
+}
 const vrec = {};
 const VDIR = new THREE.Vector3(.17, .2, 1).normalize();   // ক্যামেরা: পাশ থেকে, একটু সামনে-উপরে
 const PAINT_GLSL = `
@@ -170,6 +238,7 @@ function setupVeh(rec, cfg, root){
   }
   const lamp = proj((LP[0]-midX)*s, LP[1]*s, 0);
   const tail = proj((-ex.len/2-midX)*s+3, Math.min(LP[1], ex.height*.45)*s, 0);
+  setupDriver(rec, cfg, root, holder);
   Object.assign(rec, { sc, cam, s, U, wr, wf, g0, lamp, tail, R: cfg.Rt, len: ex.len*s, ready:true, color:null });
 }
 // opts: {color, base(মূল রং), spin, rs, fs, gy (গাড়ির কেন্দ্র থেকে মাটির দূরত্ব, পিক্সেলে)}
@@ -180,6 +249,7 @@ T.renderVeh = function(kind, opts){
     rec.U.on.value = on ? 1 : 0; if(on){ rec.U.hsv.value.copy(hexHSV(opts.color)); rec.U.rgb.value.set(opts.color); } }
   if(rec.wr){ rec.wr.o.rotation.z = -(opts.spin||0); rec.wr.o.position.y = rec.wr.baseY - (opts.rs||0)/rec.s; }
   if(rec.wf){ rec.wf.o.rotation.z = -(opts.spin||0); rec.wf.o.position.y = rec.wf.baseY - (opts.fs||0)/rec.s; }
+  if(rec.drv && rec.drv.D.pedal) poseDriver(rec, (opts.spin||0)*.55);
   renderer.render(rec.sc, rec.cam);
   const dx = -rec.g0[0], dy = (opts.gy||58) - rec.g0[1];
   return { canvas: renderer.domElement, dx, dy, dw: CW, dh: CH, lamp:[rec.lamp[0]+dx, rec.lamp[1]+dy], tail:[rec.tail[0]+dx, rec.tail[1]+dy], R: rec.R, len: rec.len };
