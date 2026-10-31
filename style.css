@@ -3638,3 +3638,100 @@ body #mainMenu .developerPlaque .supervisorName{
 #controls .controlRight .brakeControl{order:1 !important;}
 #controls .controlLeft,#controls .controlRight{gap:16px !important;}
 @media (max-height:520px){ #controls .controlLeft,#controls .controlRight{gap:10px !important;} }
+
+/* =========================================================
+   v37 — ফোনে (নিচু পর্দা) MAP / GARAGE / STORE / LEVEL পাতা: ছোট, মানানসই কার্ড
+   ========================================================= */
+@media (max-height:520px){
+  /* হেডার ছোট */
+  .levelHeader,.garageHeader,.storeHeader{padding:6px 10px !important;min-height:0 !important;height:auto !important;margin-bottom:6px !important;}
+  .levelHeader .backBtn,.garageHeader .backBtn,.storeHeader .backBtn,.screen .backBtn{height:32px !important;min-height:32px !important;padding:0 12px !important;font-size:13px !important;border-radius:12px !important;}
+  .headerTitle span,.garageHeader span,.storeHeader span{font-size:10px !important;letter-spacing:2px !important;}
+  .headerTitle strong,.garageHeader strong,.storeHeader strong{font-size:20px !important;line-height:1.05 !important;}
+  .headerCoin{font-size:13px !important;padding:5px 10px !important;min-height:0 !important;height:auto !important;}
+  .screen{padding:6px 10px 10px !important;}
+
+  /* ম্যাপ: ৪ কলাম, ছোট ছবি */
+  #mapsMenu .mapGrid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:8px !important;padding:0 !important;max-width:none !important;}
+  #mapsMenu .mapCard{border-radius:12px !important;min-height:0 !important;height:auto !important;}
+  #mapsMenu .mapThumb{height:62px !important;}
+  #mapsMenu .mapCardBody{padding:5px 8px 7px !important;}
+  #mapsMenu .mapCardBody h3{font-size:11px !important;margin:0 0 2px !important;line-height:1.2 !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #mapsMenu .mapCardBody p{display:none !important;}
+  #mapsMenu .mapCardBody span,#mapsMenu .mapCardBody button{font-size:9px !important;padding:2px 7px !important;}
+  #mapsMenu .mapLock{font-size:11px !important;padding:3px 8px !important;top:auto !important;bottom:30px !important;right:6px !important;}
+
+  /* গ্যারেজ: বামে ছোট প্রিভিউ, ডানে ৪ কলামের ছোট কার্ড */
+  #garageMenu .garageLayout{display:grid !important;grid-template-columns:200px 1fr !important;gap:8px !important;align-items:start !important;}
+  #garageMenu .vehiclePreview{padding:8px !important;border-radius:14px !important;min-height:0 !important;}
+  #garageMenu .garageVehicle{width:180px !important;height:86px !important;}
+  #garageMenu .garageVehicle .v32Icon.v32Big,#garageMenu .garageVehicle .v15Sprite{height:84px !important;}
+  #garageMenu .garageVehicle .miniTruck{transform:scale(.55) !important;}
+  #garageMenu .vehicleName{font-size:15px !important;margin:2px 0 0 !important;}
+  #garageMenu .vehicleDesc{font-size:9px !important;margin:0 0 4px !important;}
+  #garageMenu .vehicleStats{gap:4px !important;margin:4px 0 !important;}
+  #garageMenu .vehicleStats .statBar{font-size:8px !important;padding:2px 4px !important;}
+  #garageMenu .garageCustom{padding:5px !important;margin:4px 0 !important;}
+  #garageMenu .garageCustom .gcTitle{font-size:10px !important;}
+  #garageMenu .gcSwatch{width:20px !important;height:20px !important;}
+  #garageMenu #selectVehicleBtn{height:32px !important;min-height:32px !important;font-size:13px !important;}
+  #garageMenu .vehicleList{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:7px !important;}
+  #garageMenu .vehicleCard{padding:5px 6px 7px !important;border-radius:12px !important;min-height:0 !important;}
+  #garageMenu .vehicleEmoji{height:46px !important;}
+  #garageMenu .vehicleCard h3{font-size:10px !important;margin:3px 0 1px !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #garageMenu .vehicleCard p{font-size:8px !important;margin:0 0 3px !important;}
+  #garageMenu .vehicleCard button{height:24px !important;min-height:24px !important;font-size:10px !important;padding:0 6px !important;}
+  #garageMenu .upgradePanel{padding:8px !important;margin-top:8px !important;}
+  #garageMenu .upgradeTitle{font-size:13px !important;margin-bottom:4px !important;}
+  #garageMenu .upgradeCard{padding:4px !important;min-height:0 !important;}
+  #garageMenu .upgradeCard span{font-size:16px !important;}
+  #garageMenu .upgradeCard b{font-size:10px !important;}
+
+  /* দোকান: ৪ কলাম */
+  #storeMenu .storeGrid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:8px !important;}
+  #storeMenu .storeCard{padding:8px 6px 10px !important;border-radius:14px !important;min-height:0 !important;}
+  #storeMenu .storeIcon{width:42px !important;height:42px !important;font-size:22px !important;margin:0 auto 4px !important;}
+  #storeMenu .storeCard h3{font-size:11px !important;margin:2px 0 !important;}
+  #storeMenu .storeCard p{font-size:9px !important;margin:0 0 5px !important;}
+  #storeMenu .storeCard button{height:28px !important;min-height:28px !important;font-size:11px !important;padding:0 8px !important;}
+
+  /* লেভেল: ৭ কলাম */
+  #levelMenu .rangeTabs{gap:5px !important;margin:0 0 6px !important;}
+  #levelMenu .rangeTabs button{height:26px !important;font-size:11px !important;padding:0 9px !important;}
+  #levelMenu .levelGrid{grid-template-columns:repeat(7,minmax(0,1fr)) !important;gap:6px !important;}
+  #levelMenu .levelCard{min-height:0 !important;height:auto !important;padding:5px !important;border-radius:10px !important;}
+  #levelMenu .levelCard b,#levelMenu .levelCard strong{font-size:15px !important;}
+  #levelMenu .levelCard small,#levelMenu .levelCard span{font-size:8px !important;}
+  #levelMenu .levelCard .levelThumb,#levelMenu .levelCard .levelArt{height:34px !important;}
+  #levelMenu .levelPager{margin-top:6px !important;}
+}
+@media (max-height:520px){
+  #mapsMenu .mapLock{top:5px !important;bottom:auto !important;right:5px !important;font-size:10px !important;padding:2px 7px !important;}
+  #garageMenu .vehicleEmoji .v15Sprite.vehicleMini{height:44px !important;top:1px !important;}
+  #garageMenu .vehicleEmoji .miniTruck{transform:scale(.3) !important;}
+  #garageMenu .garageHeader{padding-top:8px !important;}
+  #levelMenu .levelCard{padding:4px 6px 6px !important;}
+  #levelMenu .levelCard .levelNumber{font-size:16px !important;line-height:1 !important;}
+  #levelMenu .levelCard .cardStars{font-size:9px !important;margin:1px 0 !important;}
+  #levelMenu .levelCard .cardScene{height:28px !important;margin:2px 0 !important;}
+  #levelMenu .levelCard .cardTruck{font-size:13px !important;}
+  #levelMenu .levelCard > div:nth-child(4){font-size:9px !important;line-height:1.15 !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #levelMenu .levelCard .lock{font-size:12px !important;width:20px !important;height:20px !important;}
+  #levelMenu .levelGrid{grid-template-columns:repeat(10,minmax(0,1fr)) !important;gap:5px !important;}
+}
+/* v37: বাটন সাজানোর সম্পাদক */
+.ctlEditBtn{display:block;width:100%;margin:10px 0 0;padding:10px 12px;border:0;border-radius:12px;background:linear-gradient(180deg,#2f8fd8,#1a5f9e);color:#fff;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 4px 0 #0f3d66;}
+#ctlEditor{position:fixed;inset:0;z-index:205;background:rgba(6,18,30,.55);touch-action:none;}
+#ctlEditor .ceBar{position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;max-width:calc(100vw - 16px);padding:8px 12px;border-radius:14px;background:#f2f8fc;color:#123c59;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
+#ctlEditor .ceBar b{font-size:15px;}
+#ctlEditor .ceTip{font-size:11px;color:#4a6a80;}
+#ctlEditor .ceSize{display:flex;align-items:center;gap:6px;font-weight:700;}
+#ctlEditor .ceSize input{width:130px;}
+#ctlEditor .ceSize em{font-style:normal;min-width:38px;}
+#ctlEditor .ceAll{display:flex;align-items:center;gap:4px;font-size:12px;}
+#ctlEditor button{border:0;border-radius:10px;padding:7px 12px;font-weight:800;font-size:13px;background:#dbe7ef;color:#123c59;cursor:pointer;}
+#ctlEditor button.ceSave{background:#2fbf4a;color:#fff;}
+#controls.ceEditing{z-index:210 !important;}
+#controls.ceEditing .driveControl{z-index:215 !important;cursor:grab;outline:2px dashed rgba(255,255,255,.7);outline-offset:3px;}
+#controls.ceEditing .driveControl.ceSel{outline:3px solid #ffd23a;outline-offset:4px;}
+@media (max-height:520px){ #ctlEditor .ceBar{padding:5px 8px;gap:4px 8px;font-size:11px;} #ctlEditor .ceBar b{font-size:12px;} #ctlEditor .ceTip{display:none;} #ctlEditor .ceSize input{width:90px;} #ctlEditor button{padding:5px 9px;font-size:11px;} .ctlEditBtn{padding:7px 10px;font-size:12px;margin-top:6px;} }

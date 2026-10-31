@@ -6670,3 +6670,77 @@ render=function(){ try{ v33Update(); }catch(e){} return v33RenderBase.apply(this
   // বুস্ট-ট্যাংক ভরা থাকলে বাটনের চারপাশে বেগুনি আভা (কখন ২× চাপা যায় বোঝা যায়)
   setInterval(()=>{ try{ const ready=state==="play"&&!truck.boostLock&&(truck.boostEnergy||0)>20; g.classList.toggle("boostReady",ready); }catch(e){} },250);
 })();
+
+// ============================================================
+// v37 — নিজের মতো করে বাটন সাজানো (সেটিংস → "🎮 বাটন সাজাও")
+// প্রতিটা বাটন (GAS, DRIVE, REVERSE, BRAKE) টেনে যেকোনো জায়গায় সরানো যায়, বেছে নিয়ে ছোট-বড় করা যায়, তারপর সেভ।
+// জায়গা রাখা হয় পর্দার প্রস্থ/উচ্চতার ভাগ হিসেবে (০–১), তাই ফোন ঘোরালে বা অন্য পর্দায়ও ঠিক থাকে। এই ডিভাইসেই জমা থাকে।
+// ============================================================
+const V37=(function(){
+  const KEY="hillrush_ctl_layout_v1";
+  const btns=()=>[...document.querySelectorAll("#controls .driveControl")];
+  const id=b=>b.dataset.key;
+  const load=()=>{ try{ const j=JSON.parse(localStorage.getItem(KEY)||"null"); return j&&j.items?j:null; }catch(e){ return null; } };
+  const store=l=>{ try{ if(l) localStorage.setItem(KEY,JSON.stringify(l)); else localStorage.removeItem(KEY); }catch(e){} };
+  const clear=b=>{ ["position","left","top","right","bottom","width","height","min-width","min-height","margin","z-index","order","transform"].forEach(p=>b.style.removeProperty(p)); };
+  const baseSize=b=>{ if(!b.dataset.v37base){ const r=b.getBoundingClientRect(); if(r.width>10) b.dataset.v37base=String(Math.round(r.width)); } return +(b.dataset.v37base||64); };
+  function place(b,it){ const sz=Math.round((it.base||baseSize(b))*(it.s||1)), x=it.x*innerWidth-sz/2, y=it.y*innerHeight-sz/2;
+    const set=(p,v)=>b.style.setProperty(p,v,"important");
+    set("position","fixed"); set("left",Math.max(0,Math.min(innerWidth-sz,x))+"px"); set("top",Math.max(0,Math.min(innerHeight-sz,y))+"px");
+    set("right","auto"); set("bottom","auto"); set("width",sz+"px"); set("height",sz+"px"); set("min-width",sz+"px"); set("min-height",sz+"px"); set("margin","0"); set("z-index","215"); }
+  function apply(){ const l=load(); btns().forEach(b=>{ clear(b); }); if(!l) return; btns().forEach(b=>{ baseSize(b); }); btns().forEach(b=>{ const it=l.items[id(b)]; if(it) place(b,it); }); }
+  // ---------- সম্পাদক ----------
+  let ed=null, cur=null, sel=null, drag=null, ctlWasHidden=false;
+  function current(){ const l=load(); const items={}; btns().forEach(b=>{ const r=b.getBoundingClientRect(); const s=l&&l.items[id(b)]?(l.items[id(b)].s||1):1;
+      const base=(l&&l.items[id(b)]&&l.items[id(b)].base)||Math.round(r.width/s)||baseSize(b);
+      items[id(b)]={x:(r.left+r.width/2)/innerWidth, y:(r.top+r.height/2)/innerHeight, s, base}; }); return {items}; }
+  function ui(){
+    ed=document.createElement("div"); ed.id="ctlEditor";
+    ed.innerHTML=`<div class="ceBar"><b>🎮 বাটন সাজাও</b><span class="ceTip">বাটন টেনে সরাও · ছুঁয়ে বেছে নিয়ে সাইজ বদলাও</span>
+      <label class="ceSize">সাইজ <input id="ceSlider" type="range" min="55" max="170" value="100"><em id="ceVal">100%</em></label>
+      <label class="ceAll"><input id="ceAll" type="checkbox"> সব একসাথে</label>
+      <button type="button" id="ceReset">↺ আগের মতো</button><button type="button" id="ceCancel">বাতিল</button><button type="button" id="ceSave" class="ceSave">✓ সেভ</button></div>`;
+    document.body.appendChild(ed);
+    const slider=ed.querySelector("#ceSlider"), val=ed.querySelector("#ceVal"), all=ed.querySelector("#ceAll");
+    slider.oninput=()=>{ const s=slider.value/100; val.textContent=slider.value+"%"; const keys=all.checked?Object.keys(cur.items):(sel?[sel]:[]); keys.forEach(k=>{ cur.items[k].s=s; }); render(); };
+    all.onchange=()=>{ if(all.checked){ const s=sel?cur.items[sel].s:1; slider.value=Math.round(s*100); val.textContent=slider.value+"%"; } };
+    ed.querySelector("#ceReset").onclick=()=>{ store(null); apply(); cur=current(); select(null); render(); };
+    ed.querySelector("#ceCancel").onclick=()=>close(false);
+    ed.querySelector("#ceSave").onclick=()=>close(true);
+  }
+  function render(){ btns().forEach(b=>{ const it=cur.items[id(b)]; if(it) place(b,it); b.classList.toggle("ceSel",id(b)===sel); }); }
+  function select(k){ sel=k; const s=k&&cur.items[k]?cur.items[k].s:1; const sl=ed&&ed.querySelector("#ceSlider"); if(sl){ sl.value=Math.round(s*100); ed.querySelector("#ceVal").textContent=sl.value+"%"; } render(); }
+  const onDown=e=>{ if(!ed) return; const b=e.target.closest&&e.target.closest("#controls .driveControl"); if(!b) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const r=b.getBoundingClientRect(); select(id(b)); drag={k:id(b),dx:e.clientX-(r.left+r.width/2),dy:e.clientY-(r.top+r.height/2),pid:e.pointerId}; };
+  const onMove=e=>{ if(!ed||!drag||(e.pointerId!==undefined&&drag.pid!==undefined&&e.pointerId!==drag.pid)) return; e.preventDefault(); e.stopPropagation();
+    const it=cur.items[drag.k]; it.x=Math.max(.02,Math.min(.98,(e.clientX-drag.dx)/innerWidth)); it.y=Math.max(.04,Math.min(.97,(e.clientY-drag.dy)/innerHeight)); render(); };
+  const onUp=e=>{ if(!ed) return; if(drag){ e.stopPropagation(); } drag=null; };
+  const block=e=>{ if(!ed) return; if(e.target.closest&&e.target.closest("#controls .driveControl")){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); } };
+  function open(){
+    if(ed) return;
+    const sp=document.getElementById("settingsMenu"); if(sp){ sp.style.setProperty("display","none","important"); sp.style.setProperty("pointer-events","none","important"); }
+    const c=document.getElementById("controls"); ctlWasHidden=c.classList.contains("hidden"); c.classList.remove("hidden"); c.classList.add("ceEditing");
+    for(const k in keys) keys[k]=false;
+    cur=current(); ui(); select("gas");
+    window.addEventListener("pointerdown",onDown,true); window.addEventListener("pointermove",onMove,true); window.addEventListener("pointerup",onUp,true); window.addEventListener("pointercancel",onUp,true);
+    ["touchstart","touchend","mousedown","click"].forEach(ev=>window.addEventListener(ev,block,true));
+  }
+  function close(save){
+    if(!ed) return;
+    window.removeEventListener("pointerdown",onDown,true); window.removeEventListener("pointermove",onMove,true); window.removeEventListener("pointerup",onUp,true); window.removeEventListener("pointercancel",onUp,true);
+    ["touchstart","touchend","mousedown","click"].forEach(ev=>window.removeEventListener(ev,block,true));
+    if(save) store({items:cur.items,saved:Date.now()});
+    ed.remove(); ed=null; drag=null; sel=null; btns().forEach(b=>b.classList.remove("ceSel"));
+    const c=document.getElementById("controls"); c.classList.remove("ceEditing"); if(ctlWasHidden) c.classList.add("hidden");
+    apply(); for(const k in keys) keys[k]=false;
+    const sp=document.getElementById("settingsMenu"); if(sp){ sp.style.removeProperty("display"); sp.style.removeProperty("pointer-events"); if(!sp.classList.contains("hidden")){ sp.style.display="flex"; sp.style.pointerEvents="auto"; } }
+    if(save) try{ showToast&&showToast("বাটনের জায়গা সেভ হয়েছে ✓"); }catch(e){}
+  }
+  addEventListener("resize",()=>{ if(ed) render(); else apply(); }); addEventListener("orientationchange",()=>setTimeout(()=>{ if(!ed) apply(); },150));
+  // সেটিংসে বোতাম
+  (function(){ const card=document.querySelector("#settingsMenu .settingsCard"); if(!card) return; const b=document.createElement("button"); b.type="button"; b.id="ctlEditBtn"; b.className="ctlEditBtn"; b.textContent="🎮 বাটন সাজাও (সরাও / ছোট-বড়)";
+    const mute=card.querySelector(".muteRow"); if(mute&&mute.nextSibling) card.insertBefore(b,mute.nextSibling); else card.appendChild(b); b.onclick=()=>open(); })();
+  setTimeout(apply,0);
+  return {open,close,apply,load,KEY};
+})();
