@@ -5768,3 +5768,103 @@ drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1) return v172GaugeBas
   }
   addEventListener("pointerup",function once(e){ if(e.pointerType==="touch"){ lockLandscape(); removeEventListener("pointerup",once); } });
 })();
+
+// ============================================================
+// v19 — ২D গেমের পাহাড় ও রাস্তায় ৩D-র মতো গভীরতা (গেমপ্লে/ফিজিক্স/কন্ট্রোল একদম আগের মতো)
+// শুধু আঁকার স্তর: স্তরে স্তরে মাটি, ঢাল অনুযায়ী আলো-ছায়া, রাস্তার উপরের তল + সামনের দেয়াল,
+// খাদের খাড়া পাড়ে ছায়া, পাথরে ৩D পিঠ, দূরের পাহাড়ের সারি (parallax)। কোনো ছবি/অ্যাসেট ব্যবহার হয়নি, সব নিজের আঁকা।
+// ============================================================
+(function v19(){
+  const tint={hills:["rgba(86,130,140,.42)","rgba(48,100,84,.55)"],desert:["rgba(190,150,110,.40)","rgba(160,110,70,.50)"],
+    ice:["rgba(150,190,215,.45)","rgba(110,160,190,.55)"],volcano:["rgba(120,80,80,.42)","rgba(80,45,45,.55)"],jungle:["rgba(70,120,90,.42)","rgba(35,90,60,.55)"]};
+  function ridges(){
+    const m=maps[save.selectedMap]||maps[0], c=tint[m.theme]||tint.hills, floor=H-118;
+    [[.10,.60,46,c[0],7],[.20,.69,38,c[1],19]].forEach(([par,by,amp,col,seed],li)=>{
+      const cx=camera.x*par, top=H*by-amp;
+      ctx.beginPath(); ctx.moveTo(-10,floor);
+      const ys=[];
+      for(let x=-10;x<=W+30;x+=22){ const u=x+cx;
+        const y=H*by-amp*(.55+.45*Math.sin(u*.0042+seed))-amp*.45*Math.sin(u*.0113+seed*2.3)-amp*.18*Math.sin(u*.027+seed*.7);
+        ys.push([x,y]); ctx.lineTo(x,y); }
+      ctx.lineTo(W+30,floor); ctx.closePath();
+      const g=ctx.createLinearGradient(0,top,0,floor); g.addColorStop(0,col); g.addColorStop(1,"rgba(255,255,255,.08)");
+      ctx.fillStyle=g; ctx.fill();
+      // আলোর দিক: ঢাল ডানে উঠলে (আলোর দিকে মুখ) হালকা, নামলে গাঢ়
+      for(let i=1;i<ys.length;i++){ const s=ys[i][1]-ys[i-1][1];
+        ctx.strokeStyle=s<0?"rgba(255,255,235,.22)":"rgba(0,20,30,.16)"; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.moveTo(ys[i-1][0],ys[i-1][1]+2); ctx.lineTo(ys[i][0],ys[i][1]+2); ctx.stroke(); }
+    });
+  }
+  function runs(start,end){
+    const out=[]; let cur=null;
+    for(let x=start;x<end;x+=7){
+      if(isGap(x)||isGap(x+7)){ if(cur&&cur.length>1)out.push(cur); cur=null; continue; }
+      if(!cur)cur=[]; cur.push([x-camera.x,terrainY(x)]);
+      cur.last=x+7;
+    }
+    if(cur&&cur.length>1)out.push(cur);
+    // প্রতিটা run-এর শেষ বিন্দুও যোগ
+    out.forEach(r=>{ const lx=r[r.length-1][0]+camera.x+7; r.push([lx-camera.x,terrainY(lx)]); });
+    return out;
+  }
+  function line(pts,dy){ ctx.beginPath(); pts.forEach((p,i)=>{ i?ctx.lineTo(p[0],p[1]+dy):ctx.moveTo(p[0],p[1]+dy); }); }
+  function shade(){
+    const start=Math.floor(camera.x/7)*7-35, end=camera.x+W+50, floor=H-118;
+    const m=maps[save.selectedMap]||maps[0];
+    for(const r of runs(start,end)){
+      let minY=1e9; r.forEach(p=>{ if(p[1]<minY)minY=p[1]; });
+      ctx.save();
+      // মাটির আকারে clip
+      ctx.beginPath(); ctx.moveTo(r[0][0],floor); r.forEach(p=>ctx.lineTo(p[0],p[1])); ctx.lineTo(r[r.length-1][0],floor); ctx.closePath(); ctx.clip();
+      // ১) ওপরে আলো → নিচে গভীর ছায়া
+      const g=ctx.createLinearGradient(0,minY,0,floor);
+      g.addColorStop(0,"rgba(255,225,170,.16)"); g.addColorStop(.18,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(25,8,0,.42)");
+      ctx.fillStyle=g; ctx.fillRect(r[0][0],minY-20,r[r.length-1][0]-r[0][0]+2,floor-minY+24);
+      // ২) ঢাল অনুযায়ী পিঠের আলো/ছায়া (আলো উপরে-বাঁ দিক থেকে)
+      for(let i=1;i<r.length;i++){ const a=r[i-1],b=r[i],s=(b[1]-a[1])/Math.max(1,b[0]-a[0]);
+        const lit=s<0, al=Math.min(lit?.30:.38,Math.abs(s)*(lit?.5:.6)); if(al<.02)continue;
+        const gg=ctx.createLinearGradient(0,Math.min(a[1],b[1]),0,Math.min(a[1],b[1])+95);
+        gg.addColorStop(0,lit?`rgba(255,235,200,${al})`:`rgba(15,5,0,${al})`); gg.addColorStop(1,"rgba(0,0,0,0)");
+        ctx.fillStyle=gg; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0]+.6,b[1]); ctx.lineTo(b[0]+.6,floor); ctx.lineTo(a[0],floor); ctx.closePath(); ctx.fill(); }
+      // ৩) মাটির স্তর (রাস্তার আকার ধরে নিচে নিচে পরত)
+      ctx.lineJoin="round";
+      for(let k=1;k<=6;k++){ const d=18+k*27+(k%2)*5;
+        ctx.strokeStyle="rgba(50,22,8,.17)"; ctx.lineWidth=11; line(r,d); ctx.stroke();
+        ctx.strokeStyle="rgba(255,215,170,.11)"; ctx.lineWidth=2.5; line(r,d+7); ctx.stroke(); }
+      // ৪) রাস্তার ঠোঁটের নিচে ঘন ছায়া (ambient occlusion)
+      ctx.strokeStyle="rgba(30,10,0,.26)"; ctx.lineWidth=30; line(r,24); ctx.stroke();
+      ctx.strokeStyle="rgba(30,10,0,.30)"; ctx.lineWidth=14; line(r,14); ctx.stroke();
+      ctx.restore();
+      // ৫) রাস্তার ৩D স্ল্যাব: পেছনের কিনারা (উজ্জ্বল) → উপরের তল → সামনের দেয়াল (গাঢ়) → নিচে ছায়ার রেখা
+      ctx.lineCap="round"; ctx.lineJoin="round";
+      ctx.strokeStyle="rgba(255,255,225,.30)"; ctx.lineWidth=7; line(r,-5); ctx.stroke();
+      ctx.strokeStyle="rgba(255,255,255,.38)"; ctx.lineWidth=2; line(r,-9); ctx.stroke();
+      ctx.strokeStyle="rgba(0,25,5,.30)"; ctx.lineWidth=9; line(r,8); ctx.stroke();
+      ctx.strokeStyle=themeGrassDark(m.theme); ctx.globalAlpha=.7; ctx.lineWidth=5; line(r,11); ctx.stroke(); ctx.globalAlpha=1;
+      ctx.strokeStyle="rgba(0,0,0,.38)"; ctx.lineWidth=2; line(r,14.5); ctx.stroke();
+      // ৬) খাদের খাড়া পাড় (ডান-বাঁ প্রান্তে গভীরতা)
+      const L=r[0], R=r[r.length-1], edgeFloor=floor;
+      let gl=ctx.createLinearGradient(L[0],0,L[0]+16,0); gl.addColorStop(0,"rgba(255,230,190,.32)"); gl.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=gl; ctx.fillRect(L[0],L[1]+6,16,edgeFloor-L[1]-6);
+      let gr=ctx.createLinearGradient(R[0]-22,0,R[0],0); gr.addColorStop(0,"rgba(0,0,0,0)"); gr.addColorStop(1,"rgba(10,3,0,.5)");
+      ctx.fillStyle=gr; ctx.fillRect(R[0]-22,R[1]+6,22,edgeFloor-R[1]-6);
+    }
+    // ৭) পাথরে ৩D পিঠ (আলোর দিকে হালকা, উল্টো দিকে গাঢ়)
+    for(let x=Math.floor(start/205)*205;x<end;x+=205){ if(spanHasGap(x-46,x+46))continue;
+      const y=terrainY(x), X=x-camera.x;
+      poly([[X-42,y+72],[X-18,y+32],[X+25,y+39],[X-4,y+66]],"rgba(255,255,255,.26)");
+      poly([[X+25,y+39],[X+46,y+72],[X+17,y+94],[X-4,y+66]],"rgba(0,0,0,.20)");
+      poly([[X-28,y+92],[X-42,y+72],[X-4,y+66],[X+17,y+94]],"rgba(0,0,0,.34)");
+      ctx.strokeStyle="rgba(255,255,255,.28)"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X-42,y+72); ctx.lineTo(X-18,y+32); ctx.lineTo(X+25,y+39); ctx.stroke();
+      // পাথরের নিচে মাটিতে ছায়া
+      ctx.fillStyle="rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(X+6,y+96,46,7,0,0,6.3); ctx.fill();
+    }
+  }
+  drawTerrain=function(){
+    try{ ridges(); }catch(e){}
+    const r=v163TerrainBase.apply(this,arguments);
+    try{ shade(); }catch(e){}
+    try{ v163DrawDetails(); }catch(e){}
+    return r;
+  };
+})();
