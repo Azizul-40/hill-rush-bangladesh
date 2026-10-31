@@ -5609,6 +5609,6 @@ function v16CheckSize(){
   if(innerWidth!==W||innerHeight!==H||dpr!==DPR||canvas.width!==Math.floor(W*DPR)||canvas.height!==Math.floor(H*DPR)) resizeCanvas();
 }
 const v16RenderBase=render;
-render=function(){ v16CheckSize(); return v16RenderBase.apply(this,arguments); };
+render=function(){ v16CheckSize(); ctx.setTransform(DPR,0,0,DPR,0,0); /* v16.2: ট্রান্সফর্ম হারিয়ে গেলে (গেম ছোট দেখায়) প্রতি ফ্রেমে ফিরিয়ে আনা */ return v16RenderBase.apply(this,arguments); };
 ["orientationchange","fullscreenchange","pageshow","focus"].forEach(ev=>addEventListener(ev,()=>setTimeout(resizeCanvas,60)));
 if(window.visualViewport) visualViewport.addEventListener("resize",resizeCanvas);
