@@ -6,6 +6,11 @@
 
 ---
 
+## v17.3 — ফোন আড়াআড়ি (landscape)
+- v17.2-এর portrait-play বাদ; ফোন লম্বা করলে "ফোনটা আড়াআড়ি করো" overlay আসে, চলা গেম pause হয়।
+- প্রথম টাচে fullscreen + landscape lock (শুধু Android Chrome)। manifest orientation=landscape (home screen-এ install করলে)।
+- 3D পেজেও একই overlay।
+
 ## v1 — প্রথম ভার্সন
 - ১০০ লেভেল, মেইন মেনু, লেভেল সিলেক্ট, ম্যাপ সিলেক্ট, গ্যারেজ, আপগ্রেড।
 - স্টোর: Daily Bonus, Coin Pack (দিনে সর্বোচ্চ ৪ বার), Boost Pack, Map Bundle, Vehicle Bundle (২৫% ছাড়), VIP Upgrade।

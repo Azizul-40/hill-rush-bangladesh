@@ -50,6 +50,8 @@
 <section id="crashMenu" class="screen hidden"><div class="modal"><h2>💥 CRASH</h2><p id="crashText"></p><button id="cpBtn" class="big green">📍 CHECKPOINT থেকে</button><button id="retryBtn" class="big blue">↻ RETRY</button><button id="crashMenuBtn" class="big blue">‹ MENU</button></div></section>
 <section id="completeMenu" class="screen hidden"><div class="modal"><h2>🏁 LEVEL COMPLETE</h2><div id="doneStars" class="stars"></div><p>সময়: <b id="doneTime"></b></p><p id="doneReward"></p><button id="nextBtn" class="big green">NEXT LEVEL ▶</button><button id="doneMenuBtn" class="big blue">‹ MENU</button></div></section>
 <div id="noGL" class="noGL" style="display:none"><div class="modal"><h2>WebGL পাওয়া যায়নি</h2><p>এই ব্রাউজারে 3D চালানো যাচ্ছে না। Chrome/Edge-এর নতুন ভার্সনে চেষ্টা করো, অথবা ২D গেম খেলো।</p><a class="big blue linkBtn" href="index.html">‹ ২D গেম</a></div></div>
+<div id="rotateOverlay"><div class="rotBox"><div class="rotIcon">📱</div><div class="rotTxt">ফোনটা আড়াআড়ি করো</div><div class="rotSub">গেম আড়াআড়ি (landscape) মোডে খেলতে হয়</div></div></div>
+<script>(function(){function c(){var o=document.getElementById("rotateOverlay");if(o)o.classList.toggle("on",matchMedia("(pointer:coarse)").matches&&innerHeight>innerWidth*1.05);}addEventListener("resize",function(){setTimeout(c,80)});setInterval(c,1000);c();})();</script>
 <script type="module" src="3d/game3d.js"></script>
 </body>
 </html>

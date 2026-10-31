@@ -5734,7 +5734,7 @@ showScreen=function(id){ v17ShowBase(id); if(id==="leaderMenu"){ document.getEle
 // ============================================================
 window.__k=1; let v172Last="";
 resizeCanvas=function(){
-  const iw=innerWidth, ih=innerHeight, k=(ih>iw*1.1)?Math.min(1,iw/760):1;
+  const iw=innerWidth, ih=innerHeight, k=1; /* v17.3: portrait-স্কেল বন্ধ — ফোনে আড়াআড়ি ধরতে বলা হয় */
   window.__k=k; W=iw/k; H=ih/k; DPR=Math.min(window.devicePixelRatio||1,2);
   canvas.width=Math.floor(iw*DPR); canvas.height=Math.floor(ih*DPR);
   ctx.setTransform(DPR*k,0,0,DPR*k,0,0); v172Last=iw+"x"+ih+"@"+DPR;
@@ -5747,3 +5747,24 @@ resizeCanvas();
 // portrait: ঘড়িগুলো (RPM/FUEL/BOOST) নিচের বাটনের পেছনে ঢেকে যেত — বাটনের ওপরে তুলে আঁকা
 const v172GaugeBase=drawGaugeCluster;
 drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1) return v172GaugeBase.apply(this,arguments); ctx.save(); ctx.translate(0,-165/k); try{ return v172GaugeBase.apply(this,arguments); } finally { ctx.restore(); } };
+
+// ============================================================
+// v17.3 — ফোন সবসময় আড়াআড়ি (landscape): লম্বা ধরলে "ফোন ঘোরাও" পর্দা + গেম থামে; PLAY চাপলে ফুলস্ক্রিন+landscape-lock চেষ্টা
+// ============================================================
+(function v173(){
+  const coarse=()=>matchMedia("(pointer:coarse)").matches;
+  function check(){
+    const ov=document.getElementById("rotateOverlay");
+    const portrait=innerHeight>innerWidth*1.05, show=coarse()&&portrait;
+    if(ov) ov.classList.toggle("on",show);
+    if(show&&typeof state!=="undefined"&&state==="play"){ try{ togglePause(); }catch(e){} }
+  }
+  ["resize","orientationchange"].forEach(ev=>addEventListener(ev,()=>setTimeout(check,80)));
+  setInterval(check,1000); check();
+  async function lockLandscape(){
+    if(!coarse()) return;
+    try{ if(!document.fullscreenElement&&document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen({navigationUI:"hide"}); }catch(e){}
+    try{ if(screen.orientation&&screen.orientation.lock) await screen.orientation.lock("landscape"); }catch(e){}
+  }
+  addEventListener("pointerup",function once(e){ if(e.pointerType==="touch"){ lockLandscape(); removeEventListener("pointerup",once); } });
+})();

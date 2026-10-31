@@ -49,3 +49,8 @@ button{font:inherit;color:inherit;cursor:pointer;border:0}
 .keys{font-size:11px;opacity:.7;margin:10px 0 0;text-align:center}
 .noGL{position:fixed;inset:0;z-index:40;background:#0b1a26;align-items:center;justify-content:center}
 @media (max-height:520px){.ctl.steer{width:68px;height:68px;font-size:24px}.ctl{width:74px;height:74px;font-size:12px}.gas{width:86px;height:86px}.boost{width:64px;height:64px}.tilt{width:46px;height:46px}.track{width:90px}.menuPanel{padding:10px 14px}.card span{display:none}}
+#rotateOverlay{display:none;position:fixed;inset:0;z-index:99999;background:radial-gradient(#12466b,#071a2a);color:#fff;align-items:center;justify-content:center;text-align:center}
+#rotateOverlay.on{display:flex}
+.rotBox{padding:24px}.rotIcon{font-size:84px;display:inline-block;animation:rotHint 2s ease-in-out infinite}
+.rotTxt{font-size:26px;font-weight:900;margin-top:14px}.rotSub{opacity:.8;margin-top:8px;font-size:15px}
+@keyframes rotHint{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
