@@ -30,12 +30,12 @@
 
 | গেমে | মডেল | নির্মাতা | লাইসেন্স | উৎস | আমাদের ফাইল |
 |---|---|---|---|---|---|
-| RICKSHAW | "Rickshaw" | asrafullislamsiam | CC BY 4.0 | https://sketchfab.com/3d-models/rickshaw-e9f24ba4a27a4072a6372ed9dc37dbba | `models/rickshaw.glb` (~১.৬MB) |
+| RICKSHAW | "Rickshaw" | asrafullislamsiam | CC BY 4.0 | https://sketchfab.com/3d-models/rickshaw-e9f24ba4a27a4072a6372ed9dc37dbba | `models/rickshaw.glb` (~১.৪MB) |
 | CNG AUTO | "Autorikshaw - Indian Tuk Tuk" | bhagathartworks | CC BY 4.0 | https://sketchfab.com/3d-models/autorikshaw-indian-tuk-tuk-5775d012693741008acff9dad410e92d | `models/cng.glb` (~২০০KB) |
 | EASY BIKE | "Tuk-Tuk (Passenger)" | Potater_King | CC BY 4.0 | https://sketchfab.com/3d-models/tuk-tuk-passenger-43fa5e7c2e364c7aa488555dd69d5582 | `models/ebike.glb` (~৩৫০KB) |
 | MURIR TIN BUS | "PSX Bus" | Namahoi | Sketchfab Standard | https://sketchfab.com/3d-models/psx-bus-b16ea5da83d14981a5dc2d8d199a1efd | `models/bus.glb` (~৮০KB) |
 
-**আমাদের পরিবর্তন (CC BY 4.0 অনুযায়ী জানানো হলো):** সামনের দিক ঘুরিয়ে মাপমতো বসানো হয়েছে। চাকাগুলো আলাদা করা হয়েছে যাতে ঘোরে। বাসের দৃশ্য থেকে আকাশ, বালু আর ছায়া বাদ দেওয়া হয়েছে, অ্যানিমেশনও বাদ। রিকশার চেইন আর ছোট বল্টু বাদ দেওয়া হয়েছে, আর meshoptimizer দিয়ে ~৯ লাখ থেকে ~৬৩ হাজার ত্রিভুজে কমানো হয়েছে। টেক্সচার ছোট করে WebP করা হয়েছে, quantize করা হয়েছে। গেমে খেলোয়াড়ের বেছে নেওয়া রং অনুযায়ী বডির রং বদলায়। কাজটা হয় `truck3d.js` (`renderVeh`) দিয়ে।
+**আমাদের পরিবর্তন (CC BY 4.0 অনুযায়ী জানানো হলো):** সামনের দিক ঘুরিয়ে মাপমতো বসানো হয়েছে। চাকাগুলো আলাদা করা হয়েছে যাতে ঘোরে। বাসের দৃশ্য থেকে আকাশ, বালু আর ছায়া বাদ দেওয়া হয়েছে, অ্যানিমেশনও বাদ। রিকশার চেইন আর ছোট বল্টু বাদ দেওয়া হয়েছে, আর meshoptimizer দিয়ে ~৯ লাখ থেকে ~৪২ হাজার ত্রিভুজে কমানো হয়েছে। টেক্সচার ছোট করে WebP করা হয়েছে, quantize করা হয়েছে। গেমে খেলোয়াড়ের বেছে নেওয়া রং অনুযায়ী বডির রং বদলায়। কাজটা হয় `truck3d.js` (`renderVeh`) দিয়ে।
 
 **সতর্কতা:** "PSX Bus"-এর লাইসেন্স Sketchfab Standard, এটা CC নয়। গেমের ভেতরে ব্যবহার করা যায়, কিন্তু মডেলটা আলাদা করে আবার বিতরণ করা যায় না। আমাদের রিপো পাবলিক, তাই `models/bus.glb` ফাইলটা যে কেউ নামাতে পারে। জমা দেওয়ার আগে এটা নিয়ে সুপারভাইজারের সাথে কথা বলা ভালো। দরকার হলে বাসের জন্য CC BY / CC0 মডেল খুঁজে বদলে দেওয়া যায়।
 
