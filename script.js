@@ -5612,3 +5612,54 @@ const v16RenderBase=render;
 render=function(){ v16CheckSize(); ctx.setTransform(DPR,0,0,DPR,0,0); /* v16.2: ট্রান্সফর্ম হারিয়ে গেলে (গেম ছোট দেখায়) প্রতি ফ্রেমে ফিরিয়ে আনা */ return v16RenderBase.apply(this,arguments); };
 ["orientationchange","fullscreenchange","pageshow","focus"].forEach(ev=>addEventListener(ev,()=>setTimeout(resizeCanvas,60)));
 if(window.visualViewport) visualViewport.addEventListener("resize",resizeCanvas);
+
+// ============================================================
+// v16.3 — লেভেলভেদে আলাদা দূরত্ব/খাদের জায়গা + রাস্তার পাশে বাড়তি ডিটেইল
+// ============================================================
+// ফিনিশের দূরত্ব: আগে লেভেলের সাথে প্রায় সরলরেখায় বাড়ত; এখন প্রতিটা লেভেলে ০–১০৮০ একক বাড়তি (নির্দিষ্ট, র‍্যান্ডম নয়)।
+const v163FinBase=finishX;
+finishX=function(){ const f=v163FinBase.apply(this,arguments); if(endlessMode) return f; return f+((currentLevel*97+(save.selectedMap||0)*31)%13)*90; };
+// খাদের জায়গা: প্রতিটা খাদ লেভেল অনুযায়ী ০–১২৬ একক আগে সরে—ক্রম ও ফাঁক ঠিক থাকে, ফিনিশের আগে runway বাড়ে বই কমে না।
+const v163GapBase=getGaps; let v163GapSrc=null, v163GapKey=null, v163GapOut=null;
+getGaps=function(){ const src=v163GapBase.apply(this,arguments); if(endlessMode) return src;
+  const key=currentLevel+"_"+(save.selectedMap||0);
+  if(src===v163GapSrc&&key===v163GapKey) return v163GapOut;
+  v163GapSrc=src; v163GapKey=key;
+  v163GapOut=src.map((g,i)=>{ const sh=((currentLevel*(37+i*11)+(save.selectedMap||0)*13)%8)*18; const c=g.slice(); c[0]=g[0]-sh; return c; });
+  return v163GapOut; };
+// রাস্তার পাশের ছোট ডিটেইল: ঝোপ, ফুল, বাঁশের বেড়া, সাইন, পাথরের স্তূপ, প্রতি ৫০০ এককে দূরত্বের খুঁটি।
+function v163Hash(k){ const s=Math.sin(k*12.9898+(save.selectedMap||0)*78.233+currentLevel*3.1)*43758.5453; return s-Math.floor(s); }
+function v163DrawDetails(){
+  if(typeof state==="undefined"||state==="menu") return;
+  const m=maps[save.selectedMap]||maps[0], x0=Math.floor((camera.x-60)/90)*90, x1=camera.x+W+80;
+  for(let x=x0;x<x1;x+=90){
+    if(x<420||spanHasGap(x-50,x+50)) continue;
+    const r=v163Hash(x/90), ox=x+(v163Hash(x*.37)-.5)*40, y=terrainY(ox), sx=ox-camera.x;
+    ctx.save(); ctx.translate(sx,y+2); ctx.rotate(terrainSlope(ox)*.9);
+    if(r<.20){ // ঝোপ
+      ctx.fillStyle="rgba(30,90,40,.95)"; for(const [dx,dy,rr] of [[-8,-6,9],[4,-9,11],[14,-5,8]]){ ctx.beginPath(); ctx.arc(dx,dy,rr,0,6.3); ctx.fill(); }
+      ctx.fillStyle="rgba(70,150,60,.9)"; ctx.beginPath(); ctx.arc(2,-12,6,0,6.3); ctx.fill();
+    } else if(r<.32){ // বুনো ফুল
+      const cols=["#ffd23f","#ff6b9a","#ffffff","#b46bff"]; for(let i=0;i<4;i++){ const dx=-12+i*8, h=10+((i*7)%6); ctx.strokeStyle="#2f7a35"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(dx,0); ctx.lineTo(dx,-h); ctx.stroke(); ctx.fillStyle=cols[(i+Math.floor(r*100))%4]; ctx.beginPath(); ctx.arc(dx,-h,3.2,0,6.3); ctx.fill(); }
+    } else if(r<.42){ // বাঁশ/কাঠের বেড়া
+      ctx.strokeStyle="#8a6a3a"; ctx.lineWidth=4; ctx.lineCap="round"; for(let i=0;i<4;i++){ ctx.beginPath(); ctx.moveTo(-18+i*12,0); ctx.lineTo(-18+i*12,-22); ctx.stroke(); }
+      ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-20,-16); ctx.lineTo(20,-16); ctx.moveTo(-20,-8); ctx.lineTo(20,-8); ctx.stroke();
+    } else if(r<.49){ // সতর্ক-সাইন
+      ctx.strokeStyle="#555"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-34); ctx.stroke();
+      ctx.fillStyle="#f2c230"; ctx.beginPath(); ctx.moveTo(0,-52); ctx.lineTo(15,-37); ctx.lineTo(0,-22); ctx.lineTo(-15,-37); ctx.closePath(); ctx.fill(); ctx.strokeStyle="#111"; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle="#111"; ctx.fillRect(-1.5,-46,3,10); ctx.fillRect(-1.5,-33,3,3);
+    } else if(r<.58){ // পাথরের স্তূপ
+      ctx.fillStyle="#7d7a76"; for(const [dx,dy,rr] of [[-7,-4,7],[5,-5,8],[0,-12,6]]){ ctx.beginPath(); ctx.ellipse(dx,dy,rr,rr*.7,0,0,6.3); ctx.fill(); }
+      ctx.fillStyle="rgba(255,255,255,.18)"; ctx.beginPath(); ctx.ellipse(-2,-14,3,2,0,0,6.3); ctx.fill();
+    }
+    ctx.restore();
+  }
+  // প্রতি ৫০০ এককে দূরত্বের খুঁটি (মিটার = (x-250)/10)
+  for(let x=Math.floor((camera.x-40)/500)*500;x<x1;x+=500){ if(x<750||spanHasGap(x-30,x+30)) continue; const y=terrainY(x), sx=x-camera.x;
+    ctx.save(); ctx.translate(sx,y+2); ctx.rotate(terrainSlope(x)*.9);
+    ctx.fillStyle="#f4f4f0"; ctx.fillRect(-5,-38,10,38); ctx.fillStyle="#d4202a"; ctx.fillRect(-5,-38,10,9);
+    ctx.fillStyle="#fff"; ctx.strokeStyle="rgba(0,0,0,.4)"; ctx.lineWidth=1; ctx.font="bold 11px Arial"; ctx.textAlign="center"; const t=Math.round((x-250)/10)+"m"; ctx.strokeText(t,0,-44); ctx.fillText(t,0,-44);
+    ctx.restore(); }
+}
+const v163TerrainBase=drawTerrain;
+drawTerrain=function(){ const r=v163TerrainBase.apply(this,arguments); try{ v163DrawDetails(); }catch(e){} return r; };

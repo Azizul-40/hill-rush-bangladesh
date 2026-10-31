@@ -3496,3 +3496,6 @@ body #mainMenu .developerPlaque .supervisorName{
   #crashMenu p{margin:2px 0 6px !important;}
   #crashMenu .actionBtn{min-height:40px !important;height:40px !important;margin:5px auto !important;font-size:15px !important;}
 }
+
+/* v16.3: ডুপ্লিকেট PAUSE/RESTART/SOUND বাটন সরানো (উপরের HUD-এ pause ও ⚙ settings আছে) */
+#controls .controlTop{display:none!important}

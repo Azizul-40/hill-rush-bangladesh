@@ -122,7 +122,7 @@ const ok=(name,cond,extra='')=>{ if(cond){pass++;console.log('PASS',name,extra);
   ok('একসাথে দুই আঙুলে GAS+BOOST',k2.gas===true&&k2.boost===true,JSON.stringify(k2));
   ok('এক আঙুল তুললে শুধু ওটা ছাড়ে (BOOST চালু)',k3.boost===true,JSON.stringify(k3));
   ok('সব আঙুল তুললে সব ছাড়ে (আটকে থাকে না)',!k4.gas&&!k4.boost,JSON.stringify(k4));
-  const tabs=await mp2.evaluate(()=>{const r=document.getElementById('ctlPause').getBoundingClientRect();return r.width>=30&&r.height>=30;});
+  const tabs=await mp2.evaluate(()=>{const r=document.getElementById('pauseBtn').getBoundingClientRect();return r.width>=30&&r.height>=30;});
   ok('PAUSE বাটন টাচ-উপযোগী মাপের',tabs);
   ok('মোবাইলে কোনো page error নেই',merrs.length===0,JSON.stringify(merrs));
   await mp2.screenshot({path:process.argv[3]?process.argv[3]+'/mobile_play.png':'/tmp/mobile_play.png'});
