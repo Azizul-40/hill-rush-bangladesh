@@ -3757,3 +3757,18 @@ body #mainMenu .developerPlaque .supervisorName{
   .screen .modalCard > .actionBtn{flex:1 1 calc(50% - 8px) !important;max-width:calc(50% - 4px) !important;width:auto !important;font-size:13px !important;}
   .screen .modalCard > .actionBtn[style*="display: none"],.screen .modalCard > .actionBtn[style*="display:none"]{display:none !important;}
 }
+/* v39: লিডারবোর্ড/প্রোফাইল */
+.v39Tag{font-size:12px;font-weight:800;padding:2px 8px;border-radius:9px;}
+.v39Tag.g{background:#6a7480;color:#fff}.v39Tag.r{background:#2fbf4a;color:#fff}
+.v39Name{font-size:17px}
+.v39Me{background:rgba(255,210,58,.18);border:1px solid rgba(255,210,58,.6);border-radius:10px;padding:7px 10px;margin:0 0 8px;font-weight:700}
+.lbTable tr.me td{background:rgba(255,210,58,.22);font-weight:800}
+.v39Rank{font-weight:800;color:#1b6e3a;margin:4px 0 6px !important}
+#endlessMenu .v39Rank{color:#1b6e3a}
+.v39Stats .recCard span{font-weight:800}
+.v39Online{display:block !important;text-align:left}
+@media (max-height:520px){ .lbBox{padding:8px !important;margin:5px 0 !important;} .lbBox input,.lbBox select{padding:6px 8px !important;font-size:13px !important;flex:1 1 110px !important;} .lbBtn{padding:6px 10px !important;font-size:12px !important;} .lbBox h3{font-size:13px !important;margin-bottom:5px !important;} .v39Rank{font-size:11px !important;margin:2px 0 4px !important;} }
+
+/* v39: প্রধান মেনুর ⚙ (ভাষা) */
+.homeSettingsBtn{position:absolute;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:60;width:44px;height:44px;border-radius:14px;border:2px solid rgba(255,255,255,.55);background:linear-gradient(180deg,#1d6fa8,#0d3e63);color:#fff;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 0 #062b45;}
+@media (max-height:520px){ .homeSettingsBtn{width:36px;height:36px;font-size:18px;top:8px;right:8px;border-radius:11px;} }

@@ -6788,19 +6788,49 @@ const V38=(function(){
     ["Cloud kingdom — the hill roads of Sajek, Rangamati.","মেঘের রাজ্য — রাঙামাটির সাজেকের পাহাড়ি পথ।"],["Misty green hills and waterfalls.","কুয়াশাঢাকা সবুজ পাহাড় ও ঝর্ণা।"],
     ["Tea gardens of Jaflong and clear rivers.","জাফলংয়ের চা-বাগান ও স্বচ্ছ নদী।"],["Bamboo forests, stilt houses and red-soil hills.","বাঁশবন, মাচাঘর আর লাল মাটির পাহাড়।"],["Kaptai lake of Rangamati, hanging bridge and boats.","রাঙামাটির কাপ্তাই হ্রদ, ঝুলন্ত সেতু আর নৌকা।"],
     ["Language","ভাষা"],["Weather · 🔧 Vehicle condition","আবহাওয়া · 🔧 গাড়ির অবস্থা"],["Arrange buttons (move / resize)","বাটন সাজাও (সরাও / ছোট-বড়)"],["Default","আগের মতো"],["Save","সেভ"],
-    ["Boost cooling down…","বুস্ট ঠান্ডা হচ্ছে…"],["FROM CHECKPOINT","CHECKPOINT থেকে"],["PLAY AGAIN","আবার চালাও"],["Best: 0 m","সেরা: 0 মিটার"],["0 m","0 মিটার"]
+    ["Boost cooling down…","বুস্ট ঠান্ডা হচ্ছে…"],
+    ["Complete 2 levels today","আজ ২টি লেভেল সম্পন্ন করো"],["Complete 4 levels today","আজ ৪টি লেভেল সম্পন্ন করো"],["Drive 3000 distance today","আজ মোট ৩০০০ দূরত্ব অতিক্রম করো"],["Drive 6000 distance today","আজ মোট ৬০০০ দূরত্ব অতিক্রম করো"],
+    ["Land 2 safe stunt flips today","আজ ২টি নিরাপদ স্টান্ট ফ্লিপ করো"],["Land 5 safe stunt flips today","আজ ৫টি নিরাপদ স্টান্ট ফ্লিপ করো"],["Complete 10 levels","১০টি লেভেল সম্পন্ন করো"],["Complete 50 levels","৫০টি লেভেল সম্পন্ন করো"],
+    ["Hold 3000 coins at once","একসাথে ৩০০০ কয়েন জমাও"],["Land 50 stunt flips in total","মোট ৫০টি স্টান্ট ফ্লিপ ল্যান্ড করো"],["Unlock 3 vehicles","৩টি ভেহিকেল আনলক করো"],["Unlock 3 maps","৩টি ম্যাপ আনলক করো"],
+    ["CLAIM","নাও"],["✓ DONE","✓ শেষ"],["CLAIMED ✓","নেওয়া হয়েছে ✓"],["Not enough balance! 🪙","যথেষ্ট কয়েন নেই! 🪙"],["Daily limit reached! Try again tomorrow.","আজকের সীমা শেষ! কাল আবার চেষ্টা করো।"],["FROM CHECKPOINT","CHECKPOINT থেকে"],["PLAY AGAIN","আবার চালাও"],["Best: 0 m","সেরা: 0 মিটার"],["0 m","0 মিটার"]
   ];
   const E2B=new Map(), B2E=new Map(); P.forEach(([e,b])=>{ E2B.set(e,b); B2E.set(b,e); });
   const PAT=[ // [English regex, Bangla template] আর উল্টো
     [/^BUY (\d[\d,]*)$/,"কেনো $1",/^কেনো (\d[\d,]*)$/,"BUY $1"],[/^BUY BUNDLE (\d[\d,]*)$/,"বান্ডেল কেনো $1",/^বান্ডেল কেনো (\d[\d,]*)$/,"BUY BUNDLE $1"],
     [/^LV (\d+)$/,"লেভেল $1",/^লেভেল (\d+)$/,"LV $1"],[/^CLAIM (\+\d+)$/,"নাও $1",/^নাও (\+\d+)$/,"CLAIM $1"],[/^GET (\+\d+.*)$/,"নাও $1",/^নাও (\+\d+ \(.*)$/,"GET $1"],
-    [/^\+(\d+) coins$/,"+$1 কয়েন",/^\+(\d+) কয়েন$/,"+$1 coins"],[/^LEVEL (\d+) — (.+)$/,"লেভেল $1 — $2",/^লেভেল (\d+) — (.+)$/,"LEVEL $1 — $2"]
+    [/^\+(\d+) coins$/,"+$1 কয়েন",/^\+(\d+) কয়েন$/,"+$1 coins"],
+    [/^(\d+)\/(\d+) • reward (\d+)$/,"$1/$2 • পুরস্কার $3",/^(\d+)\/(\d+) • পুরস্কার (\d+)$/,"$1/$2 • reward $3"],[/^reward (\d+)$/,"পুরস্কার $1",/^পুরস্কার (\d+)$/,"reward $1"],
+    [/^reward (\d+) 🪙 • claimed$/,"পুরস্কার $1 🪙 • নেওয়া হয়েছে",/^পুরস্কার (\d+) 🪙 • নেওয়া হয়েছে$/,"reward $1 🪙 • claimed"],[/^LEVEL (\d+) — (.+)$/,"লেভেল $1 — $2",/^লেভেল (\d+) — (.+)$/,"LEVEL $1 — $2"]
   ];
   let lang="en"; try{ lang=localStorage.getItem(KEY)||"en"; }catch(e){}
   const orig=new WeakMap();
   const split=t=>{ const m=t.match(/^([^\p{L}\p{N}+"'(]*)([\s\S]*?)([^\p{L}\p{N}\p{M}!?.)%]*)$/u); return m?[m[1],m[2],m[3]]:["",t,""]; };
+  // ইংরেজি মোডে: লম্বা বাংলা বাক্যের ভেতরের চেনা অংশ বদলে ইংরেজি, শেষে বাংলা সংখ্যা → 0-9 (রেকর্ড, লিডারবোর্ড, মিশন)
+  const PH=[["এখনো কোনো লেভেল শেষ করা হয়নি।","No level completed yet."],["এখনো কোনো লেভেল শেষ হয়নি।","No level completed yet."],["এখনো কেউ স্কোর দেয়নি। প্রথম হও!","No scores yet. Be the first!"],
+    ["এই তালিকায় তোমার এখনো কোনো স্কোর নেই।","You have no score on this board yet."],["অনলাইন সার্ভার এখনো সংযুক্ত নয়।","The online server is not connected yet."],["বিশ্বব্যাপী তালিকা দেখানো যাচ্ছে না।","The global board can't be shown."],
+    ["অনলাইন সার্ভার এখনো সংযুক্ত নয়, তাই বিশ্বব্যাপী তালিকা দেখানো যাচ্ছে না।","The online server is not connected yet, so the global board can't be shown."],
+    ["এই ডিভাইসের সেরা সময়","Best times on this device"],["প্রোফাইল নেই — LEADERBOARD থেকে গেস্ট হও বা রেজিস্টার করো।","No profile — join as a guest or register from LEADERBOARD."],
+    ["লিডারবোর্ডে নাম তুলতে LEADERBOARD থেকে গেস্ট হও বা রেজিস্টার করো","Join as a guest or register in LEADERBOARD to get on the board"],["লিডারবোর্ডে নাম তুলতে গেস্ট হও বা রেজিস্টার করো","Join as a guest or register to get on the board"],
+    ["নাম-PIN ছাড়াই খেলো, স্কোর তালিকায় \"Guest-১২৩৪\" নামে যাবে (শুধু এই ডিভাইসে)।","Play without a name or PIN; your scores show as \"Guest-1234\" (this device only)."],
+    ["নাম অনন্য হতে হবে। PIN মনে রেখো — অন্য ফোনে লগইন করতে লাগবে। ইমেইল ঐচ্ছিক।","The name must be unique. Remember your PIN — you need it to log in on another phone. Email is optional."],
+    ["আগে অন্য ডিভাইসে রেজিস্টার করে থাকলে সেই নাম আর PIN দাও।","If you registered on another device, enter that name and PIN."],
+    ["গেস্ট প্রোফাইল শুধু এই ডিভাইসে থাকে। নাম আর PIN দিয়ে নিবন্ধিত হলে অন্য ফোন থেকেও একই প্রোফাইলে খেলতে পারবে — এখনকার স্কোর থেকে যাবে।","A guest profile lives only on this device. Register with a name and PIN to play the same profile on other phones — your scores stay."],
+    ["অন্য ফোনে LEADERBOARD → লগইন দিয়ে এই নাম আর তোমার PIN দিলে একই প্রোফাইল পাবে। লেভেল শেষ করলে স্কোর নিজে থেকে জমা হয়।","On another phone, use LEADERBOARD → Log in with this name and your PIN to get the same profile. Scores are sent automatically when you finish a level."],
+    ["এই নাম আগেই নেওয়া — অন্য নাম দাও, বা লগইন করো","This name is taken — choose another or log in"],["নাম বা PIN মিলছে না","Name or PIN doesn't match"],["PIN ৪ থেকে ৮টা সংখ্যা হতে হবে","PIN must be 4 to 8 digits"],
+    ["অনেকবার ভুল হয়েছে — কিছুক্ষণ পরে চেষ্টা করো","Too many wrong tries — try again in a while"],["নাম দিতে হবে (অন্তত ২ অক্ষর)","Enter a name (at least 2 letters)"],["ইমেইল ঠিক নয়","Email is not valid"],["এই ইমেইল আগেই নিবন্ধিত","This email is already registered"],
+    ["এই ম্যাপে এন্ডলেস র‍্যাংক:","Endless rank on this map:"],["এই লেভেলে তোমার র‍্যাংক:","Your rank on this level:"],["সামগ্রিক র‍্যাংক:","overall rank:"],["তোমার র‍্যাংক:","Your rank:"],["র‍্যাংক দেখা হচ্ছে…","Checking rank…"],["এখনো নেই","none yet"],
+    ["Endless — সেরা দূরত্ব (প্রতি ম্যাপে)","Endless — best distance (per map)"],["লেভেলের সেরা সময়","Best level times"],["শেষ করা লেভেল:","Levels completed:"],["আনলকড:","Unlocked:"],["কয়েন:","Coins:"],
+    ["আমার পরিসংখ্যান","My stats"],["মোট দূরত্ব","Total distance"],["মোট স্টান্ট","Total stunts"],["অনলাইন","Online"],["দেখা হচ্ছে…","Checking…"],["লোড হচ্ছে…","Loading…"],
+    ["প্রোফাইল","Profile"],["নিবন্ধিত ✓","Registered ✓"],["(নিবন্ধিত)","(registered)"],["(গেস্ট)","(guest)"],["গেস্ট হিসেবে খেলো","Play as guest"],["গেস্ট","Guest"],["রেজিস্টার","Register"],["লগইন","Log in"],["নিবন্ধিত হও","Register"],
+    ["এই ডিভাইস থেকে বের হও","Log out on this device"],["সামগ্রিক","Overall"],["এন্ডলেস","Endless"],["দেখাও","Show"],["শেষ করা","Done"],["আনলকড","Unlocked"],["কয়েন","Coins"],["নাম","Name"],["সময়","Time"],["দূরত্ব","Distance"],
+    ["গাড়ি","Vehicles"],["নাম-PIN ছাড়াই খেলো, স্কোর তালিকায়","Play without a name or PIN; your scores show as"],["নামে যাবে (শুধু এই ডিভাইসে)।","(this device only)."],["সমস্যা হয়েছে","Something went wrong"],["লেভেল","Level"],
+    ["এই ডিভাইস থেকে প্রোফাইল সরাবে?","Remove the profile from this device?"],["গেস্ট প্রোফাইল আর ফেরত আনা যাবে না।","A guest profile can't be recovered."],["নাম আর PIN দিয়ে আবার লগইন করা যাবে।","You can log in again with your name and PIN."],["ম্যাপ","Maps"],["মিটার","m"],["কিমি","km"],["নতুন সেরা রেকর্ড!","New best!"],["সেরা:","Best:"]];
+  PH.forEach(x=>x[0]=x[0].replace(/\u200d/g,"")); PH.sort((x,y)=>y[0].length-x[0].length);
+  const BD="০১২৩৪৫৬৭৮৯";
+  function phraseEN(t){ if(!/[\u0980-\u09FF]/.test(t)) return null; let o=t.replace(/\u200d/g,""); for(const [b,e] of PH) if(o.includes(b)) o=o.split(b).join(e); o=o.replace(/[০-৯]/g,d=>BD.indexOf(d)); return o!==t?o:null; }
   function tr(core,to){ if(!core) return null; const D=to==="bn"?E2B:B2E; if(D.has(core)) return D.get(core);
-    for(const p of PAT){ const re=to==="bn"?p[0]:p[2], rep=to==="bn"?p[1]:p[3]; if(re.test(core)) return core.replace(re,rep); } return null; }
+    for(const p of PAT){ const re=to==="bn"?p[0]:p[2], rep=to==="bn"?p[1]:p[3]; if(re.test(core)) return core.replace(re,rep); }
+    if(to==="en") return phraseEN(core); return null; }
   function doNode(n){
     if(n.nodeType!==3) return; const par=n.parentNode; if(!par||par.closest&&par.closest("[data-noi18n],script,style,textarea,#creditsMenu .modelCredits")) return;
     const cur=n.data; if(!cur||!cur.trim()) return;
@@ -6809,22 +6839,140 @@ const V38=(function(){
     if(tf!=null) out=o.src.replace(full,tf); else { const [a,core,z]=split(o.src); const t1=tr(core.trim(),lang); if(t1!=null) out=a+t1+z; }
     o.shown=out; orig.set(n,o); if(out!==cur) n.data=out;
   }
-  function walk(root){ if(!root) return; if(root.nodeType===3) return doNode(root); const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); let x; while((x=w.nextNode())) doNode(x); }
+  const PHD=[["নাম","Name"],["নতুন নাম","New name"],["PIN (৪–৮ সংখ্যা)","PIN (4–8 digits)"],["ইমেইল (ঐচ্ছিক)","Email (optional)"]];
+  function doPh(el){ if(!el.dataset.ph0) el.dataset.ph0=el.placeholder; const o=el.dataset.ph0, h=PHD.find(x=>x[0]===o||x[1]===o); el.placeholder=h?(lang==="bn"?h[0]:h[1]):o; }
+  function walk(root){ if(!root) return; if(root.nodeType===3) return doNode(root); const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); let x; while((x=w.nextNode())) doNode(x);
+    if(root.querySelectorAll) root.querySelectorAll("input[placeholder]").forEach(doPh); }
   let busy=false;
   const mo=new MutationObserver(ms=>{ if(busy) return; busy=true; try{ for(const m of ms){ if(m.type==="characterData") doNode(m.target); else m.addedNodes.forEach(walk); } } finally{ busy=false; } });
   function set(l){ lang=l==="bn"?"bn":"en"; try{ localStorage.setItem(KEY,lang); }catch(e){} document.documentElement.lang=lang==="bn"?"bn":"en"; busy=true; try{ walk(document.body); } finally{ busy=false; } paint(); }
   function paint(){ document.querySelectorAll(".langBtns button").forEach(b=>b.classList.toggle("on",b.dataset.l===lang)); }
-  // সেটিংসে ভাষার সারি
-  (function(){ const card=document.querySelector("#settingsMenu .settingsCard"); if(!card) return; const row=document.createElement("div"); row.className="settingsRow langRow";
-    row.innerHTML='<span>🌐 <span>Language</span></span><span class="langBtns" data-noi18n><button type="button" data-l="bn">বাংলা</button><button type="button" data-l="en">English</button></span>';
-    const title=card.querySelector(".settingsTitle"); if(title&&title.nextSibling) card.insertBefore(row,title.nextSibling); else card.appendChild(row);
-    row.querySelectorAll(".langBtns button").forEach(b=>b.onclick=()=>{ try{ tone(520,.05,.04); }catch(e){} set(b.dataset.l); }); })();
+  // v39: ভাষা বাছাই খেলার ভেতরের সেটিংসে নয় — প্রধান মেনুর ⚙ বাটনে (পুরো গেমের ভাষা বদলায়)
+  (function(){ const stage=document.getElementById("mainMenu"); if(!stage) return; // স্ক্রিনের কোণে (ফোনে মেনু-ছবি কাটা পড়লেও দেখা যায়)
+    const btn=document.createElement("button"); btn.type="button"; btn.id="homeSettingsBtn"; btn.className="homeSettingsBtn"; btn.setAttribute("aria-label","Settings"); btn.textContent="⚙"; stage.appendChild(btn);
+    const ov=document.createElement("section"); ov.id="homeSettings"; ov.className="settingsOverlay hidden";
+    ov.innerHTML='<div class="settingsCard homeSetCard"><div class="settingsTitle">⚙ SETTINGS</div><div class="settingsRow langRow"><span>🌐 <span>Language</span></span><span class="langBtns" data-noi18n><button type="button" data-l="bn">বাংলা</button><button type="button" data-l="en">English</button></span></div><button type="button" class="settingsCloseBtn" id="homeSetClose" aria-label="Close">×</button></div>';
+    document.body.appendChild(ov);
+    const show=v=>{ ov.classList.toggle("hidden",!v); ov.style.display=v?"flex":"none"; ov.style.visibility=v?"visible":"hidden"; ov.style.pointerEvents=v?"auto":"none"; ov.style.zIndex="99999"; };
+    btn.onclick=()=>{ try{ resumeAudio(); tone(520,.05,.04); }catch(e){} show(true); }; ov.querySelector("#homeSetClose").onclick=()=>show(false); ov.addEventListener("click",e=>{ if(e.target===ov) show(false); });
+    ov.querySelectorAll(".langBtns button").forEach(b=>b.onclick=()=>{ try{ tone(520,.05,.04); }catch(e){} set(b.dataset.l); }); })();
   mo.observe(document.body,{childList:true,subtree:true,characterData:true});
   set(lang);
-  return {set,get:()=>lang,tr};
+  return {set,get:()=>lang,tr,t:x=>lang==="en"?(tr(x,"en")||x):x};
 })();
 // v38: "BEST: --:--.--" — এই লেভেলে আগে কোনো রেকর্ড না থাকলে লাইনটা লুকানো থাকে, রেকর্ড হলে দেখায়
 setInterval(()=>{ try{ const b=document.getElementById("best"), line=b&&b.closest(".bestLine"); if(line){ const empty=!/\d/.test(b.textContent)||/^[-:.\s]+$/.test(b.textContent); line.style.display=empty?"none":""; } }catch(e){} },400);
 
 // v38.2: CRASH আর LEVEL COMPLETE পর্দা থেকেও সরাসরি প্রধান মেনুতে যাওয়া (আগে শুধু চেকপয়েন্ট/রিট্রাই/লেভেল ছিল)
 ["crashMainBtn","completeMainBtn"].forEach(id=>{ const b=document.getElementById(id); if(b) b.onclick=()=>{ try{ tone(330,.06,.05); }catch(e){} goMain(); }; });
+
+// ============================================================
+// v39 — লিডারবোর্ড, রেজিস্ট্রেশন, রেকর্ড
+// • প্রোফাইল: গেস্ট (এক ডিভাইসে), অথবা নাম + PIN দিয়ে রেজিস্টার — অন্য ফোনে নাম + PIN দিয়ে লগইন করে একই প্রোফাইল।
+//   গেস্টকে পরে নিবন্ধিত করা যায় (স্কোর থেকে যায়)। ইমেইল ঐচ্ছিক।
+// • বোর্ড: সামগ্রিক / লেভেল অনুযায়ী সময় / এন্ডলেস দূরত্ব (ম্যাপ অনুযায়ী); নিজের র‍্যাংক আলাদা করে দেখায়।
+// • লেভেল শেষে আর এন্ডলেস শেষে: অনলাইন র‍্যাংক (#৩ / ২৫)।
+// • রেকর্ড পাতা: নিজের পরিসংখ্যান + অনলাইন র‍্যাংক।
+// সার্ভার (Cloudflare D1) চালু না থাকলে সব জায়গায় পরিষ্কার বার্তা, আর এই ডিভাইসের রেকর্ড।
+// ============================================================
+const V39={tab:"overall",auth:"guest",msg:"",lbMap:null,lbLevel:null};
+const v39Err=e=>e&&(e.message==="server-off"||e instanceof TypeError)?"অনলাইন সার্ভার এখনো সংযুক্ত নয়।":(e&&e.message)||"সমস্যা হয়েছে";
+function v39SubmitBody(extra){ const p=v17Profile(); if(!p) return null; return Object.assign({id:p.id,token:p.token,unlocked:save.unlocked,completed:Object.keys(save.completed||{}).length,coins:Math.floor(save.coins||0)},extra||{}); }
+function v39RankLine(el,txt){ if(!el) return; let r=el.parentNode.querySelector(".v39Rank"); if(!r){ r=document.createElement("p"); r.className="v39Rank"; el.parentNode.insertBefore(r,el.nextSibling); } r.textContent=txt||""; r.style.display=txt?"":"none"; }
+v17Submit=async function(){
+  const p=v17Profile(), el=document.getElementById("rewardText");
+  if(!p||endlessMode){ v39RankLine(el,p?"":"🏅 লিডারবোর্ডে নাম তুলতে LEADERBOARD থেকে গেস্ট হও বা রেজিস্টার করো"); return; }
+  v39RankLine(el,"🏅 র‍্যাংক দেখা হচ্ছে…");
+  try{ const j=await v17Api("/api/submit",{method:"POST",body:JSON.stringify(v39SubmitBody({map:save.selectedMap||0,level:currentLevel,time:save.best[currentLevel]}))});
+    v39RankLine(el,j.rank?`🏅 এই লেভেলে তোমার র‍্যাংক: #${j.rank} / ${j.total}`:""); }
+  catch(e){ v39RankLine(el,"🏅 "+v39Err(e)); }
+};
+const v39EndlessBase=endEndlessRun;
+endEndlessRun=function(reason){
+  const was=state, mapKey=String(save.selectedMap||0); v39EndlessBase.apply(this,arguments);
+  if(was!=="play") return;
+  const el=document.getElementById("endlessBestText"), p=v17Profile(), dist=Number(save.endlessBest[mapKey])||0;
+  if(!p){ v39RankLine(el,"🏅 লিডারবোর্ডে নাম তুলতে গেস্ট হও বা রেজিস্টার করো"); return; }
+  if(dist<1){ v39RankLine(el,""); return; }
+  v39RankLine(el,"🏅 র‍্যাংক দেখা হচ্ছে…");
+  v17Api("/api/submit",{method:"POST",body:JSON.stringify(v39SubmitBody({endless:{map:+mapKey,dist}}))})
+    .then(j=>v39RankLine(el,j.endlessRank?`🏅 এই ম্যাপে এন্ডলেস র‍্যাংক: #${j.endlessRank} / ${j.endlessTotal}`:"")).catch(e=>v39RankLine(el,"🏅 "+v39Err(e)));
+};
+async function v39Sync(){ // নতুন প্রোফাইলে এই ডিভাইসের আগের সব রেকর্ড পাঠানো
+  const p=v17Profile(); if(!p) return;
+  const jobs=[]; const m=save.selectedMap||0;
+  Object.keys(save.best||{}).slice(0,40).forEach(l=>{ const t=save.best[l]; if(t>=8) jobs.push({map:m,level:+l,time:t}); });
+  Object.keys(save.endlessBest||{}).forEach(k=>{ const d=Number(save.endlessBest[k])||0; if(d>0) jobs.push({endless:{map:+k,dist:d}}); });
+  if(!jobs.length) jobs.push({});
+  for(const x of jobs){ try{ await v17Api("/api/submit",{method:"POST",body:JSON.stringify(v39SubmitBody(x))}); }catch(e){ break; } }
+}
+v17Render=async function(){
+  const box=document.getElementById("leaderBody"); if(!box) return;
+  const p=v17Profile(), esc=v17Esc;
+  if(V39.lbMap===null) V39.lbMap=save.selectedMap||0; if(V39.lbLevel===null) V39.lbLevel=currentLevel||1;
+  const mapOpts=maps.map((m,i)=>`<option value="${i}"${i===V39.lbMap?" selected":""}>${esc(m.name)}</option>`).join("");
+  let h=`<div class="lbBox v39Prof"><h3>👤 প্রোফাইল</h3>`;
+  if(p){
+    h+=`<div class="lbRow2"><b class="v39Name">${esc(p.name)}</b> <span class="v39Tag ${p.guest?"g":"r"}">${p.guest?"গেস্ট":"নিবন্ধিত ✓"}</span><button class="lbBtn gray" id="lbLogout">এই ডিভাইস থেকে বের হও</button></div>`;
+    if(p.guest) h+=`<div class="lbNote">গেস্ট প্রোফাইল শুধু এই ডিভাইসে থাকে। নাম আর PIN দিয়ে নিবন্ধিত হলে অন্য ফোন থেকেও একই প্রোফাইলে খেলতে পারবে — এখনকার স্কোর থেকে যাবে।</div>
+      <div class="lbRow2"><input id="lbName" placeholder="নতুন নাম" maxlength="20"><input id="lbPin" placeholder="PIN (৪–৮ সংখ্যা)" inputmode="numeric" maxlength="8" type="password"><button class="lbBtn blue" id="lbUpgrade">নিবন্ধিত হও</button></div>`;
+    else h+=`<div class="lbNote">অন্য ফোনে LEADERBOARD → লগইন দিয়ে এই নাম আর তোমার PIN দিলে একই প্রোফাইল পাবে। লেভেল শেষ করলে স্কোর নিজে থেকে জমা হয়।</div>`;
+  } else {
+    const t=V39.auth;
+    h+=`<div class="lbTabs v39Auth"><button class="lbBtn${t==="guest"?" on":""}" data-a="guest">👤 গেস্ট</button><button class="lbBtn${t==="reg"?" on":""}" data-a="reg">📝 রেজিস্টার</button><button class="lbBtn${t==="login"?" on":""}" data-a="login">🔑 লগইন</button></div>`;
+    if(t==="guest") h+=`<div class="lbNote">নাম-PIN ছাড়াই খেলো, স্কোর তালিকায় "Guest-১২৩৪" নামে যাবে (শুধু এই ডিভাইসে)।</div><div class="lbRow2"><button class="lbBtn blue" id="lbGuest">👤 গেস্ট হিসেবে খেলো</button></div>`;
+    if(t==="reg") h+=`<div class="lbNote">নাম অনন্য হতে হবে। PIN মনে রেখো — অন্য ফোনে লগইন করতে লাগবে। ইমেইল ঐচ্ছিক।</div><div class="lbRow2"><input id="lbName" placeholder="নাম" maxlength="20"><input id="lbPin" placeholder="PIN (৪–৮ সংখ্যা)" inputmode="numeric" maxlength="8" type="password"><input id="lbEmail" placeholder="ইমেইল (ঐচ্ছিক)" maxlength="80"><button class="lbBtn blue" id="lbReg">রেজিস্টার</button></div>`;
+    if(t==="login") h+=`<div class="lbNote">আগে অন্য ডিভাইসে রেজিস্টার করে থাকলে সেই নাম আর PIN দাও।</div><div class="lbRow2"><input id="lbName" placeholder="নাম" maxlength="20"><input id="lbPin" placeholder="PIN" inputmode="numeric" maxlength="8" type="password"><button class="lbBtn blue" id="lbLogin">লগইন</button></div>`;
+  }
+  if(V39.msg) h+=`<div class="lbNote lbErr">${esc(V39.msg)}</div>`;
+  h+=`</div><div class="lbTabs"><button class="lbBtn${V39.tab==="overall"?" on":""}" id="lbTabO">🏆 সামগ্রিক</button><button class="lbBtn${V39.tab==="level"?" on":""}" id="lbTabL">⏱ লেভেল</button><button class="lbBtn${V39.tab==="endless"?" on":""}" id="lbTabE">🏁 এন্ডলেস</button></div>`;
+  if(V39.tab==="level") h+=`<div class="lbBox"><div class="lbRow2"><select id="lbMap">${mapOpts}</select><input id="lbLevel" type="number" min="1" max="${TOTAL_LEVELS}" value="${V39.lbLevel}"><button class="lbBtn blue" id="lbGo">দেখাও</button></div></div>`;
+  if(V39.tab==="endless") h+=`<div class="lbBox"><div class="lbRow2"><select id="lbMap">${mapOpts}</select><button class="lbBtn blue" id="lbGo">দেখাও</button></div></div>`;
+  h+=`<div id="lbList" class="lbBox"><div class="lbNote">লোড হচ্ছে…</div></div>`;
+  box.innerHTML=h;
+  const $=id=>document.getElementById(id), val=id=>($(id)&&$(id).value||"").trim();
+  box.querySelectorAll(".v39Auth button").forEach(b=>b.onclick=()=>{ V39.auth=b.dataset.a; V39.msg=""; v17Render(); });
+  const done=async(j,guest)=>{ v17SetProfile({id:j.id,token:j.token,name:j.name,guest:!!guest}); V39.msg=""; await v39Sync(); v17Render(); };
+  const run=async fn=>{ try{ await fn(); }catch(e){ V39.msg=v39Err(e); v17Render(); } };
+  if($("lbGuest")) $("lbGuest").onclick=()=>run(async()=>done(await v17Api("/api/register",{method:"POST",body:JSON.stringify({guest:true})}),true));
+  if($("lbReg")) $("lbReg").onclick=()=>run(async()=>done(await v17Api("/api/register",{method:"POST",body:JSON.stringify({name:val("lbName"),pin:val("lbPin"),email:val("lbEmail")})}),false));
+  if($("lbLogin")) $("lbLogin").onclick=()=>run(async()=>done(await v17Api("/api/login",{method:"POST",body:JSON.stringify({name:val("lbName"),pin:val("lbPin")})}),false));
+  if($("lbUpgrade")) $("lbUpgrade").onclick=()=>run(async()=>{ const pp=v17Profile(); const j=await v17Api("/api/register",{method:"POST",body:JSON.stringify({id:pp.id,token:pp.token,name:val("lbName"),pin:val("lbPin")})}); await done(j,false); });
+  if($("lbLogout")) $("lbLogout").onclick=()=>{ if(!confirm(V38.t("এই ডিভাইস থেকে প্রোফাইল সরাবে?"+((v17Profile()||{}).guest?" গেস্ট প্রোফাইল আর ফেরত আনা যাবে না।":" নাম আর PIN দিয়ে আবার লগইন করা যাবে।")))) return; v17SetProfile(null); V39.msg=""; v17Render(); };
+  $("lbTabO").onclick=()=>{ V39.tab="overall"; v17Render(); }; $("lbTabL").onclick=()=>{ V39.tab="level"; v17Render(); }; $("lbTabE").onclick=()=>{ V39.tab="endless"; v17Render(); };
+  if($("lbMap")) $("lbMap").onchange=()=>{ V39.lbMap=+$("lbMap").value; v17Load(); };
+  if($("lbLevel")) $("lbLevel").onchange=()=>{ V39.lbLevel=Math.max(1,Math.min(TOTAL_LEVELS,+$("lbLevel").value||1)); };
+  if($("lbGo")) $("lbGo").onclick=()=>{ if($("lbMap")) V39.lbMap=+$("lbMap").value; if($("lbLevel")) V39.lbLevel=Math.max(1,Math.min(TOTAL_LEVELS,+$("lbLevel").value||1)); v17Load(); };
+  v17Load();
+};
+v17Load=async function(){
+  const list=document.getElementById("lbList"); if(!list) return; const me=v17Profile(), esc=v17Esc;
+  const q=V39.tab==="level"?`type=level&map=${V39.lbMap}&level=${V39.lbLevel}`:V39.tab==="endless"?`type=endless&map=${V39.lbMap}`:"type=overall";
+  try{
+    const j=await v17Api("/api/leaderboard?"+q+(me?"&me="+encodeURIComponent(me.id):""));
+    const mine=j.me?`<div class="v39Me">🏅 তোমার র‍্যাংক: <b>#${j.me.rank}</b> / ${j.me.total}${j.me.time?" · "+v17Fmt(j.me.time):""}${j.me.dist?" · "+j.me.dist+" মিটার":""}</div>`:(me?`<div class="lbNote">এই তালিকায় তোমার এখনো কোনো স্কোর নেই।</div>`:"");
+    if(!j.rows.length){ list.innerHTML=mine+`<div class="lbNote">এখনো কেউ স্কোর দেয়নি। প্রথম হও!</div>`; return; }
+    const medal=i=>i===0?"🥇":i===1?"🥈":i===2?"🥉":String(i+1);
+    const head=V39.tab==="level"?"<tr><th>#</th><th>নাম</th><th>সময়</th></tr>":V39.tab==="endless"?"<tr><th>#</th><th>নাম</th><th>দূরত্ব</th></tr>":"<tr><th>#</th><th>নাম</th><th>শেষ করা</th><th>আনলকড</th><th>কয়েন</th></tr>";
+    const rows=j.rows.map((r,i)=>{ const nm=esc(r.name)+(r.guest?" <small>(গেস্ট)</small>":""), cls=r.mine?"me":"";
+      return V39.tab==="level"?`<tr class="${cls}"><td>${medal(i)}</td><td>${nm}</td><td>${v17Fmt(r.time)}</td></tr>`:V39.tab==="endless"?`<tr class="${cls}"><td>${medal(i)}</td><td>${nm}</td><td>${r.dist} মিটার</td></tr>`:`<tr class="${cls}"><td>${medal(i)}</td><td>${nm}</td><td>${r.completed}</td><td>${r.unlocked}</td><td>${r.coins}</td></tr>`; }).join("");
+    list.innerHTML=mine+`<table class="lbTable">${head}${rows}</table>`;
+  }catch(e){
+    const best=Object.keys(save.best||{}).map(Number).sort((a,b)=>a-b).map(n=>`<tr><td>Level ${n}</td><td>${v17Fmt(save.best[n])}</td></tr>`).join("");
+    list.innerHTML=`<div class="lbNote lbErr">${esc(v39Err(e))} বিশ্বব্যাপী তালিকা দেখানো যাচ্ছে না।</div><h3>এই ডিভাইসের সেরা সময়</h3>${best?`<table class="lbTable">${best}</table>`:`<div class="lbNote">এখনো কোনো লেভেল শেষ হয়নি।</div>`}`;
+  }
+};
+// রেকর্ড পাতা: নিজের পরিসংখ্যান আর অনলাইন র‍্যাংক
+const v39RecordsBase=renderRecords;
+renderRecords=function(){
+  v39RecordsBase.apply(this,arguments);
+  const box=document.getElementById("recordsList"); if(!box) return;
+  const L=save.lifetime||{}, km=((Number(L.distanceTotal)||0)/10000).toFixed(1), stunts=Number(L.stuntsTotal)||0, owned=(save.ownedVehicles||[]).length, ownedM=(save.ownedMaps||[]).length;
+  const st=document.createElement("div"); st.className="v39Stats";
+  st.innerHTML=`<h3 class="recH">📈 আমার পরিসংখ্যান</h3><div class="recGrid"><div class="recCard"><b>মোট দূরত্ব</b><span>${km} কিমি</span></div><div class="recCard"><b>মোট স্টান্ট</b><span>${stunts}</span></div><div class="recCard"><b>গাড়ি</b><span>${owned} / ${vehiclesV22.length}</span></div><div class="recCard"><b>ম্যাপ</b><span>${ownedM} / ${maps.length}</span></div></div>
+    <h3 class="recH">🌐 অনলাইন</h3><div class="recCard v39Online"><span>দেখা হচ্ছে…</span></div>`;
+  box.insertBefore(st,box.children[1]||null);
+  const on=st.querySelector(".v39Online span"), p=v17Profile();
+  if(!p){ on.textContent="প্রোফাইল নেই — LEADERBOARD থেকে গেস্ট হও বা রেজিস্টার করো।"; return; }
+  v17Api("/api/leaderboard?type=overall&me="+encodeURIComponent(p.id)).then(j=>{ on.textContent=`${p.name}${p.guest?" (গেস্ট)":""} — সামগ্রিক র‍্যাংক: `+(j.me?`#${j.me.rank} / ${j.me.total}`:"এখনো নেই"); }).catch(e=>{ on.textContent=p.name+" — "+v39Err(e); });
+};

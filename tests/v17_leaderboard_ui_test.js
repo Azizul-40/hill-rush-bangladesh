@@ -7,7 +7,7 @@ let pass=0,fail=0; const ok=(c,m)=>{ if(c){pass++;console.log('PASS',m);} else {
 (async()=>{
   const db=new DatabaseSync(':memory:'); db.exec(fs.readFileSync(path.join(dir,'db/schema.sql'),'utf8'));
   const env={DB:{prepare(sql){ const st=db.prepare(sql); const ex=a=>({async run(){st.run(...a);return{success:true};},async first(){return st.get(...a)||null;},async all(){return{results:st.all(...a)};}}); return {...ex([]),bind(...a){return ex(a);}}; }}};
-  const H={register:await import(path.resolve(dir,'functions/api/register.js')),submit:await import(path.resolve(dir,'functions/api/submit.js')),leaderboard:await import(path.resolve(dir,'functions/api/leaderboard.js'))};
+  const H={register:await import(path.resolve(dir,'functions/api/register.js')),submit:await import(path.resolve(dir,'functions/api/submit.js')),leaderboard:await import(path.resolve(dir,'functions/api/leaderboard.js')),login:await import(path.resolve(dir,'functions/api/login.js'))};
   const srv=http.createServer(async(q,r)=>{ const u=new URL(q.url,'http://x');
     if(u.pathname.startsWith('/api/')&&withApi){ const name=u.pathname.split('/')[2]; const h=H[name]; if(!h){ r.writeHead(404); return r.end(); }
       let body=''; for await(const c of q) body+=c; const req=new Request('http://x'+q.url,{method:q.method,body:q.method==='POST'?body:undefined});
@@ -15,6 +15,7 @@ let pass=0,fail=0; const ok=(c,m)=>{ if(c){pass++;console.log('PASS',m);} else {
     let p=path.join(dir,decodeURIComponent(u.pathname)); if(!fs.existsSync(p)||fs.statSync(p).isDirectory()){ r.writeHead(404,{'content-type':'text/html'}); return r.end('<html>404</html>'); } r.writeHead(200,{'content-type':mime[path.extname(p)]||'application/octet-stream'}); fs.createReadStream(p).pipe(r); }).listen(0,async()=>{
     const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'}); const p=await b.newPage({viewport:{width:1100,height:650}}); const errs=[]; p.on('pageerror',e=>errs.push(String(e)));
     await p.goto(`http://127.0.0.1:${srv.address().port}/index.html`); await p.waitForTimeout(700);
+    await p.evaluate(()=>localStorage.setItem('hillrush_lang','bn')); await p.reload(); await p.waitForTimeout(700); // বাংলা মোডে বার্তা যাচাই
     ok(await p.evaluate(()=>!!document.getElementById('leaderBtn')),'মেনুতে LEADERBOARD বাটন আছে');
     await p.click('#leaderBtn'); await p.waitForTimeout(500);
     ok(await p.evaluate(()=>getComputedStyle(document.getElementById('leaderMenu')).display!=='none'),'লিডারবোর্ড স্ক্রিন খোলে');
@@ -28,11 +29,29 @@ let pass=0,fail=0; const ok=(c,m)=>{ if(c){pass++;console.log('PASS',m);} else {
       const t=await p.evaluate(()=>document.getElementById('lbList').innerText); ok(new RegExp(prof.name).test(t),'লেভেল শেষ করলে ওভারঅল তালিকায় নিজের নাম আসে');
       await p.click('#lbTabL'); await p.waitForTimeout(300); await p.click('#lbGo'); await p.waitForTimeout(500);
       const t2=await p.evaluate(()=>document.getElementById('lbList').innerText); ok(new RegExp(prof.name).test(t2),'লেভেল-ট্যাবে সময়সহ নিজের নাম');
-      await p.click('#lbLogout'); await p.waitForTimeout(300);
-      await p.fill('#lbName','Azizul'); await p.fill('#lbEmail','a@b.com'); await p.click('#lbReg'); await p.waitForTimeout(500);
-      const prof2=await p.evaluate(()=>JSON.parse(localStorage.getItem('hillrush_profile_v1')||'null')); ok(prof2&&!prof2.guest&&prof2.name==='Azizul','ইমেইল রেজিস্টার কাজ করে');
-      await p.click('#lbLogout'); await p.fill('#lbName','Other'); await p.fill('#lbEmail','a@b.com'); await p.click('#lbReg'); await p.waitForTimeout(500);
-      ok(/আগেই/.test(await p.evaluate(()=>document.getElementById('leaderBody').innerText)),'একই ইমেইল দ্বিতীয়বার আটকায়');
+      // v39: লেভেল শেষের পর্দায় র‍্যাংক
+      await p.evaluate(()=>{ goMain(); startLevel(2); state='play'; levelStart=performance.now()-20000; completeLevel(); }); await p.waitForTimeout(900);
+      ok(/র‍্যাংক: #1/.test(await p.evaluate(()=>(document.querySelector('#completeMenu .v39Rank')||{}).textContent||'')),'লেভেল শেষে অনলাইন র‍্যাংক দেখায়');
+      // গেস্ট → নিবন্ধিত
+      await p.evaluate(()=>{ goMain(); }); await p.click('#leaderBtn'); await p.waitForTimeout(500);
+      await p.fill('#lbName','Azizul'); await p.fill('#lbPin','2468'); await p.click('#lbUpgrade'); await p.waitForTimeout(700);
+      const prof2=await p.evaluate(()=>JSON.parse(localStorage.getItem('hillrush_profile_v1')||'null')); ok(prof2&&!prof2.guest&&prof2.name==='Azizul'&&prof2.id===prof.id,'গেস্ট থেকে নাম + PIN দিয়ে নিবন্ধিত (একই প্রোফাইল)');
+      // অন্য ডিভাইসের মতো: প্রোফাইল মুছে লগইন
+      p.once('dialog',d=>d.accept()); await p.click('#lbLogout'); await p.waitForTimeout(300);
+      await p.click('.v39Auth button[data-a="login"]'); await p.waitForTimeout(200);
+      await p.fill('#lbName','azizul'); await p.fill('#lbPin','2468'); await p.click('#lbLogin'); await p.waitForTimeout(700);
+      const prof3=await p.evaluate(()=>JSON.parse(localStorage.getItem('hillrush_profile_v1')||'null')); ok(prof3&&prof3.id===prof.id&&prof3.token!==prof.token,'নাম + PIN দিয়ে লগইন করলে একই প্রোফাইল ফেরত');
+      // একই নামে নতুন রেজিস্টার আটকায়
+      p.once('dialog',d=>d.accept()); await p.click('#lbLogout'); await p.waitForTimeout(300);
+      await p.click('.v39Auth button[data-a="reg"]'); await p.waitForTimeout(200);
+      await p.fill('#lbName','AZIZUL'); await p.fill('#lbPin','1357'); await p.click('#lbReg'); await p.waitForTimeout(600);
+      ok(/আগেই/.test(await p.evaluate(()=>document.getElementById('leaderBody').innerText)),'একই নাম দ্বিতীয়বার আটকায়');
+      // এন্ডলেস ট্যাব
+      await p.click('.v39Auth button[data-a="login"]'); await p.fill('#lbName','Azizul'); await p.fill('#lbPin','2468'); await p.click('#lbLogin'); await p.waitForTimeout(600);
+      await p.evaluate(()=>{ goMain(); startEndless(); truck.x=250+6000; endEndlessRun('test'); }); await p.waitForTimeout(900);
+      ok(/এন্ডলেস র‍্যাংক: #1/.test(await p.evaluate(()=>(document.querySelector('#endlessMenu .v39Rank')||{}).textContent||'')),'এন্ডলেস শেষে র‍্যাংক');
+      await p.evaluate(()=>goMain()); await p.click('#leaderBtn'); await p.waitForTimeout(400); await p.click('#lbTabE'); await p.waitForTimeout(600);
+      ok(/600 মিটার/.test(await p.evaluate(()=>document.getElementById('lbList').innerText)),'এন্ডলেস ট্যাবে দূরত্ব');
     }
     ok(errs.length===0,'কোনো page error নেই '+JSON.stringify(errs.slice(0,2)));
     console.log(`\n${pass} পাস, ${fail} ফেল`); await b.close(); srv.close(); process.exit(fail?1:0); });

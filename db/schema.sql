@@ -1,11 +1,23 @@
 -- Hill Rush Bangladesh — লিডারবোর্ড (Cloudflare D1)
+-- v39: নাম + PIN দিয়ে রেজিস্টার/লগইন (অন্য ফোন থেকেও একই প্রোফাইল), এন্ডলেস দূরত্বের বোর্ড, একাধিক ডিভাইসের টোকেন।
 CREATE TABLE IF NOT EXISTS players (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  name_key TEXT,                 -- ছোট হাতের নাম (নিবন্ধিত হলে অনন্য)
   email TEXT UNIQUE,
   token_hash TEXT NOT NULL,
+  pin_hash TEXT,                 -- sha256(id + ":" + PIN); গেস্টের নেই
+  fails INTEGER NOT NULL DEFAULT 0,
+  lock_until INTEGER NOT NULL DEFAULT 0,
   guest INTEGER NOT NULL DEFAULT 0,
   created INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_players_name ON players (name_key);
+CREATE TABLE IF NOT EXISTS tokens (
+  player_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL,
+  created INTEGER NOT NULL,
+  PRIMARY KEY (player_id, token_hash)
 );
 CREATE TABLE IF NOT EXISTS scores (
   player_id TEXT NOT NULL,
@@ -16,6 +28,14 @@ CREATE TABLE IF NOT EXISTS scores (
   PRIMARY KEY (player_id, map, level)
 );
 CREATE INDEX IF NOT EXISTS idx_scores_board ON scores (map, level, time);
+CREATE TABLE IF NOT EXISTS endless (
+  player_id TEXT NOT NULL,
+  map INTEGER NOT NULL,
+  dist INTEGER NOT NULL,
+  updated INTEGER NOT NULL,
+  PRIMARY KEY (player_id, map)
+);
+CREATE INDEX IF NOT EXISTS idx_endless_board ON endless (map, dist DESC);
 CREATE TABLE IF NOT EXISTS progress (
   player_id TEXT PRIMARY KEY,
   unlocked INTEGER NOT NULL,

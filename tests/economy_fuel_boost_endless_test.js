@@ -69,7 +69,7 @@ const { chromium } = require('playwright');
   const dTxt=await p.evaluate(()=>document.getElementById('endlessDistance').textContent);
   const best=await p.evaluate(()=>save.endlessBest[String(save.selectedMap||0)]);
   const screenShown=await p.evaluate(()=>!document.getElementById('endlessMenu').classList.contains('hidden'));
-  ok('endEndlessRun → distance UI আপডেট',dTxt.includes('মিটার'),dTxt);
+  ok('endEndlessRun → distance UI আপডেট',(dTxt.includes('মিটার')||/\d+ m\b/.test(dTxt)),dTxt);
   ok('endEndlessRun → save.endlessBest সেভ',best>0,best);
   ok('endEndlessRun → endlessMenu স্ক্রিন দেখায়',screenShown===true,screenShown);
   const emAfter=await p.evaluate(()=>endlessMode);
