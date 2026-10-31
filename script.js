@@ -5832,11 +5832,18 @@ const V21=(function(){
   function grassTuft(x,y,s,c){ C.strokeStyle=css(c); C.lineWidth=1.3*s; C.beginPath(); for(let i=-3;i<=3;i++){ C.moveTo(x+i*2.5*s,y); C.lineTo(x+i*3.4*s,y-(5+(i&1)*3)*s); } C.stroke(); }
   // v28: আসল ৩D গাছের মডেল থেকে আগে বানানো ছবি (models/trees/*.webp, ক্রেডিট: docs/ASSET_CREDITS.md)।
   // লোড হলে টাইল আবার আঁকা হয়; লোড না হলে আগের কোডে আঁকা গাছ।
-  const SPR={}, SPR_H={bamboo:86,coconut:120,autumn:84,oak:82,banyan:92,fern:38,dead:68,round:68,shade:86,big:94};
-  const SPR_SRC={bamboo:["bamboo"],coconut:["coconut"],autumn:["autumn"],oak:["oak"],banyan:["banyan"],big:["banyan","oak"],fern:["fern"],dead:["dead"],round:["round"],shade:["shade"]};
-  (function loadSprites(){ if(typeof Image==="undefined") return; const names=["bamboo","coconut","autumn","oak","banyan","fern","dead","round","shade"]; let left=names.length*3;
-    for(const nm of names){ SPR[nm]=[]; for(let k=0;k<3;k++){ const im=new Image(); im.decoding="async";
+  const SPR={}, SPR_H={banana:62,bamboo:86,coconut:120,autumn:84,oak:82,banyan:92,fern:38,dead:68,round:68,shade:86,big:94};
+  const SPR_N={banana:6};
+  const SPR_SRC={banana:["banana"],bamboo:["bamboo"],coconut:["coconut"],autumn:["autumn"],oak:["oak"],banyan:["banyan"],big:["banyan","oak"],fern:["fern"],dead:["dead"],round:["round"],shade:["shade"]};
+  (function loadSprites(){ if(typeof Image==="undefined") return; const names=["bamboo","coconut","autumn","oak","banyan","fern","dead","round","shade","banana"]; let left=names.reduce((a,nm)=>a+(SPR_N[nm]||3),0);
+    for(const nm of names){ SPR[nm]=[]; for(let k=0;k<(SPR_N[nm]||3);k++){ const im=new Image(); im.decoding="async";
       im.onload=im.onerror=()=>{ if(--left===0) window.__treeVer=(window.__treeVer||0)+1; }; im.src="models/trees/"+nm+"_"+k+".webp"; SPR[nm].push(im); } } })();
+  // v29: মাটি/রাস্তা/খাদের আসল টেক্সচার (models/ground/*.jpg, Sketchfab মডেল থেকে নেওয়া — ক্রেডিট docs-এ)।
+  // ছবিগুলো আগে থেকে "দানা-মানচিত্র" করা (আলো/ছায়ার স্বচ্ছ ফোঁটা), সাধারণ ভাবে বসে — ম্যাপের রং থাকে, শুধু মাটি-পাথরের দানা যোগ হয়। দ্রুত।
+  const TEX={}; (function loadTex(){ if(typeof Image==="undefined") return; const ks=["dirt","road","rocks","cliff","sand","snow"]; let left=ks.length;
+    for(const k of ks){ const im=new Image(); im.onload=()=>{ try{ TEX[k]=ctx.createPattern(im,"repeat"); }catch(e){} if(--left===0) window.__treeVer=(window.__treeVer||0)+1; }; im.onerror=()=>{ if(--left===0) window.__treeVer=(window.__treeVer||0)+1; }; im.src="models/ground/"+k+".webp"; } })();
+  function tex(k,sc){ const p=TEX[k]; if(!p) return null; const w=256*sc; try{ p.setTransform(new DOMMatrix([sc,0,0,sc,-(((camera.x%w)+w)%w),0])); }catch(e){} return p; }
+  const soilTex=th=>th==="ice"?"snow":th==="desert"?"sand":(th==="canyon"||th==="volcano")?"rocks":"dirt";
   function sprite(type,x,y,s){
     const src=SPR_SRC[type]; if(!src) return false; const nm=src[Math.floor(hash(x*.53+y*.07+1.7)*src.length)%src.length], arr=SPR[nm]; if(!arr) return false;
     const im=arr[Math.floor(hash(x*.91+y*.17)*arr.length)%arr.length]; if(!im||!im.complete||!im.naturalWidth) return false;
@@ -5892,6 +5899,8 @@ const V21=(function(){
         if(k>6) continue; const fade=1-t*.75;
         for(let q=0;q+2<cnt;q+=2){ const lo=Math.max(0,q-3), hi=Math.min(cnt-1,q+5), sl=(A[hi]-A[lo])/(STEP*Math.max(1,hi-lo)); const lit=sl<0, al=Math.min(lit?.20:.30,Math.abs(sl)*(lit?.36:.48))*fade; if(al<.025) continue;
           C.fillStyle=lit?`rgba(255,240,205,${al})`:`rgba(18,10,4,${al})`; C.beginPath(); C.moveTo(X[ra+q],A[q]); C.lineTo(X[ra+q+2]+.5,A[q+2]); C.lineTo(X[ra+q+2]+.5,Bn[q+2]+.8); C.lineTo(X[ra+q],Bn[q]+.8); C.closePath(); C.fill(); } }
+      { const pt=tex(soilTex(m.theme),.84); if(pt){ C.save(); C.globalAlpha=m.theme==="ice"?.6:m.theme==="desert"?.55:.8; C.fillStyle=pt; C.beginPath(); C.moveTo(xl,L[0][0]);
+          for(let q=0;q<cnt;q++) C.lineTo(X[ra+q],L[0][q]); C.lineTo(xr,L[0][cnt-1]); C.lineTo(xr,floor+9); C.lineTo(xl,floor+9); C.closePath(); C.fill(); C.restore(); } }
       // ২) ঘাসের ছোপ (ঝোপালো গুচ্ছ + ঘাসের ডগা) — খাড়া ঢালে কম, চূড়ার কাছে বেশি
       if(b.cover>0){ for(let q=1;q<cnt-1;q++){ const wx=x0+(ra+q)*STEP; if(wx%16!==0) continue; const h1=hash(wx*.37+.5), h2=hash(wx*.71+3.3); const t=.03+h2*.82;
           const steep=Math.abs(Y[Math.min(rb,ra+q+2)]-Y[Math.max(ra,ra+q-2)])/(STEP*4); if(h1>b.cover*(1.25-t*.5)-steep*.6) continue;
@@ -5908,6 +5917,7 @@ const V21=(function(){
         pts.push([ex+dir*22,bot]); pts.push([ex+dir*22,ey+8]);
         const g=C.createLinearGradient(0,ey,0,bot); g.addColorStop(0,css(sh(b.rock,side<0?.12:-.2))); g.addColorStop(1,css(sh(b.rock,-.55)));
         C.fillStyle=g; C.beginPath(); pts.forEach((p,k)=>k?C.lineTo(p[0],p[1]):C.moveTo(p[0],p[1])); C.closePath(); C.fill();
+        { const pt=tex(m.theme==="ice"?"snow":"cliff",.6); if(pt){ C.save(); C.globalAlpha=.9; C.fillStyle=pt; C.fill(); C.restore(); } }
         C.strokeStyle="rgba(0,0,0,.25)"; C.lineWidth=1.2; C.beginPath(); for(let k=1;k<8;k+=2){ C.moveTo(pts[k][0],pts[k][1]); C.lineTo(pts[k][0]+dir*12,pts[k][1]+5); } C.stroke();
         C.strokeStyle=css(sh(b.rock,side<0?.35:-.35),.9); C.lineWidth=2; C.beginPath(); pts.slice(0,9).forEach((p,k)=>k?C.lineTo(p[0],p[1]):C.moveTo(p[0],p[1])); C.stroke();
         rock(ex+dir*9,ey+14,.42,b.rock,m.theme==="ice"); };
@@ -5942,6 +5952,7 @@ const V21=(function(){
       C.strokeStyle="rgba(0,0,0,.14)"; C.lineWidth=14; P(ra,rb,17); C.stroke();
       C.strokeStyle=css(verge); C.lineWidth=20; P(ra,rb,0); C.stroke();
       C.strokeStyle=css(path); C.lineWidth=9; P(ra,rb,-1); C.stroke();
+      { const pt=tex(m.theme==="ice"?"snow":m.theme==="desert"?"sand":"road",.32); if(pt){ C.save(); C.globalAlpha=.9; C.strokeStyle=pt; C.lineWidth=11; P(ra,rb,-1); C.stroke(); C.restore(); } }
       C.strokeStyle=css(sh(path,-.3),.55); C.lineWidth=1.6; P(ra,rb,-3.5); C.stroke(); P(ra,rb,1.6); C.stroke();
       C.strokeStyle="rgba(255,255,230,.32)"; C.lineWidth=2; P(ra,rb,-9.5); C.stroke();
       if(b.cover>.15){ C.strokeStyle=css(sh(verge,-.28)); C.lineWidth=1.4; C.beginPath();
@@ -5976,9 +5987,10 @@ const V21=(function(){
   // ---------- টাইল ক্যাশ: পাহাড় একবার ৫১২px চওড়া টুকরায় এঁকে রাখা হয়, প্রতি ফ্রেমে শুধু বসানো (অনেক দ্রুত) ----------
   const TILE=512, cache=new Map(); let key="";
   function renderTile(i){
-    const c=document.createElement("canvas"); c.width=Math.ceil(TILE*DPR); c.height=Math.ceil(H*DPR);
+    // v29: ৪px বেশি চওড়া (দুই পাশে ২px) — পাশাপাশি টাইলের জোড়ায় সরু দাগ না পড়ার জন্য
+    const c=document.createElement("canvas"); c.width=Math.ceil((TILE+4)*DPR); c.height=Math.ceil(H*DPR);
     const cx=c.getContext("2d"), sx=camera.x, sw=W;
-    C=cx; camera.x=i*TILE; W=TILE;
+    C=cx; camera.x=i*TILE-2; W=TILE+4;
     try{ cx.setTransform(DPR,0,0,DPR,0,0); draw(); } finally { C=ctx; camera.x=sx; W=sw; }
     return c; }
   function drawTiles(){
@@ -5989,7 +6001,7 @@ const V21=(function(){
     for(let i=first;i<=lastT+1;i++){ let c=cache.get(i);
       if(!c){ if(i>lastT&&made>0) continue; c=renderTile(i); made++; }
       cache.delete(i); cache.set(i,c);
-      if(i<=lastT) ctx.drawImage(c,i*TILE-camera.x,0,TILE,H); }
+      if(i<=lastT) ctx.drawImage(c,i*TILE-2-camera.x,0,TILE+4,H); }
     while(cache.size>7) cache.delete(cache.keys().next().value); }
   return {draw,water,drawTiles,BIOME};
 })();

@@ -69,3 +69,16 @@
 **লাইসেন্স নিয়ে খেয়াল রাখার বিষয়:**
 - **NC (অবাণিজ্যিক):** নেকড়ে, খরগোশ আর Monstera। ইউনিভার্সিটি প্রজেক্টে ব্যবহার করা যাবে, কিন্তু গেম বিক্রি করলে বা বিজ্ঞাপন দিলে এগুলো বাদ দিতে হবে।
 - **পাখির দুই ফাইল:** ব্যবহারকারী দুটো পাখির ফাইল দিয়েছিল। "bird" (Blender Artist, CC BY 4.0) আর "Birds" (Zacxophone, Sketchfab Standard)-এর জ্যামিতি হুবহু এক, অর্থাৎ একটা আরেকটার কপি। কোনটা আসল জানা নেই, তাই বেশি কড়া লাইসেন্সটা ধরে Zacxophone-কে ক্রেডিট দেওয়া হয়েছে। গেমে শুধু রেন্ডার করা ছবি আছে, মডেল ফাইল নেই।
+
+## কলাগাছ আর মাটি-রাস্তার টেক্সচার (v29)
+| গেমে | মডেল | নির্মাতা | লাইসেন্স | উৎস |
+|---|---|---|---|---|
+| কলাগাছ (`banana`, ৩টা ছবি) | "Banana Tree (Low Poly)" | EmiyaSyahriel | CC BY 4.0 | https://sketchfab.com/3d-models/banana-tree-low-poly-97a50ee6d93d4d8cb2c455a64a6d17c2 |
+| কলাগাছ (`banana`, ৩টা ছবি) | "Banana Tree" | DJMiddi | CC BY 4.0 | https://sketchfab.com/3d-models/banana-tree-7186ebfc24fc42c599f81713cd28d55e |
+| মাটি (`dirt`), রাস্তা (`road`), পাথুরে মাটি (`rocks`), খাদের পাথর (`cliff`) | "[UPDATE] Dirt Road Through Forest" (এর Ground_Dirt, Dirt_Road, Broken_Rocks, Tall_Cliff টেক্সচার) | 99.Miles | CC BY 4.0 | https://sketchfab.com/3d-models/update-dirt-road-through-forest-c4676cdf7715484382400ff63faffd45 |
+| বালু (`sand`, মরুভূমি ম্যাপ) | "Sand Dunes" | Helindu | CC BY 4.0 | https://sketchfab.com/3d-models/sand-dunes-6bd9a0d96ef4463a8efd45af2be595ac |
+| বরফ (`snow`, বরফ ম্যাপ) | "American Road Snow in Winter" (এর Cliff টেক্সচার) | jimbogies | CC BY 4.0 | https://sketchfab.com/3d-models/american-road-snow-in-winter-3618e7de9d014f1eb38d5c95b5f45645 |
+
+**আমাদের পরিবর্তন:** মডেল থেকে শুধু রংয়ের টেক্সচার (base color) বের করা হয়েছে। সেটা থেকে ২৫৬px-এর "দানা-মানচিত্র" বানানো হয়েছে (`models/ground/*.webp`): টেক্সচারের আলো-ছায়ার পার্থক্য থেকে স্বচ্ছ হালকা/গাঢ় ফোঁটা। বালুর ছবির কিনারা কাটা হয়েছে। গেমে এগুলো পাহাড়ের আগের রংয়ের ওপর বসে, তাই প্রতিটা ম্যাপের নিজের রং থাকে, শুধু আসল মাটি-পাথরের দানা যোগ হয়। কলাগাছ ৩ কোণ থেকে রেন্ডার করে ছবি করা হয়েছে।
+
+**যেগুলো ব্যবহার হয়নি (ফাইল দেওয়া হয়েছিল):** "Road02" (SKMT), "gravel road 2" (SPLEEN VISION), "Oak & Pine forest grounds" (3dhdscan), "Snow foot step" (GM3Dscan), "Sand Dune" (Helindu, টেক্সচার ছাড়া), "Sand Rock Pack 05" (perryfactor6177258)। এগুলো স্ক্যান করা টুকরো মডেল। এদের টেক্সচার জোড়া দিয়ে বারবার বসানোর মতো (tileable) না, আর ২D পাশ-দৃশ্যে কাজেও লাগে না। সবই CC BY 4.0।
