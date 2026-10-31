@@ -5609,7 +5609,7 @@ function v16CheckSize(){
   if(innerWidth!==W||innerHeight!==H||dpr!==DPR||canvas.width!==Math.floor(W*DPR)||canvas.height!==Math.floor(H*DPR)) resizeCanvas();
 }
 const v16RenderBase=render;
-render=function(){ v16CheckSize(); ctx.setTransform(DPR,0,0,DPR,0,0); /* v16.2: ট্রান্সফর্ম হারিয়ে গেলে (গেম ছোট দেখায়) প্রতি ফ্রেমে ফিরিয়ে আনা */ return v16RenderBase.apply(this,arguments); };
+render=function(){ v16CheckSize(); ctx.setTransform(DPR*(window.__k||1),0,0,DPR*(window.__k||1),0,0); /* v16.2: ট্রান্সফর্ম হারিয়ে গেলে (গেম ছোট দেখায়) প্রতি ফ্রেমে ফিরিয়ে আনা */ return v16RenderBase.apply(this,arguments); };
 ["orientationchange","fullscreenchange","pageshow","focus"].forEach(ev=>addEventListener(ev,()=>setTimeout(resizeCanvas,60)));
 if(window.visualViewport) visualViewport.addEventListener("resize",resizeCanvas);
 
@@ -5727,3 +5727,23 @@ showScreen=function(id){ v17ShowBase(id); if(id==="leaderMenu"){ document.getEle
   const b=document.getElementById("leaderBtn"); if(b) b.onclick=()=>{ resumeAudio(); tone(500,.06,.05); showScreen("leaderMenu"); v17Render(); };
   const k=document.getElementById("backLeaderBtn"); if(k) k.onclick=()=>{ tone(330,.06,.05); goMain(); };
 })();
+
+// ============================================================
+// v17.2 — ফোন লম্বালম্বি (portrait) মোডে খেলা: দুনিয়া ~৭৬০ একক চওড়া ধরে ছোট করে দেখানো হয়, যাতে গাড়ি ও রাস্তা আঁটে।
+// W/H এখন "ভার্চুয়াল" মাপ (পর্দার মাপ ÷ k); ল্যান্ডস্কেপে k=1, আগের মতোই।
+// ============================================================
+window.__k=1; let v172Last="";
+resizeCanvas=function(){
+  const iw=innerWidth, ih=innerHeight, k=(ih>iw*1.1)?Math.min(1,iw/760):1;
+  window.__k=k; W=iw/k; H=ih/k; DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=Math.floor(iw*DPR); canvas.height=Math.floor(ih*DPR);
+  ctx.setTransform(DPR*k,0,0,DPR*k,0,0); v172Last=iw+"x"+ih+"@"+DPR;
+};
+v16CheckSize=function(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  if(v172Last!==innerWidth+"x"+innerHeight+"@"+dpr||canvas.width!==Math.floor(innerWidth*DPR)||canvas.height!==Math.floor(innerHeight*DPR)) resizeCanvas();
+};
+resizeCanvas();
+// portrait: ঘড়িগুলো (RPM/FUEL/BOOST) নিচের বাটনের পেছনে ঢেকে যেত — বাটনের ওপরে তুলে আঁকা
+const v172GaugeBase=drawGaugeCluster;
+drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1) return v172GaugeBase.apply(this,arguments); ctx.save(); ctx.translate(0,-165/k); try{ return v172GaugeBase.apply(this,arguments); } finally { ctx.restore(); } };
