@@ -3513,3 +3513,58 @@ body #mainMenu .developerPlaque .supervisorName{
 .lbTable{width:100%;border-collapse:collapse}.lbTable td,.lbTable th{padding:7px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.14)}
 .lbTable tr.me td{background:rgba(255,225,74,.18);font-weight:800}
 .lbNote{font-size:13px;opacity:.9;margin:6px 0}.lbErr{color:#ffd0d0}
+
+/* ============ v17.1: নতুন মেইন-মেনু ডিজাইন (গ্লাস কার্ড + ২-কলাম টাইল গ্রিড) ============ */
+#mainMenu .mainActions{
+  position:absolute !important; right:6% !important; left:auto !important; top:50% !important; bottom:auto !important;
+  transform:translateY(-50%) !important; width:min(400px,44vw) !important; max-height:94vh !important; overflow-y:auto !important;
+  display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:10px !important; padding:14px !important;
+  border-radius:26px !important; background:linear-gradient(160deg,rgba(10,34,58,.62),rgba(6,20,36,.72)) !important;
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.28) !important;
+  box-shadow:0 20px 55px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.25) !important; scrollbar-width:none;
+}
+#mainMenu .mainActions::-webkit-scrollbar{display:none}
+#mainMenu .menuCoin{
+  position:static !important; transform:none !important; grid-column:1/-1 !important; margin:0 auto 2px !important; width:auto !important;
+  padding:7px 22px !important; border-radius:999px !important; font-size:20px !important; font-weight:900 !important; color:#ffe27a !important;
+  background:rgba(0,0,0,.35) !important; border:1px solid rgba(255,226,122,.45) !important; box-shadow:none !important;
+}
+#mainMenu .actionBtn{
+  display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:3px !important;
+  width:100% !important; min-height:66px !important; padding:10px 6px !important; border:0 !important; border-radius:18px !important;
+  font-size:13px !important; font-weight:900 !important; letter-spacing:.07em !important; text-decoration:none !important; text-align:center !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.05)),linear-gradient(#2a78b0,#14507f) !important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.28), 0 5px 0 rgba(3,25,44,.75), 0 10px 18px rgba(0,0,0,.28) !important;
+  transition:transform .12s, filter .12s !important;
+}
+#mainMenu .actionBtn i{font-style:normal;font-size:24px;line-height:1}
+#mainMenu .actionBtn:hover{filter:brightness(1.12);transform:translateY(-2px) !important}
+#mainMenu .actionBtn:active{transform:translateY(3px) !important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28),0 1px 0 rgba(3,25,44,.75) !important}
+#mainMenu #playBtn{
+  grid-column:1/-1 !important; flex-direction:row !important; gap:12px !important; min-height:62px !important; font-size:24px !important; letter-spacing:.12em !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 55%),linear-gradient(#4fe034,#17a02c) !important;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.4), 0 6px 0 #0b6a1c, 0 14px 26px rgba(20,160,40,.4) !important;
+}
+#mainMenu #playBtn i{font-size:26px}
+#mainMenu #leaderBtn,#mainMenu #missionsBtn{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.04)),linear-gradient(#d49a1e,#9a6508) !important}
+#mainMenu #play3dLink{
+  grid-column:1/-1 !important; flex-direction:row !important; gap:10px !important; min-height:52px !important; font-size:15px !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.25),rgba(255,255,255,0) 55%),linear-gradient(#8a5cff,#4a22b8) !important;
+}
+@media (max-width:760px){
+  #mainMenu .mainActions{ left:50% !important; right:auto !important; top:auto !important; bottom:3% !important; transform:translateX(-50%) !important; width:min(94vw,430px) !important; max-height:78vh !important }
+  #mainMenu .actionBtn{min-height:60px !important}
+}
+@media (min-width:761px){
+  #mainMenu .menuStage .mainActions.mainActions{ top:50% !important; right:2.5% !important; width:calc(var(--sw)*0.285) !important; max-height:none !important; transform:translateY(-50%) !important; overflow:visible !important;
+    background:linear-gradient(160deg,rgba(10,34,58,.66),rgba(6,20,36,.78)) !important; border:1px solid rgba(255,255,255,.3) !important; box-shadow:0 20px 55px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.25) !important; -webkit-backdrop-filter:blur(12px) !important; backdrop-filter:blur(12px) !important;
+    display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:calc(var(--sw)*.008) !important; padding:calc(var(--sw)*.012) !important; border-radius:calc(var(--sw)*.02) !important; }
+  #mainMenu .menuStage .mainActions.mainActions .actionBtn{ min-height:calc(var(--sw)*.048) !important; padding:calc(var(--sw)*.005) 4px !important; font-size:calc(var(--sw)*.0105) !important; border-radius:calc(var(--sw)*.012) !important; gap:2px !important; letter-spacing:.04em !important; }
+  #mainMenu .menuStage .mainActions.mainActions .actionBtn i{ font-size:calc(var(--sw)*.018) !important; }
+  #mainMenu .menuStage .mainActions.mainActions #playBtn{ min-height:calc(var(--sw)*.05) !important; font-size:calc(var(--sw)*.019) !important; }
+  #mainMenu .menuStage .mainActions.mainActions #playBtn i{ font-size:calc(var(--sw)*.02) !important; }
+  #mainMenu .menuStage .mainActions.mainActions #play3dLink{ min-height:calc(var(--sw)*.04) !important; font-size:calc(var(--sw)*.0115) !important; }
+  #mainMenu .menuStage .mainActions.mainActions .menuCoin{ grid-column:1/-1 !important; font-size:calc(var(--sw)*.0145) !important; padding:calc(var(--sw)*.004) calc(var(--sw)*.016) !important; }
+  #mainMenu .menuStage .mainActions.mainActions .actionBtn{ opacity:1 !important; }
+  #mainMenu .menuStage .mainActions.mainActions .menuCoin{ position:static !important; inset:auto !important; bottom:auto !important; top:auto !important; left:auto !important; right:auto !important; margin:0 auto 2px !important; width:auto !important; color:#ffe27a !important; background:rgba(0,0,0,.35) !important; border:1px solid rgba(255,226,122,.45) !important; border-radius:999px !important; }
+}
