@@ -3634,8 +3634,8 @@ body #mainMenu .developerPlaque .supervisorName{
 /* v38: বামে BRAKE আর REVERSE, ডানে DRIVE আর GAS (GAS সবচেয়ে ডানে) */
 #controls .controlLeft .brakeControl{order:0 !important;}
 #controls .controlLeft .reverseControl{order:1 !important;}
-#controls .controlRight .driveButton{order:0 !important;}
-#controls .controlRight .gasControl{order:1 !important;margin-right:0 !important;}
+#controls .controlRight .gasControl{order:0 !important;margin-right:0 !important;}
+#controls .controlRight .driveButton{order:1 !important;}  /* v38.1: DRIVE সবচেয়ে ডানে, তার আগে GAS */
 #controls .controlLeft,#controls .controlRight{gap:16px !important;}
 @media (max-height:520px){ #controls .controlLeft,#controls .controlRight{gap:10px !important;} }
 
