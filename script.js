@@ -6040,16 +6040,17 @@ function timeOfDay(){
     c.quadraticCurveTo(x+Math.cos(a)*len*1.08,y+Math.sin(a)*len*1.08,x+Math.cos(a+spread)*len,y+Math.sin(a+spread)*len); c.closePath(); }
   drawNightOverlay=function(){
     if(typeof state==="undefined"||state==="menu") return;
-    const tod=timeOfDay(), w=currentWeather, wet=w==="rain"||w==="snow"||w==="sandstorm", now=performance.now()/1000;
-    // রোদ: দিনে পরিষ্কার আকাশে উপরের বাঁ দিক থেকে উষ্ণ আলো ও রশ্মি
-    if(tod==="day"&&!wet){ ctx.save(); ctx.globalCompositeOperation="lighter";
-      const g=ctx.createRadialGradient(W*.12,-20,10,W*.12,-20,Math.max(W,H)*.75); g.addColorStop(0,"rgba(255,236,170,.30)"); g.addColorStop(.5,"rgba(255,220,150,.07)"); g.addColorStop(1,"rgba(0,0,0,0)");
+    const tod=timeOfDay(), w=currentWeather, wet=w==="rain"||w==="snow"||w==="sandstorm", now=performance.now()/1000, LT=v25Light();
+    // রোদ: সূর্য যেখানে, সেখান থেকে উষ্ণ আলো ও রশ্মি (মেঘ/বৃষ্টিতে কমে)
+    const sunI=LT.sun*(1-LT.rain)*(1-LT.warm*.5);
+    if(sunI>.04){ ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=sunI; const ox=LT.sx, oy=LT.sy;
+      const g=ctx.createRadialGradient(ox,oy,10,ox,oy,Math.max(W,H)*.75); g.addColorStop(0,"rgba(255,236,170,.30)"); g.addColorStop(.5,"rgba(255,220,150,.07)"); g.addColorStop(1,"rgba(0,0,0,0)");
       ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-      for(let k=0;k<5;k++){ const a=.35+k*.17+Math.sin(now*.15+k)*.02; ctx.fillStyle="rgba(255,240,190,.035)"; ctx.beginPath(); ctx.moveTo(W*.12,-20); ctx.lineTo(W*.12+Math.cos(a-.035)*W*1.3,-20+Math.sin(a-.035)*W*1.3); ctx.lineTo(W*.12+Math.cos(a+.035)*W*1.3,-20+Math.sin(a+.035)*W*1.3); ctx.closePath(); ctx.fill(); }
+      for(let k=0;k<5;k++){ const a=.35+k*.17+Math.sin(now*.15+k)*.02; ctx.fillStyle="rgba(255,240,190,.035)"; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox+Math.cos(a-.035)*W*1.3,oy+Math.sin(a-.035)*W*1.3); ctx.lineTo(ox+Math.cos(a+.035)*W*1.3,oy+Math.sin(a+.035)*W*1.3); ctx.closePath(); ctx.fill(); }
       ctx.restore(); }
     // বিকেল: কমলা আভা
-    if(tod==="evening"){ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(255,120,40,.26)"); g.addColorStop(.6,"rgba(255,150,70,.12)"); g.addColorStop(1,"rgba(80,30,60,.18)"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
-    let dark=tod==="night"?.78:tod==="evening"?.34:0; if(wet) dark=Math.min(.9,dark+(tod==="day"?.34:.14));
+    if(LT.warm>.03){ ctx.save(); ctx.globalAlpha=Math.min(1,LT.warm); const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(255,120,40,.26)"); g.addColorStop(.6,"rgba(255,150,70,.12)"); g.addColorStop(1,"rgba(80,30,60,.18)"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore(); }
+    let dark=LT.dark;
     // বৃষ্টির রাতে মাঝে মাঝে বিদ্যুৎ চমক
     if(false&&w==="rain"){ if(now>nextFlash){ flash=1; nextFlash=now+5+Math.random()*9; } }
     if(dark<.04) return;
@@ -6084,7 +6085,7 @@ function timeOfDay(){
       const tx=truck.x-camera.x-ca*62+sa*12, ty=truck.y-sa*62-ca*12; const tg=ctx.createRadialGradient(tx,ty,0,tx,ty,15); tg.addColorStop(0,"rgba(255,60,50,.85)"); tg.addColorStop(1,"rgba(255,40,30,0)"); ctx.fillStyle=tg; ctx.beginPath(); ctx.arc(tx,ty,15,0,6.3); ctx.fill();
       ctx.restore(); }
     // রাতে চাঁদ (মেঘ/বৃষ্টি না থাকলে)
-    if(tod==="night"&&!wet){ const mx=W*.82, my=H*.14; ctx.save(); const mg=ctx.createRadialGradient(mx,my,10,mx,my,90); mg.addColorStop(0,"rgba(230,238,255,.35)"); mg.addColorStop(1,"rgba(230,238,255,0)"); ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(mx,my,90,0,6.3); ctx.fill();
+    if(LT.moon>.04&&LT.rain<.6){ const mx=LT.mx, my=LT.my; ctx.save(); ctx.globalAlpha=LT.moon*(1-LT.rain); const mg=ctx.createRadialGradient(mx,my,10,mx,my,90); mg.addColorStop(0,"rgba(230,238,255,.35)"); mg.addColorStop(1,"rgba(230,238,255,0)"); ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(mx,my,90,0,6.3); ctx.fill();
       ctx.fillStyle="#eef2ff"; ctx.beginPath(); ctx.arc(mx,my,20,0,6.3); ctx.fill(); ctx.fillStyle="rgba(180,190,215,.5)"; ctx.beginPath(); ctx.arc(mx-6,my-4,4,0,6.3); ctx.arc(mx+6,my+6,3,0,6.3); ctx.fill(); ctx.restore(); }
   };
 })();
@@ -6191,105 +6192,170 @@ drawTruck=function(){
 };
 
 // ============================================================
-// v24 — আকাশ ও আবহাওয়ার ডিটেইল: মেঘ, সূর্য, উড়ন্ত পাখি; বৃষ্টিতে ঘন কালো মেঘ, বিদ্যুৎ চমক ও বজ্রপাত;
-// শব্দ: বৃষ্টির ঝমঝম, মেঘের গর্জন, পাখির ডাক, রাতে ঝিঁঝিঁ পোকা। সব শব্দ কোডে তৈরি (কোনো অডিও ফাইল নেই)।
+// v25 — চলমান দিন-রাত আর বদলানো আবহাওয়া।
+// খেলার সময় ঘড়ি চলে: সকাল → দুপুর → বিকেল (সূর্যাস্ত) → রাত (চাঁদ ওঠে) → ভোর → আবার দিন। পুরো চক্র ~৩.৫ মিনিট।
+// সূর্য আর চাঁদ আকাশে পথ ধরে চলে, আলো ধীরে ধীরে বদলায়। প্রথম ৫ লেভেল সকালে শুরু হয়।
+// আবহাওয়াও ৩০–৭০ সেকেন্ড পরপর বদলায় (রোদ ↔ বৃষ্টি ↔ বাতাস ইত্যাদি), মেঘ/অন্ধকার ধীরে আসে-যায়।
+// ============================================================
+const V25={CYCLE:210,startP:.08,key:"",nextChange:0,lastEl:0,rainAmt:0,lastNow:0};
+function v25Lerp(pts,p){ for(let i=1;i<pts.length;i++){ if(p<=pts[i][0]){ const a=pts[i-1], b=pts[i], t=(p-a[0])/Math.max(1e-6,b[0]-a[0]); return a[1]+(b[1]-a[1])*t; } } return pts[pts.length-1][1]; }
+function v25Phase(){
+  const m=maps[save.selectedMap]||maps[0];
+  if(m.theme==="night") return .76;
+  const f=window.__forceTod; if(f==="day") return .25; if(f==="evening") return .49; if(f==="night") return .76;
+  const k=currentLevel+"|"+(save.selectedMap||0);
+  if(k!==V25.key){ V25.key=k; V25.startP=currentLevel<=5?.07:hashSeed(currentLevel*71.31+(save.selectedMap||0)*19.73+5.1)*.6; }
+  const el=(typeof elapsed==="number"&&state!=="menu")?elapsed:0;
+  return ((V25.startP+el/V25.CYCLE)%1+1)%1;
+}
+const V25_DARK=[[0,.32],[.06,0],[.44,0],[.52,.30],[.60,.78],[.90,.78],[.97,.48],[1,.32]];
+const V25_WARM=[[0,.6],[.06,.25],[.12,0],[.41,0],[.49,1],[.56,.55],[.62,0],[.92,0],[.97,.55],[1,.6]];
+function v25Light(){
+  const p=v25Phase(), ra=V25.rainAmt;
+  let dark=v25Lerp(V25_DARK,p), warm=v25Lerp(V25_WARM,p)*(1-ra*.8);
+  dark=Math.min(.9,dark+ra*(dark<.3?.34:.12));
+  const sa=(p+.02)/.6, sun=(sa>0&&sa<1)?Math.min(1,Math.sin(Math.PI*sa)*3):0;
+  const ma=(p-.56)/.44, moon=(ma>0&&ma<1)?Math.min(1,Math.sin(Math.PI*ma)*3):0;
+  return {p,dark,warm,rain:ra,sun,sx:W*(.06+.88*Math.max(0,Math.min(1,sa))),sy:H*(.62-.5*Math.sin(Math.PI*Math.max(0,Math.min(1,sa)))),
+          moon,mx:W*(.08+.84*Math.max(0,Math.min(1,ma))),my:H*(.55-.43*Math.sin(Math.PI*Math.max(0,Math.min(1,ma))))};
+}
+timeOfDay=function(){ const L=v25Light(); return L.dark>=.5?"night":(L.warm>.35?"evening":"day"); };
+const V25_POOL={ice:["clear","snow","wind","snow"],desert:["clear","sandstorm","wind","clear"],volcano:["clear","wind","clear"],night:["clear","rain","clear"]};
+function v25Tick(){
+  const now=performance.now()/1000, dt=Math.min(.1,V25.lastNow?now-V25.lastNow:0); V25.lastNow=now;
+  const wet=currentWeather==="rain"||currentWeather==="snow"||currentWeather==="sandstorm";
+  if(typeof state==="undefined"||state==="menu") return;
+  const el=elapsed||0;
+  if(el<V25.lastEl-.5||V25.nextChange===0){ V25.nextChange=el+20+Math.random()*25; V25.rainAmt=wet?1:0; }   // নতুন/আবার শুরু হওয়া লেভেল
+  V25.lastEl=el;
+  V25.rainAmt+=((wet?1:0)-V25.rainAmt)*Math.min(1,dt*.35);                                                  // মেঘ/অন্ধকার ধীরে আসে-যায়
+  if(state==="play"&&typeof window.__forceWeather!=="string"&&el>V25.nextChange){
+    const m=maps[save.selectedMap]||maps[0], pool=V25_POOL[m.theme]||["clear","rain","clear","wind","rain"];
+    let nw=currentWeather, tries=0; while(nw===currentWeather&&tries++<8) nw=pool[Math.floor(Math.random()*pool.length)];
+    currentWeather=nw; V25.nextChange=el+30+Math.random()*40;
+  }
+}
+
+// ============================================================
+// v24 (নতুন) — আকাশ, মেঘ, পাখি, বিস্তারিত বিদ্যুৎ চমক, আর আবহাওয়ার শব্দ
 // ============================================================
 const V24=(function(){
   const rnd=(a,b)=>a+Math.random()*(b-a);
-  // ---------- শব্দ ----------
-  let rainSrc=null, rainGain=null, rainLP=null, nextBird=0, nextCricket=0;
+  // ---------- শব্দ (কোডে তৈরি) ----------
+  let rainSrc=null, rainGain=null, nextCricket=0;
   function noiseBuf(sec,brown){ const n=Math.floor(audio.sampleRate*sec), b=audio.createBuffer(1,n,audio.sampleRate), d=b.getChannelData(0); let last=0;
     for(let i=0;i<n;i++){ const w=Math.random()*2-1; if(brown){ last=(last+.02*w)/1.02; d[i]=last*3.2; } else d[i]=w; } return b; }
   function ensureRain(){ if(rainSrc||!audioReady||!audio) return;
     rainSrc=audio.createBufferSource(); rainSrc.buffer=noiseBuf(3,false); rainSrc.loop=true;
-    const hp=audio.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=500;
-    rainLP=audio.createBiquadFilter(); rainLP.type="lowpass"; rainLP.frequency.value=5200;
-    rainGain=audio.createGain(); rainGain.gain.value=0;
-    rainSrc.connect(hp); hp.connect(rainLP); rainLP.connect(rainGain); rainGain.connect(master); rainSrc.start(); }
+    const hp=audio.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=500; const lp=audio.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=5200;
+    rainGain=audio.createGain(); rainGain.gain.value=0; rainSrc.connect(hp); hp.connect(lp); lp.connect(rainGain); rainGain.connect(master); rainSrc.start(); }
   function thunder(dist){ if(!audioReady||!audio) return; const t=audio.currentTime;
-    const src=audio.createBufferSource(); src.buffer=noiseBuf(4,true);
-    const lp=audio.createBiquadFilter(); lp.type="lowpass"; lp.frequency.setValueAtTime(dist<.4?900:380,t); lp.frequency.exponentialRampToValueAtTime(120,t+3);
-    const g=audio.createGain(); const vol=.55*(1-dist*.5);
-    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.06+dist*.25);
-    // গড়গড়ে গর্জন: কয়েকবার ওঠানামা
-    for(let k=1;k<5;k++) g.gain.exponentialRampToValueAtTime(vol*rnd(.35,.9),t+.3+k*.45+dist*.2);
-    g.gain.exponentialRampToValueAtTime(.0001,t+3.8);
-    src.connect(lp); lp.connect(g); g.connect(master); src.start(t); src.stop(t+4); }
+    const src=audio.createBufferSource(); src.buffer=noiseBuf(4.5,true);
+    const lp=audio.createBiquadFilter(); lp.type="lowpass"; lp.frequency.setValueAtTime(dist<.35?1400:420,t); lp.frequency.exponentialRampToValueAtTime(110,t+3.4);
+    const g=audio.createGain(), vol=.6*(1-dist*.55);
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.04+dist*.3);
+    for(let k=1;k<6;k++) g.gain.exponentialRampToValueAtTime(vol*rnd(.3,.9),t+.25+k*.42+dist*.2);
+    g.gain.exponentialRampToValueAtTime(.0001,t+4.3); src.connect(lp); lp.connect(g); g.connect(master); src.start(t); src.stop(t+4.5);
+    if(dist<.3){ const c=audio.createBufferSource(); c.buffer=noiseBuf(.3,false); const hp=audio.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=1800; const cg=audio.createGain();
+      cg.gain.setValueAtTime(.35,t); cg.gain.exponentialRampToValueAtTime(.0001,t+.28); c.connect(hp); hp.connect(cg); cg.connect(master); c.start(t); c.stop(t+.3); } }  // কাছের বাজে "কড়াৎ"
   function birdCall(){ if(!audioReady||!audio) return; const t0=audio.currentTime, n=2+Math.floor(Math.random()*3), base=rnd(2300,3300);
     for(let i=0;i<n;i++){ const t=t0+i*rnd(.11,.18), o=audio.createOscillator(), g=audio.createGain(); o.type="sine";
       o.frequency.setValueAtTime(base,t); o.frequency.exponentialRampToValueAtTime(base*rnd(1.25,1.55),t+.06); o.frequency.exponentialRampToValueAtTime(base*.9,t+.1);
-      g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.035,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+.11);
-      o.connect(g); g.connect(master); o.start(t); o.stop(t+.13); } }
+      g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.035,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+.11); o.connect(g); g.connect(master); o.start(t); o.stop(t+.13); } }
   function cricket(){ if(!audioReady||!audio) return; const t0=audio.currentTime;
     for(let i=0;i<3;i++){ const t=t0+i*.09, o=audio.createOscillator(), g=audio.createGain(); o.type="triangle"; o.frequency.value=4300;
       g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.012,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.06); o.connect(g); g.connect(master); o.start(t); o.stop(t+.07); } }
 
-  // ---------- আকাশের জিনিস ----------
-  let clouds=[], cloudKey="", birds=[], nextFlock=3, bolt=null, flash=0, nextStrike=4, pendingThunder=[];
-  function makeClouds(rain){ clouds=[]; const n=rain?16:7;
-    for(let i=0;i<n;i++) clouds.push({x:Math.random()*1.4, y:rain?rnd(.0,.22):rnd(.05,.32), s:rain?rnd(1.1,1.9):rnd(.6,1.25), par:rnd(.04,.12), sp:rnd(.004,.012), seed:Math.random()*100}); }
-  const cloudCache={}, band={key:"",c:null,span:1};
+  // ---------- মেঘ (একবার এঁকে রাখা ফিতা, প্রতি ফ্রেমে শুধু সরানো) ----------
+  const cloudCache={}, bands={};
   function cloudSprite(dark){ const key=dark?"d":"l"; if(cloudCache[key]) return cloudCache[key];
     const R=2, c=document.createElement("canvas"); c.width=150*R; c.height=90*R; const x=c.getContext("2d"); x.scale(R,R);
-    const puffs=[[0,0,34],[-30,8,24],[30,6,26],[-12,-14,24],[14,-12,22],[48,12,18],[-48,14,16]];
-    for(const [dx,dy,r] of puffs){ const cx=75+dx, cy=48+dy, g=x.createRadialGradient(cx,cy-r*.3,r*.2,cx,cy,r);
+    for(const [dx,dy,r] of [[0,0,34],[-30,8,24],[30,6,26],[-12,-14,24],[14,-12,22],[48,12,18],[-48,14,16]]){ const cx=75+dx, cy=48+dy, g=x.createRadialGradient(cx,cy-r*.3,r*.2,cx,cy,r);
       if(dark){ g.addColorStop(0,"rgb(120,126,140)"); g.addColorStop(1,"rgb(58,62,74)"); } else { g.addColorStop(0,"#fff"); g.addColorStop(1,"rgb(214,226,238)"); }
       x.fillStyle=g; x.beginPath(); x.arc(cx,cy,r,0,6.3); x.fill(); }
     return cloudCache[key]=c; }
-  function cloud(x,y,s,dark,alpha){ const sp=cloudSprite(dark); ctx.save(); ctx.globalAlpha=alpha; ctx.drawImage(sp,x-75*s,y-48*s,150*s,90*s); ctx.restore(); }
+  function band(dark){ const key=currentLevel+"|"+save.selectedMap+"|"+W+"|"+H; let b=bands[dark?1:0];
+    if(b&&b.key===key) return b; b={key,span:Math.ceil(W*1.6),c:document.createElement("canvas")}; bands[dark?1:0]=b;
+    b.c.width=b.span; b.c.height=Math.ceil(H*.5); const bx=b.c.getContext("2d"), sc=W/900+.4, n=dark?16:7;
+    for(let i=0;i<n;i++){ const cs=(dark?rnd(1.1,1.9):rnd(.6,1.25))*sc, cx=Math.random()*b.span, cy=(dark?rnd(0,.22):rnd(.05,.32))*H, sp=cloudSprite(dark);
+      for(const off of [0,-b.span,b.span]) bx.drawImage(sp,cx+off-75*cs,cy-48*cs,150*cs,90*cs); }
+    return b; }
+  function drawBand(b,alpha,t){ if(alpha<.02) return; const off=((camera.x*.07+t*6)%b.span+b.span)%b.span; ctx.save(); ctx.globalAlpha=alpha; ctx.drawImage(b.c,-off,0); ctx.drawImage(b.c,b.span-off,0); ctx.restore(); }
+
+  // ---------- আকাশ ----------
+  let birds=[], nextFlock=0, cloudLight=0;
   function sky(){
     if(typeof state==="undefined"||state==="menu") return;
-    const tod=timeOfDay(), w=currentWeather, rain=w==="rain", t=performance.now()/1000;
-    const k=currentLevel+"|"+save.selectedMap+"|"+w; if(k!==cloudKey){ cloudKey=k; makeClouds(rain); birds=[]; }
-    // সূর্য
-    if(!rain&&w!=="sandstorm"){
-      if(tod==="day"){ const sx=W*.36, sy=H*.2; const g=ctx.createRadialGradient(sx,sy,8,sx,sy,120); g.addColorStop(0,"rgba(255,250,215,.9)"); g.addColorStop(.25,"rgba(255,236,170,.35)"); g.addColorStop(1,"rgba(255,230,160,0)");
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,120,0,6.3); ctx.fill(); ctx.fillStyle="#fff6cf"; ctx.beginPath(); ctx.arc(sx,sy,24,0,6.3); ctx.fill(); }
-      else if(tod==="evening"){ const sx=W*.78, sy=H*.42; const g=ctx.createRadialGradient(sx,sy,10,sx,sy,170); g.addColorStop(0,"rgba(255,200,120,.85)"); g.addColorStop(.3,"rgba(255,140,60,.35)"); g.addColorStop(1,"rgba(255,120,40,0)");
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,170,0,6.3); ctx.fill(); ctx.fillStyle="#ffb35c"; ctx.beginPath(); ctx.arc(sx,sy,34,0,6.3); ctx.fill(); }
-    }
-    // মেঘ (বৃষ্টিতে ঘন কালো): সব মেঘ একবার একটা চওড়া ফিতায় এঁকে রাখা হয়, প্রতি ফ্রেমে শুধু সরিয়ে বসানো (দ্রুত)
-    const night=tod==="night", dark=rain||night, bk=cloudKey+"|"+W+"|"+H+"|"+dark;
-    if(band.key!==bk){ band.key=bk; const span=Math.ceil(W*1.6), bh=Math.ceil(H*.5); band.c=band.c||document.createElement("canvas"); band.c.width=span; band.c.height=bh; band.span=span;
-      const bx=band.c.getContext("2d"), sc=W/900+.4;
-      for(const c of clouds){ const sp=cloudSprite(dark), cs=c.s*sc, cx=c.x/1.4*span, cy=c.y*H;
-        for(const off of [0,-span,span]) bx.drawImage(sp,cx+off-75*cs,cy-48*cs,150*cs,90*cs); } }
-    { const off=((camera.x*.07+t*6)%band.span+band.span)%band.span; ctx.save(); ctx.globalAlpha=rain?.94:night?.5:.85;
-      ctx.drawImage(band.c,-off,0); ctx.drawImage(band.c,band.span-off,0); ctx.restore(); }
-    if(rain){ const g=ctx.createLinearGradient(0,0,0,H*.5); g.addColorStop(0,"rgba(40,44,56,.55)"); g.addColorStop(1,"rgba(40,44,56,0)"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H*.5); }
-    // পাখির ঝাঁক (দিন/বিকেলে, বৃষ্টি না থাকলে)
-    if(!rain&&!night&&state==="play"&&t>nextFlock){ nextFlock=t+rnd(7,15); const n=3+Math.floor(Math.random()*5), y=rnd(.08,.3)*H, dir=Math.random()<.5?1:-1;
-      for(let i=0;i<n;i++) birds.push({x:dir>0?-40-i*rnd(14,26):W+40+i*rnd(14,26), y:y+(i%2?1:-1)*i*rnd(4,8), vx:dir*rnd(55,80), ph:Math.random()*6, s:rnd(.7,1.1)});
+    try{ v25Tick(); }catch(e){}
+    const L=v25Light(), ra=L.rain, t=performance.now()/1000, night=L.dark>.5;
+    // সূর্য (আকাশে পথ ধরে চলে; বিকেলে বড় ও কমলা)
+    if(L.sun>.02){ const a=L.sun*(1-ra*.9), sx=L.sx, sy=L.sy, w=L.warm, r=24+w*12;
+      ctx.save(); ctx.globalAlpha=a; const g=ctx.createRadialGradient(sx,sy,8,sx,sy,130+w*50);
+      g.addColorStop(0,w>.4?"rgba(255,190,110,.9)":"rgba(255,250,215,.9)"); g.addColorStop(.25,w>.4?"rgba(255,140,60,.38)":"rgba(255,236,170,.35)"); g.addColorStop(1,"rgba(255,200,140,0)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,130+w*50,0,6.3); ctx.fill(); ctx.fillStyle=w>.4?"#ffb35c":"#fff6cf"; ctx.beginPath(); ctx.arc(sx,sy,r,0,6.3); ctx.fill(); ctx.restore(); }
+    // মেঘ: পরিষ্কার আকাশের সাদা মেঘ ↔ বৃষ্টির ঘন কালো মেঘ (ধীরে বদলায়)
+    drawBand(band(false),(1-ra)*(night?.45:.85),t);
+    drawBand(band(true),ra*.95,t);
+    if(cloudLight>.01){ ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=Math.min(1,cloudLight); ctx.drawImage(band(true).c,0,0); ctx.restore(); }
+    if(ra>.02){ const g=ctx.createLinearGradient(0,0,0,H*.5); g.addColorStop(0,`rgba(40,44,56,${.55*ra})`); g.addColorStop(1,"rgba(40,44,56,0)"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H*.5); }
+    // পাখির ঝাঁক (রোদেলা দিনে/বিকেলে)
+    if(L.sun>.5&&ra<.3&&state==="play"&&t>nextFlock){ nextFlock=t+rnd(7,15); const n=3+Math.floor(Math.random()*5), y=rnd(.08,.3)*H, dir=Math.random()<.5?1:-1;
+      for(let i=0;i<n;i++) birds.push({x:dir>0?-40-i*rnd(16,28):W+40+i*rnd(16,28), y:y+(i%2?1:-1)*i*rnd(4,8), vx:dir*rnd(55,80), ph:Math.random()*6, s:rnd(.7,1.1)});
       if(Math.random()<.85) setTimeout(birdCall,rnd(200,900)); }
-    birds=birds.filter(b=>b.x>-120&&b.x<W+120);
-    ctx.strokeStyle=tod==="evening"?"rgba(40,20,30,.85)":"rgba(30,36,44,.85)"; ctx.lineWidth=2.4; ctx.lineCap="round";
+    birds=birds.filter(b=>b.x>-140&&b.x<W+140);
+    ctx.strokeStyle=L.warm>.4?"rgba(40,20,30,.85)":"rgba(30,36,44,.85)"; ctx.lineWidth=2.4; ctx.lineCap="round";
     for(const b of birds){ b.x+=b.vx/60; b.y+=Math.sin(t*1.3+b.ph)*.15; const f=Math.sin(t*9+b.ph)*7*b.s, s=b.s*11;
       ctx.beginPath(); ctx.moveTo(b.x-s,b.y-f); ctx.quadraticCurveTo(b.x-s*.4,b.y-f*.3-2,b.x,b.y); ctx.quadraticCurveTo(b.x+s*.4,b.y-f*.3-2,b.x+s,b.y-f); ctx.stroke(); }
   }
-  // বিদ্যুৎ চমক + বজ্রপাত (বৃষ্টিতে), আর শব্দের প্রতি-ফ্রেম হালনাগাদ
-  function strike(){ const t=performance.now()/1000; flash=1; const x=rnd(.15,.85)*W, pts=[[x,0]]; let y=0, xx=x; const bottom=rnd(.35,.6)*H;
-    while(y<bottom){ y+=rnd(14,30); xx+=rnd(-22,22); pts.push([xx,y]); }
-    bolt={pts,until:t+.22}; const dist=Math.random(); pendingThunder.push([t+.25+dist*2.2,dist]); nextStrike=t+rnd(6,14); }
+
+  // ---------- বিদ্যুৎ: শাখা-প্রশাখাসহ বজ্র, কয়েকবার ঝলক, মেঘ আলোকিত, মেঘের ভেতরে চমক ----------
+  let strikes=[], nextStrike=0, pending=[];
+  function genBolt(x0,y0,x1,y1,disp,depth,w,out){
+    if(depth<=0){ out.push([x0,y0,x1,y1,w]); return; }
+    const mx=(x0+x1)/2+(Math.random()-.5)*disp, my=(y0+y1)/2+(Math.random()-.5)*disp*.3;
+    genBolt(x0,y0,mx,my,disp*.55,depth-1,w,out); genBolt(mx,my,x1,y1,disp*.55,depth-1,w,out);
+    if(depth>=2&&Math.random()<.33){ const ang=Math.atan2(y1-y0,x1-x0)+(Math.random()<.5?-1:1)*rnd(.45,.95), len=Math.hypot(x1-x0,y1-y0)*rnd(.5,.95);
+      genBolt(mx,my,mx+Math.cos(ang)*len,my+Math.sin(ang)*len,disp*.5,depth-2,w*.45,out); } }
+  function pulses(){ const p=[0]; const n=1+Math.floor(Math.random()*3); let tt=0; for(let i=0;i<n;i++){ tt+=rnd(.07,.18); p.push(tt); } return p; }
+  function strike(kind){
+    const t=performance.now()/1000, sheet=kind==="sheet"||(kind!=="bolt"&&Math.random()<.35), dist=sheet?rnd(.4,1):Math.random();
+    let x=rnd(.12,.88)*W; const tx=truck.x-camera.x; if(Math.abs(x-tx)<170) x=tx+(x<tx?-1:1)*rnd(170,260); x=Math.max(20,Math.min(W-20,x)); if(Math.abs(x-tx)<150) x=tx+(tx<W/2?1:-1)*220;
+    const cy=rnd(.08,.18)*H, s={t0:t,p:pulses(),x,cy,sheet,dist,seg:null,gx:x,gy:H*.6};
+    if(!sheet){ const gx=x+rnd(-70,70), gwx=gx+camera.x, gy=isGap(gwx)?H-118:terrainY(gwx); s.gx=gx; s.gy=gy; s.seg=[];
+      genBolt(x,cy,gx,gy,Math.hypot(gx-x,gy-cy)*.42,6,(1.6-dist)*1.3,s.seg); }
+    strikes.push(s); pending.push([t+(sheet?rnd(.8,2.5):.15+dist*2.2),dist]); }
+  function intensity(s,t){ let I=0; for(const pt of s.p){ const d=t-s.t0-pt; if(d>=0) I+=Math.exp(-d/.055)*(pt===0?1:.8); } return Math.min(1.2,I); }
   function overlay(){
     if(typeof state==="undefined"||state==="menu") return;
-    const t=performance.now()/1000, rain=currentWeather==="rain";
-    if(rain&&state==="play"&&t>nextStrike) strike();
-    if(bolt&&t<bolt.until){ ctx.save();
-      // বজ্র পাহাড়ের পেছনে থাকে — শুধু মাটির ওপরের আকাশে আঁকা হয়
-      ctx.beginPath(); ctx.moveTo(-10,-10); for(let x=-10;x<=W+20;x+=16){ const wx=x+camera.x; ctx.lineTo(x,isGap(wx)?H:terrainY(wx)-4); } ctx.lineTo(W+20,-10); ctx.closePath(); ctx.clip();
-      ctx.globalCompositeOperation="lighter"; ctx.lineJoin="round";
-      for(const [w,a] of [[7,.18],[3.2,.5],[1.4,1]]){ ctx.strokeStyle=`rgba(220,230,255,${a})`; ctx.lineWidth=w; ctx.beginPath(); bolt.pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); }
+    const t=performance.now()/1000, L=v25Light(), rainy=currentWeather==="rain"&&L.rain>.55;
+    if(rainy&&state==="play"){ if(!nextStrike) nextStrike=t+rnd(2,5); if(t>nextStrike){ strike(); nextStrike=t+rnd(4,10); } } else nextStrike=0;
+    let flash=0, glow=0; strikes=strikes.filter(s=>t-s.t0<1.2);
+    for(const s of strikes){ const I=intensity(s,t); if(I<.01) continue;
+      const k=(1-s.dist*.6); flash=Math.max(flash,I*k*(s.sheet?.45:1)); glow=Math.max(glow,I*k);
+      ctx.save(); ctx.globalCompositeOperation="lighter";
+      // মেঘের ভেতর আলো
+      const cg=ctx.createRadialGradient(s.x,s.cy,10,s.x,s.cy,W*(s.sheet?.28:.38)); cg.addColorStop(0,`rgba(205,215,255,${.55*I*k})`); cg.addColorStop(1,"rgba(205,215,255,0)");
+      ctx.fillStyle=cg; ctx.fillRect(0,0,W,H*.7);
+      if(!s.sheet&&s.seg){
+        // বজ্রটা পাহাড়ের পেছনে: শুধু মাটির ওপরে আঁকা
+        ctx.beginPath(); ctx.moveTo(-10,-10); for(let x=-10;x<=W+20;x+=16){ const wx=x+camera.x; ctx.lineTo(x,isGap(wx)?H:terrainY(wx)-3); } ctx.lineTo(W+20,-10); ctx.closePath(); ctx.clip();
+        ctx.lineCap="round";
+        for(const [mul,a,col] of [[9,.10,"170,185,255"],[3.6,.35,"200,210,255"],[1.3,1,"255,255,255"]]){
+          for(const [x0,y0,x1,y1,w] of s.seg){ ctx.strokeStyle=`rgba(${col},${Math.min(1,a*I*k*(w>1?1:.75))})`; ctx.lineWidth=Math.max(.6,w*mul); ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); } }
+        // মাটিতে পড়ার জায়গায় ঝলক
+        const gg=ctx.createRadialGradient(s.gx,s.gy,2,s.gx,s.gy,70); gg.addColorStop(0,`rgba(230,235,255,${.6*I*k})`); gg.addColorStop(1,"rgba(230,235,255,0)"); ctx.fillStyle=gg; ctx.fillRect(s.gx-80,s.gy-80,160,160);
+      }
       ctx.restore(); }
-    if(flash>0){ ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.fillStyle=`rgba(200,210,255,${flash*(timeOfDay()==="night"?.42:.28)})`; ctx.fillRect(0,0,W,H); ctx.restore(); flash=Math.max(0,flash-(flash>.6?.12:.05)); }
-    while(pendingThunder.length&&pendingThunder[0][0]<=t){ thunder(pendingThunder.shift()[1]); }
+    cloudLight=glow*.6;
+    if(flash>.01){ ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.fillStyle=`rgba(195,205,255,${flash*(L.dark>.5?.30:.18)})`; ctx.fillRect(0,0,W,H); ctx.restore(); }
+    while(pending.length&&pending[0][0]<=t) thunder(pending.shift()[1]);
+    pending.sort((a,b)=>a[0]-b[0]);
     // শব্দ
     if(audioReady&&audio){ ensureRain(); const playing=state==="play";
-      if(rainGain) rainGain.gain.setTargetAtTime(rain&&playing?.16:0,audio.currentTime,.6);
-      const tod=timeOfDay();
-      if(playing&&tod==="night"&&!rain&&t>nextCricket){ nextCricket=t+rnd(.8,2.2); cricket(); }
-    }
+      if(rainGain) rainGain.gain.setTargetAtTime(currentWeather==="rain"&&playing?.18*L.rain:0,audio.currentTime,.5);
+      if(playing&&L.dark>.5&&L.rain<.3&&t>nextCricket){ nextCricket=t+rnd(.8,2.2); cricket(); } }
   }
-  return {sky,overlay,strike,_dbg:()=>({birds:birds.length,clouds:clouds.length,nextFlock}),_flock:()=>{ nextFlock=0; }};
+  return {sky,overlay,strike,_dbg:()=>({birds:birds.length,strikes:strikes.length}),_flock:()=>{ nextFlock=0; }};
 })();
 const v24SkyBase=drawSky;
 drawSky=function(){ const r=v24SkyBase.apply(this,arguments); try{ V24.sky(); }catch(e){} return r; };
