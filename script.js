@@ -6825,3 +6825,6 @@ const V38=(function(){
 })();
 // v38: "BEST: --:--.--" — এই লেভেলে আগে কোনো রেকর্ড না থাকলে লাইনটা লুকানো থাকে, রেকর্ড হলে দেখায়
 setInterval(()=>{ try{ const b=document.getElementById("best"), line=b&&b.closest(".bestLine"); if(line){ const empty=!/\d/.test(b.textContent)||/^[-:.\s]+$/.test(b.textContent); line.style.display=empty?"none":""; } }catch(e){} },400);
+
+// v38.2: CRASH আর LEVEL COMPLETE পর্দা থেকেও সরাসরি প্রধান মেনুতে যাওয়া (আগে শুধু চেকপয়েন্ট/রিট্রাই/লেভেল ছিল)
+["crashMainBtn","completeMainBtn"].forEach(id=>{ const b=document.getElementById(id); if(b) b.onclick=()=>{ try{ tone(330,.06,.05); }catch(e){} goMain(); }; });

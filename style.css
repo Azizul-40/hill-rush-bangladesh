@@ -3749,3 +3749,11 @@ body #mainMenu .developerPlaque .supervisorName{
 .langRow .langBtns button{border:0;border-radius:10px;padding:6px 12px;font-weight:800;font-size:13px;background:#dbe7ef;color:#123c59;cursor:pointer;}
 .langRow .langBtns button.on{background:#2f8fd8;color:#fff;}
 @media (max-height:520px){ .langRow .langBtns button{padding:4px 9px;font-size:11px;} }
+/* v38.2: ফোনে ফলাফল/ক্র্যাশ কার্ডের বাটন দুই কলামে — চারটা বাটনও এক পর্দায় আঁটে */
+@media (max-height:520px){
+  .screen .modalCard{display:flex !important;flex-direction:row !important;flex-wrap:wrap !important;justify-content:center !important;align-items:center !important;align-content:flex-start !important;column-gap:8px !important;width:min(460px,calc(100vw - 24px)) !important;}
+  .screen .modalCard > .actionBtn{height:36px !important;min-height:36px !important;align-self:auto !important;}
+  .screen .modalCard > :not(.actionBtn){flex:0 0 100% !important;text-align:center !important;}
+  .screen .modalCard > .actionBtn{flex:1 1 calc(50% - 8px) !important;max-width:calc(50% - 4px) !important;width:auto !important;font-size:13px !important;}
+  .screen .modalCard > .actionBtn[style*="display: none"],.screen .modalCard > .actionBtn[style*="display:none"]{display:none !important;}
+}
