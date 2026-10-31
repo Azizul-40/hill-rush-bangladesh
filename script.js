@@ -6622,16 +6622,18 @@ function v33Prep(){
   if(need>V33.EX) V33.EX=Math.ceil(need/40)*40;
 }
 function v33Update(){
-  const now=performance.now(), dt=V33.last?Math.min(.1,(now-V33.last)/1000):0; V33.last=now;
+  // v35: ক্যামেরা আর উপরে-নিচে চলে না (আগের মতো স্থির) — চলন্ত অবস্থায় পাহাড় লাফায় না।
+  // শুধু লেভেলের শুরুতে একবার হিসাব: পুরো লেভেলের সবচেয়ে উঁচু চূড়াও যেন পর্দার ভেতরে থাকে, দরকার হলে পুরো দৃশ্য
+  // একটা স্থির পরিমাণ নিচে বসে (পুরো লেভেলে একই থাকে)। বেশিরভাগ ম্যাপে এটা ০, মানে আগের মতোই।
   if(state==="menu"){ V33.off=0; return; }
-  try{ v33Prep(); }catch(e){}
-  const target=Math.max(0,Math.min(V33.EX,H*.46-truck.y));
-  V33.off+=(target-V33.off)*Math.min(1,dt*(target>V33.off?7:2.5));
-  if(Math.abs(target-V33.off)<.3) V33.off=target;
-  // গাড়ি কখনো পর্দার উপরের ৩০%-এ (HUD-এর নিচে) বা নিচের বাটনের কাছে যাবে না — দেরি না করে সাথে সাথে ক্যামেরা সরে
-  const sy=truck.y+V33.off, top=H*.32, bot=H*.66;
-  if(sy<top) V33.off=Math.min(V33.EX,top-truck.y);
-  else if(sy>bot&&V33.off>0) V33.off=Math.max(0,bot-truck.y);
+  const k=currentLevel+"|"+save.selectedMap+"|"+H+"|"+((typeof endlessMode!=="undefined"&&endlessMode)?1:0);
+  if(V33.fixKey===k) return;
+  V33.fixKey=k; V33.key=k; V33.seenTo=0;
+  let mn=1e9, mx=-1e9; const end=(typeof endlessMode!=="undefined"&&endlessMode)?8000:Math.min(finishX()+400,60000);
+  for(let x=0;x<end;x+=30){ if(isGap(x)) continue; const y=terrainY(x); if(y<mn) mn=y; if(y>mx) mx=y; }
+  let off=Math.max(0,H*.24-mn);                 // সবচেয়ে উঁচু রাস্তা পর্দার উপরের ২৪%-এর নিচে
+  off=Math.min(off,Math.max(0,(H-(innerHeight<=520?70:110))-mx));      // কিন্তু সবচেয়ে নিচের রাস্তা যেন নিচের বাটনের নিচে না যায় (ফোনে বাটন ছোট)
+  V33.off=Math.round(off); V33.EX=Math.ceil(V33.off/40)*40;
 }
 function v33Wrap(name){ const base=window[name]; if(typeof base!=="function") return; window[name]=function(){ if(!V33.off) return base.apply(this,arguments); ctx.save(); ctx.translate(0,V33.off); try{ return base.apply(this,arguments); } finally{ ctx.restore(); } }; }
 ["drawTerrain","drawBridges","drawFinish","drawCoins","drawFuelCans","drawBoostCans","drawCheckpointFlags","drawParticles","drawGhost","drawTruck","drawFloatTexts"].forEach(v33Wrap);
