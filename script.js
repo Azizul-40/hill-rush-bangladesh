@@ -6613,7 +6613,7 @@ function v33Prep(){
   if(end<=V33.seenTo) return;
   let mn=1e9; for(let x=Math.max(0,V33.seenTo-200);x<end;x+=30){ if(!isGap(x)) mn=Math.min(mn,terrainY(x)); }
   V33.seenTo=end+((typeof endlessMode!=="undefined"&&endlessMode)?3000:0);
-  const need=Math.max(0,Math.min(900,Math.ceil(H*.46-(mn-80))));
+  const need=Math.max(0,Math.min(1300,Math.ceil(H*.46-(mn-300))));   // লাফে গাড়ি পাহাড়ের চেয়ে অনেক উপরে ওঠে, তাই বাড়তি জায়গা
   if(need>V33.EX) V33.EX=Math.ceil(need/40)*40;
 }
 function v33Update(){
@@ -6621,8 +6621,12 @@ function v33Update(){
   if(state==="menu"){ V33.off=0; return; }
   try{ v33Prep(); }catch(e){}
   const target=Math.max(0,Math.min(V33.EX,H*.46-truck.y));
-  V33.off+=(target-V33.off)*Math.min(1,dt*(target>V33.off?5:2.5));
+  V33.off+=(target-V33.off)*Math.min(1,dt*(target>V33.off?7:2.5));
   if(Math.abs(target-V33.off)<.3) V33.off=target;
+  // গাড়ি কখনো পর্দার উপরের ৩০%-এ (HUD-এর নিচে) বা নিচের বাটনের কাছে যাবে না — দেরি না করে সাথে সাথে ক্যামেরা সরে
+  const sy=truck.y+V33.off, top=H*.32, bot=H*.66;
+  if(sy<top) V33.off=Math.min(V33.EX,top-truck.y);
+  else if(sy>bot&&V33.off>0) V33.off=Math.max(0,bot-truck.y);
 }
 function v33Wrap(name){ const base=window[name]; if(typeof base!=="function") return; window[name]=function(){ if(!V33.off) return base.apply(this,arguments); ctx.save(); ctx.translate(0,V33.off); try{ return base.apply(this,arguments); } finally{ ctx.restore(); } }; }
 ["drawTerrain","drawBridges","drawFinish","drawCoins","drawFuelCans","drawBoostCans","drawCheckpointFlags","drawParticles","drawGhost","drawTruck","drawFloatTexts"].forEach(v33Wrap);
