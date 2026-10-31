@@ -5861,7 +5861,6 @@ drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1) return v172GaugeBas
     }
   }
   drawTerrain=function(){
-    try{ ridges(); }catch(e){}
     const r=v163TerrainBase.apply(this,arguments);
     try{ shade(); }catch(e){}
     try{ v163DrawDetails(); }catch(e){}
