@@ -6515,3 +6515,79 @@ drawGaugeCluster=function(){
   ctx.save(); ctx.translate(cx,cy+(1-s)*20); ctx.scale(s,s); ctx.translate(-W/2,-cy);
   try{ return v31GaugeBase.apply(this,arguments); } finally{ ctx.restore(); }
 };
+
+// ============================================================
+// v32 — শুধু GAS+BOOST চেপে ধরে লেভেল পার হওয়া যেত; এখন দক্ষতা লাগে।
+// ১) বুস্ট খালি হলে "ঠান্ডা হওয়া" (cooldown): ৪৫% ভরা না হওয়া পর্যন্ত আর চালু হয় না, আর বাটন ছেড়ে আবার চাপতে হয়।
+// ২) বুস্ট চালালে বেশি তেল খরচ হয়।
+// ৩) বাতাসে থাকা অবস্থায় GAS চাপলে গাড়ির নাক উপরে ওঠে (পেছনে হেলে) — বুস্টে আরও বেশি। আসল Hill Climb-এর মতো।
+//    DRIVE (▶) চাপলে সামনে, REVERSE (◀) চাপলে পেছনে ঘোরে (আগের মতো)। খুব হেলে (১০০°-এর বেশি, মানে ছাদ/নাক আগে মাটিতে) নামলে ক্র্যাশ।
+// ============================================================
+const V32={lockAt:45, fuelBoost:2.4, tiltGas:2.0, tiltBoost:2.8, landMax:1.75};
+const v32PhysBase=updatePhysics;
+updatePhysics=function(dt){
+  if(state!=="play") return v32PhysBase.apply(this,arguments);
+  // ১) cooldown
+  if(truck.boostLock&&(truck.boostEnergy||0)>=V32.lockAt&&!keys.boost) truck.boostLock=false;
+  const realBoost=keys.boost, boostOn=realBoost&&!truck.boostLock&&(truck.boostEnergy||0)>0;
+  if(truck.boostLock) keys.boost=false;
+  // ৩) বাতাসে GAS = নাক উপরে
+  const air=!truck.onGround;
+  if(air&&keys.gas&&truck.fuel>0) truck.angVel=(truck.angVel||0)-(V32.tiltGas+(boostOn?V32.tiltBoost:0))*dt;
+  const before=truck.onGround;
+  try{ v32PhysBase.apply(this,arguments); } finally { keys.boost=realBoost; }
+  if(state!=="play") return;
+  if(boostOn&&(truck.boostEnergy||0)<=0.5){ truck.boostLock=true; spawnFloatText(truck.x,truck.y-95,"বুস্ট ঠান্ডা হচ্ছে…","#9b6bff"); }
+  // ২) বুস্টে বাড়তি তেল
+  if(boostOn&&truck.fuel>0) truck.fuel=Math.max(0,truck.fuel-V32.fuelBoost*dt);
+  // ৩) নামার সময় কোণ দেখা
+  if(!before&&truck.onGround&&truck.x>300){
+    const hw=(truck.wheelBase||92)/2, sl=Math.atan2(terrainY(truck.x+hw)-terrainY(truck.x-hw),hw*2), d=Math.atan2(Math.sin(truck.angle-sl),Math.cos(truck.angle-sl));
+    window.__v32Land=d;
+    if(Math.abs(d)>V32.landMax){ crash(d<0?"পেছনে উল্টে পড়েছে! (বাতাসে GAS কম চাপো)":"সামনে মুখ থুবড়ে পড়েছে!"); }
+  }
+};
+// নতুন লেভেল/রিস্পন হলে cooldown মুছে যায়
+const v32ResetBase=resetTruck;
+resetTruck=function(){ const r=v32ResetBase.apply(this,arguments); truck.boostLock=false; return r; };
+// বুস্ট ঘড়ি: cooldown চলাকালে ধূসর
+const v32GaugeBase=drawGaugeCluster;
+drawGaugeCluster=function(){ if(state==="play"&&truck.boostLock){ const e=truck.boostEnergy; truck.boostEnergy=0; try{ return v32GaugeBase.apply(this,arguments); } finally{ truck.boostEnergy=e; } } return v32GaugeBase.apply(this,arguments); };
+
+// ============================================================
+// v32 — গ্যারেজ/দোকানের গাড়ির আইকন এখন খেলার ভেতরের আসল ৩D মডেল থেকে (চালকসহ, নিজের রঙে)।
+// মডেল লোড না হওয়া পর্যন্ত (বা WebGL না থাকলে / file:// খুললে) আগের আইকন দেখায়, লোড হলে নিজে বদলে যায়।
+// ============================================================
+const v32IconCache={};
+const v32MiniBase=miniTruckMarkup;
+miniTruckMarkup=function(v,scale=""){
+  const T=window.V3DTruck; if(!v||!T||!T.icon||window.__no3d) return v32MiniBase.apply(this,arguments);
+  const e=v15Eff(v), kind=v.kind||"truck", key=kind+"|"+e.color;
+  let url=v32IconCache[key];
+  if(url===undefined){ if(kind!=="truck"&&T.preload) T.preload(kind); url=T.icon(kind,e.color,v.color); if(url) v32IconCache[key]=url; }
+  if(!url) return v32MiniBase.apply(this,arguments);
+  return `<img class="v32Icon${/vehicleMini/.test(scale)?" v32Card":" v32Big"}" alt="${v.name}" src="${url}">`;
+};
+(function v32Wire(){
+  let tries=0; const hook=()=>{ const T=window.V3DTruck; if(!T||!T.onUpdate){ if(tries++<40) setTimeout(hook,500); return; }
+    let t=null; T.onUpdate(()=>{ for(const k in v32IconCache) delete v32IconCache[k]; clearTimeout(t); t=setTimeout(()=>{ const g=document.getElementById("garageMenu"); if(g&&!g.classList.contains("hidden")) renderGarage(); },120); }); };
+  hook();
+  // গ্যারেজ খুললে সব মডেল আগে থেকে লোড শুরু
+  const gb=document.getElementById("garageBtn"); if(gb) gb.addEventListener("click",()=>{ const T=window.V3DTruck; if(T&&T.preload) ["cng","rickshaw","ebike","bus"].forEach(k=>T.preload(k)); });
+})();
+
+// ============================================================
+// v32 — ম্যাপ বাছাইয়ের কার্ডে প্রতিটা ম্যাপের আসল খেলার দৃশ্য (models/maps/<n>.webp) — আগে সব প্রায় এক রকম ছিল।
+// ছবিগুলো গেম চালিয়েই তোলা (দিনের আলো, পরিষ্কার আকাশ; Night City রাতে)। ছবি না এলে আগের আঁকা প্রিভিউ থাকে।
+// ============================================================
+const v32MapsBase=renderMaps;
+renderMaps=function(){
+  v32MapsBase.apply(this,arguments);
+  const g=document.getElementById("mapGrid"); if(!g) return;
+  [...g.children].forEach(c=>{ const h=c.querySelector("h3"), th=c.querySelector(".mapThumb"); if(!h||!th) return;
+    const t=h.textContent.replace(" 🇧🇩","").trim(), i=maps.findIndex(m=>m.name===t); if(i<0) return;
+    const img=new Image(); img.alt=t; img.className="v32MapImg"; img.decoding="async";
+    img.onload=()=>{ th.innerHTML=""; th.appendChild(img); th.classList.add("v32Thumb"); };
+    img.src="models/maps/"+i+".webp"; });
+};
+renderMaps();

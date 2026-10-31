@@ -42,8 +42,10 @@ let pass=0,fail=0;const ok=(n,c,x='')=>{if(c){pass++;console.log('PASS',n,x)}els
   ok('পুরনো ম্যাপ পরে, GREEN HILLS ৬ নম্বরে',order[5]==='GREEN HILLS'&&order.length===13,order[5]);
   const sel=await p.evaluate(()=>{const cards=[...document.querySelectorAll('#mapGrid .mapCard')];cards[1].click();return {sel:save.selectedMap,name:maps[save.selectedMap].name};});
   ok('ক্রম বদলালেও ক্লিকে ঠিক ম্যাপ select (রাঙামাটি = index ১২)',sel.sel===12&&sel.name.startsWith('RANGAMATI'),JSON.stringify(sel));
-  const thumbs=await p.evaluate(()=>document.querySelectorAll('#mapGrid .mapThumb svg').length);
-  ok('৫টা বাংলাদেশি ম্যাপের নিজস্ব thumbnail',thumbs===5,String(thumbs));
+  // v32: প্রতিটা ম্যাপের কার্ডে নিজের আসল দৃশ্যের ছবি (models/maps/<n>.webp) — ১৩টাই আলাদা
+  await p.waitForTimeout(1200);
+  const thumbs=await p.evaluate(()=>new Set([...document.querySelectorAll('#mapGrid .mapThumb img.v32MapImg')].map(i=>i.getAttribute('src'))).size);
+  ok('১৩টা ম্যাপের নিজস্ব আলাদা thumbnail ছবি',thumbs===13,String(thumbs));
   const old=await p.evaluate(()=>{save.selectedMap=7;save.coins=0;return {s:save.selectedMap,len:maps.length,own:save.ownedMaps.length};});
   ok('পুরনো save-এর index অক্ষত (ম্যাপ ১৩টা)',old.len===13&&old.s===7);
   ok('কোনো page error নেই',errs.length===0,JSON.stringify(errs));

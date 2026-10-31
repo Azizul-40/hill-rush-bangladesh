@@ -71,7 +71,7 @@ function setup(root){
   const top = proj(new THREE.Vector3(box.max.x - .02, box.min.y + (box.max.y-box.min.y)*.62 - ctr.y, .12));
   map = { pr, pf, Rpx, lamp: top };
   T.map = map; T.pivots = pivots.map(p=>({c:p.c.toArray().map(v=>+v.toFixed(3)),R:+p.R.toFixed(3),front:p.front,near:p.near}));
-  T.ready = true;
+  T.ready = true; setTimeout(notify, 0);
 }
 
 // opts: {color:"#rrggbb", spin, rs, fs, wb(পিক্সেলে কাঙ্ক্ষিত হুইলবেস), rc:[x,y] (২D-তে পেছনের চাকার কেন্দ্র)}
@@ -151,6 +151,7 @@ function setupDriver(rec, cfg, root, holder){
       const hy = root.worldToLocal(top.getWorldPosition(new THREE.Vector3())).y; if(hy <= D.maxHead) break;
       if(D2.lean < (D.maxLean||30)) D2.lean += 4; else { k *= .96; place(k); }
       poseDriver(rec, 0); }
+    setTimeout(notify, 0);
   }catch(e){ console.warn('driver setup failed', e); } }, undefined, e => console.warn('driver load failed', e));
 }
 function poseDriver(rec, crank){
@@ -246,6 +247,7 @@ function setupVeh(rec, cfg, root){
   const tail = proj((-ex.len/2-midX)*s+3, Math.min(LP[1], ex.height*.45)*s, 0);
   setupDriver(rec, cfg, root, holder);
   Object.assign(rec, { sc, cam, s, U, wr, wf, g0, lamp, tail, R: cfg.Rt, len: ex.len*s, ready:true, color:null });
+  setTimeout(notify, 0);
 }
 // opts: {color, base(মূল রং), spin, rs, fs, gy (গাড়ির কেন্দ্র থেকে মাটির দূরত্ব, পিক্সেলে)}
 T.renderVeh = function(kind, opts){
@@ -264,6 +266,24 @@ T.renderVeh = function(kind, opts){
 let QL = 0, frameN = 0;
 T.setQuality = lv => { QL = lv|0; if(!renderer) return; renderer.setPixelRatio(QL>0 ? 1 : DPRr); renderer.setSize(CW, CH, false); };
 T.has = kind => !!VEH[kind];
+// মডেল/চালক লোড হলে জানানো (গ্যারেজের আইকন নতুন করে আঁকার জন্য)
+const listeners = []; T.onUpdate = fn => listeners.push(fn);
+const notify = () => { for(const fn of listeners){ try{ fn(); }catch(e){} } };
+// গ্যারেজ/মেনুর আইকন: ৩D ছবি থেকে স্বচ্ছ PNG (data URL), ফাঁকা অংশ কেটে
+T.icon = function(kind, color, base){
+  let img = null;
+  try{ img = kind && kind !== 'truck' ? T.renderVeh(kind, { color, base, spin:.35, rs:0, fs:0, gy:58 })
+                                     : (T.ready ? T.render({ color, spin:.35, rs:0, fs:0, wb:98, rc:[-47,29] }) : null); }catch(e){ img = null; }
+  if(!img) return null;
+  const k = 2, c = document.createElement('canvas'); c.width = 300*k; c.height = 220*k; const x = c.getContext('2d');
+  x.scale(k, k); x.translate(150, 120);
+  x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); x.ellipse(0, 57, (img.len ? img.len*.45 : 80), 6, 0, 0, Math.PI*2); x.fill();
+  x.drawImage(img.canvas, img.dx, img.dy, img.dw, img.dh);
+  try{ const d = x.getImageData(0, 0, c.width, c.height).data; let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+    for(let yy=0; yy<c.height; yy+=2) for(let xx=0; xx<c.width; xx+=2){ if(d[(yy*c.width+xx)*4+3] > 10){ if(xx<x0)x0=xx; if(xx>x1)x1=xx; if(yy<y0)y0=yy; if(yy>y1)y1=yy; } }
+    if(x1 > x0 && y1 > y0){ const pad = 6, o = document.createElement('canvas'); o.width = x1-x0+pad*2; o.height = y1-y0+pad*2; o.getContext('2d').drawImage(c, x0-pad, y0-pad, o.width, o.height, 0, 0, o.width, o.height); return o.toDataURL('image/png'); } }catch(e){}
+  return c.toDataURL('image/png');
+};
 T.preload = kind => { loadVeh(kind); };
 
 try{ init(); }catch(e){ console.warn('3D truck unavailable', e); }
