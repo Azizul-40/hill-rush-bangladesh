@@ -98,11 +98,13 @@ T.render = function(opts){
 // নোডের extras-এ চাকার কেন্দ্র, ব্যাসার্ধ, হেডলাইটের জায়গা, রং বদলের নিয়ম।
 // প্রথমবার দরকার হলে লোড হয়; লোড না হওয়া পর্যন্ত গেম আগের ২D ছবিই দেখায়।
 // ============================================================
+// lamp = হেডলাইটের আসল জায়গা (মডেল-একক, x সামনে, y মাটি থেকে উপরে) — পাশ থেকে গ্রিড-রেন্ডার মেপে বসানো।
+// রিকশায় আসল বাতি নেই, তাই হ্যান্ডেলের সামনে একটা ছোট বাতি (bulb) বসানো হয়।
 const VEH = {
-  cng:      { file:'models/cng.glb',      Rt:14 },   // Rt = পেছনের চাকার ব্যাসার্ধ, গেমের পিক্সেলে (এটাই মাপ ঠিক করে)
-  rickshaw: { file:'models/rickshaw.glb', Rt:23 },
-  ebike:    { file:'models/ebike.glb',    Rt:17 },
-  bus:      { file:'models/bus.glb',      Rt:10 }
+  cng:      { file:'models/cng.glb',      Rt:14, lamp:[0.99, 0.84] },   // Rt = পেছনের চাকার ব্যাসার্ধ, গেমের পিক্সেলে (এটাই মাপ ঠিক করে)
+  rickshaw: { file:'models/rickshaw.glb', Rt:23, lamp:[1.56, 2.58], bulb:0.07 },
+  ebike:    { file:'models/ebike.glb',    Rt:17, lamp:[1.17, 1.09] },
+  bus:      { file:'models/bus.glb',      Rt:10, lamp:[11.15, 3.2] }
 };
 const vrec = {};
 const VDIR = new THREE.Vector3(.17, .2, 1).normalize();   // ক্যামেরা: পাশ থেকে, একটু সামনে-উপরে
@@ -159,8 +161,15 @@ function setupVeh(rec, cfg, root){
   cam.position.copy(tgt).addScaledVector(VDIR, 1500); cam.lookAt(tgt); cam.updateMatrixWorld(true); cam.updateProjectionMatrix();
   const proj = (x,y,z) => { const q = new THREE.Vector3(x,y,z).project(cam); return [ (q.x+1)/2*CW, (1-q.y)/2*CH ]; };
   const g0 = proj(0,0,0);                                   // চাকার মাঝখানের নিচে মাটি
-  const lamp = proj((ex.lamp[0]-midX)*s, ex.lamp[1]*s, 0);
-  const tail = proj((-ex.len/2-midX)*s+3, ex.lamp[1]*s, 0);
+  const LP = cfg.lamp || ex.lamp;
+  if(cfg.bulb){ // ছোট বাতি: কালো খোল + সামনে উজ্জ্বল কাচ
+    const bm = new THREE.Mesh(new THREE.SphereGeometry(cfg.bulb, 12, 8), new THREE.MeshStandardMaterial({ color:0x222222, roughness:.5, metalness:.4 }));
+    const gl = new THREE.Mesh(new THREE.CircleGeometry(cfg.bulb*.8, 14), new THREE.MeshBasicMaterial({ color:0xfff3c4 }));
+    gl.position.set(cfg.bulb*1.01, 0, 0); gl.rotation.y = Math.PI/2; bm.add(gl);
+    bm.position.set(LP[0]-cfg.bulb*.6, LP[1], 0); root.add(bm);
+  }
+  const lamp = proj((LP[0]-midX)*s, LP[1]*s, 0);
+  const tail = proj((-ex.len/2-midX)*s+3, Math.min(LP[1], ex.height*.45)*s, 0);
   Object.assign(rec, { sc, cam, s, U, wr, wf, g0, lamp, tail, R: cfg.Rt, len: ex.len*s, ready:true, color:null });
 }
 // opts: {color, base(মূল রং), spin, rs, fs, gy (গাড়ির কেন্দ্র থেকে মাটির দূরত্ব, পিক্সেলে)}
