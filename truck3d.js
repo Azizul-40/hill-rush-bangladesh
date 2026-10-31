@@ -91,4 +91,91 @@ T.render = function(opts){
   return { canvas: renderer.domElement, dx: rx - map.pr[0]*f, dy: ry - map.pr[1]*f, dw: CW*f, dh: CH*f, lamp:[rx+(map.lamp[0]-map.pr[0])*f, ry+(map.lamp[1]-map.pr[1])*f], R: map.Rpx*f };
 };
 
+
+// ============================================================
+// v27 — বাংলাদেশি যানবাহনের আসল ৩D মডেল (CNG, রিকশা, ইজি বাইক, বাস)। ক্রেডিট: docs/ASSET_CREDITS.md
+// মডেলগুলো আগে থেকেই প্রস্তুত: সামনে +x, উপরে +y, মাটি y=0; চাকা আলাদা নোডে (wheel_rear / wheel_front),
+// নোডের extras-এ চাকার কেন্দ্র, ব্যাসার্ধ, হেডলাইটের জায়গা, রং বদলের নিয়ম।
+// প্রথমবার দরকার হলে লোড হয়; লোড না হওয়া পর্যন্ত গেম আগের ২D ছবিই দেখায়।
+// ============================================================
+const VEH = {
+  cng:      { file:'models/cng.glb',      Rt:14 },   // Rt = পেছনের চাকার ব্যাসার্ধ, গেমের পিক্সেলে (এটাই মাপ ঠিক করে)
+  rickshaw: { file:'models/rickshaw.glb', Rt:23 },
+  ebike:    { file:'models/ebike.glb',    Rt:17 },
+  bus:      { file:'models/bus.glb',      Rt:10 }
+};
+const vrec = {};
+const VDIR = new THREE.Vector3(.17, .2, 1).normalize();   // ক্যামেরা: পাশ থেকে, একটু সামনে-উপরে
+const PAINT_GLSL = `
+vec3 v27hsv(vec3 c){ vec4 K=vec4(0.,-1./3.,2./3.,-1.); vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g)); vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r)); float d=q.x-min(q.w,q.y); float e=1e-6; return vec3(abs(q.z+(q.w-q.y)/(6.*d+e)),d/(q.x+e),q.x); }
+vec3 v27rgb(vec3 c){ vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.); return c.z*mix(vec3(1.),clamp(p-1.,0.,1.),c.y); }
+`;
+function hexHSV(hex){ const c=new THREE.Color(hex); const o={}; c.getHSL(o); const r=c.r,g=c.g,b=c.b; const mx=Math.max(r,g,b),mn=Math.min(r,g,b); return new THREE.Vector3(o.h, mx>0?(mx-mn)/mx:0, mx); }
+function addPaint(m, rule, U){
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uPaintOn = U.on; sh.uniforms.uPaint = U.hsv; sh.uniforms.uPaintRgb = U.rgb;
+    sh.fragmentShader = sh.fragmentShader.replace('void main() {', 'uniform float uPaintOn; uniform vec3 uPaint; uniform vec3 uPaintRgb;\n'+PAINT_GLSL+'void main() {')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+      if(uPaintOn>.5){ vec3 sc=pow(max(diffuseColor.rgb,vec3(0.)),vec3(1./2.2)); vec3 h=v27hsv(sc); vec3 o=sc;
+        ${rule.white
+          ? `float w=smoothstep(.55,.72,h.z)*(1.-smoothstep(.10,.24,h.y)); o=mix(sc, pow(uPaintRgb,vec3(1./2.2))*h.z*1.05, w);`
+          : `float dh=abs(h.x-${(+rule.h).toFixed(3)}); dh=min(dh,1.-dh); float w=(1.-smoothstep(${(rule.r*.6).toFixed(3)},${(+rule.r).toFixed(3)},dh))*smoothstep(.16,.32,h.y);
+             vec3 n=v27rgb(vec3(uPaint.x, clamp(mix(h.y,uPaint.y,.7),0.,1.), clamp(h.z*mix(1.,uPaint.z/.8,.7),0.,1.))); o=mix(sc,n,w);`}
+        diffuseColor.rgb=pow(o,vec3(2.2)); }`);
+  };
+  m.customProgramCacheKey = () => 'v27paint'+JSON.stringify(rule);
+  m.needsUpdate = true;
+}
+function loadVeh(kind){
+  if(vrec[kind]) return vrec[kind];
+  const cfg = VEH[kind]; if(!cfg || !renderer) return null;
+  const rec = vrec[kind] = { ready:false, failed:false };
+  new GLTFLoader().load(cfg.file, g => { try{ setupVeh(rec, cfg, g.scene); }catch(e){ rec.failed = true; console.warn('3D '+kind+' setup failed', e); } },
+    undefined, e => { rec.failed = true; console.warn('3D '+kind+' load failed', e); });
+  return rec;
+}
+function setupVeh(rec, cfg, root){
+  const sc = new THREE.Scene();
+  sc.add(new THREE.HemisphereLight(0xeef4ff, 0x6a5a48, 1.45));
+  const sun = new THREE.DirectionalLight(0xffffff, 2.3); sun.position.set(-3, 6, 5); sc.add(sun);
+  const rim = new THREE.DirectionalLight(0xbfd8ff, .6); rim.position.set(4, 2, -4); sc.add(rim);
+  const veh = root.getObjectByName('veh') || root; const ex = veh.userData || {};
+  if(!ex.wheels || !ex.wheels.rear || !ex.wheels.front) throw new Error('model extras missing');
+  const s = cfg.Rt / ex.wheels.rear.R;                    // ১ মডেল-একক = s গেম-পিক্সেল
+  const midX = (ex.wheels.rear.c[0] + ex.wheels.front.c[0]) / 2;
+  const holder = new THREE.Group(); holder.scale.setScalar(s); holder.position.x = -midX*s; holder.add(root); sc.add(holder);
+  const U = { on:{value:0}, hsv:{value:new THREE.Vector3()}, rgb:{value:new THREE.Color()} };
+  root.traverse(o => { if(!o.isMesh) return;
+    if(!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+    const ms = Array.isArray(o.material) ? o.material : [o.material];
+    ms.forEach(m => { if(!m) return; m.side = THREE.DoubleSide; if(m.roughness===undefined||m.roughness>.85) m.roughness = .75; m.metalness = Math.min(m.metalness||0, .3);
+      if(m.map) m.map.anisotropy = 4;
+      if(ex.paint) addPaint(m, ex.paint, U); }); });
+  const piv = n => { const o = root.getObjectByName(n); return o ? { o, baseY:o.position.y } : null; };
+  const wr = piv('wheel_rear'), wf = piv('wheel_front');
+  // ক্যামেরা: ১ গেম-পিক্সেল = ১ ক্যানভাস CSS পিক্সেল
+  const cam = new THREE.OrthographicCamera(-CW/2, CW/2, CH/2, -CH/2, 1, 4000);
+  const tgt = new THREE.Vector3(0, ex.height*s*.42, 0);
+  cam.position.copy(tgt).addScaledVector(VDIR, 1500); cam.lookAt(tgt); cam.updateMatrixWorld(true); cam.updateProjectionMatrix();
+  const proj = (x,y,z) => { const q = new THREE.Vector3(x,y,z).project(cam); return [ (q.x+1)/2*CW, (1-q.y)/2*CH ]; };
+  const g0 = proj(0,0,0);                                   // চাকার মাঝখানের নিচে মাটি
+  const lamp = proj((ex.lamp[0]-midX)*s, ex.lamp[1]*s, 0);
+  const tail = proj((-ex.len/2-midX)*s+3, ex.lamp[1]*s, 0);
+  Object.assign(rec, { sc, cam, s, U, wr, wf, g0, lamp, tail, R: cfg.Rt, len: ex.len*s, ready:true, color:null });
+}
+// opts: {color, base(মূল রং), spin, rs, fs, gy (গাড়ির কেন্দ্র থেকে মাটির দূরত্ব, পিক্সেলে)}
+T.renderVeh = function(kind, opts){
+  const rec = loadVeh(kind); if(!rec || !rec.ready) return null;
+  if(opts.color !== rec.color){ rec.color = opts.color;
+    const on = !!(opts.color && opts.base && opts.color.toLowerCase() !== opts.base.toLowerCase());
+    rec.U.on.value = on ? 1 : 0; if(on){ rec.U.hsv.value.copy(hexHSV(opts.color)); rec.U.rgb.value.set(opts.color); } }
+  if(rec.wr){ rec.wr.o.rotation.z = -(opts.spin||0); rec.wr.o.position.y = rec.wr.baseY - (opts.rs||0)/rec.s; }
+  if(rec.wf){ rec.wf.o.rotation.z = -(opts.spin||0); rec.wf.o.position.y = rec.wf.baseY - (opts.fs||0)/rec.s; }
+  renderer.render(rec.sc, rec.cam);
+  const dx = -rec.g0[0], dy = (opts.gy||58) - rec.g0[1];
+  return { canvas: renderer.domElement, dx, dy, dw: CW, dh: CH, lamp:[rec.lamp[0]+dx, rec.lamp[1]+dy], tail:[rec.tail[0]+dx, rec.tail[1]+dy], R: rec.R, len: rec.len };
+};
+T.has = kind => !!VEH[kind];
+T.preload = kind => { loadVeh(kind); };
+
 try{ init(); }catch(e){ console.warn('3D truck unavailable', e); }
