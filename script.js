@@ -6124,7 +6124,11 @@ function timeOfDay(){
       ctx.restore(); }
     ctx.restore();
     // রাতে চাঁদ (মেঘ/বৃষ্টি না থাকলে)
-    if(LT.moon>.04&&LT.rain<.6){ const mx=LT.mx, my=LT.my; ctx.save(); ctx.globalAlpha=LT.moon*(1-LT.rain); const mg=ctx.createRadialGradient(mx,my,10,mx,my,90); mg.addColorStop(0,"rgba(230,238,255,.35)"); mg.addColorStop(1,"rgba(230,238,255,0)"); ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(mx,my,90,0,6.3); ctx.fill();
+    if(LT.moon>.04&&LT.rain<.6){ const mx=LT.mx, my=LT.my; ctx.save(); ctx.globalAlpha=LT.moon*(1-LT.rain);
+      // v36: চাঁদ ওঠার সময় পাহাড়ের পেছন থেকে ওঠে — পাহাড়/দিগন্তের নিচের অংশে আঁকা হয় না (আগে পাহাড়ের সামনে দিয়ে উঠত)
+      { const oy=(window.V33&&V33.off)||0, hz=H*.62; ctx.beginPath(); ctx.moveTo(-10,-20); ctx.lineTo(W+10,-20);
+        for(let x=W+12;x>=-12;x-=12){ const wx=camera.x+x; const ty=isGap(wx)?hz:Math.min(hz,terrainY(wx)+oy-3); ctx.lineTo(x,ty); }
+        ctx.closePath(); ctx.clip(); } const mg=ctx.createRadialGradient(mx,my,10,mx,my,90); mg.addColorStop(0,"rgba(230,238,255,.35)"); mg.addColorStop(1,"rgba(230,238,255,0)"); ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(mx,my,90,0,6.3); ctx.fill();
       ctx.fillStyle="#eef2ff"; ctx.beginPath(); ctx.arc(mx,my,20,0,6.3); ctx.fill(); ctx.fillStyle="rgba(180,190,215,.5)"; ctx.beginPath(); ctx.arc(mx-6,my-4,4,0,6.3); ctx.arc(mx+6,my+6,3,0,6.3); ctx.fill(); ctx.restore(); }
   };
 })();
@@ -6648,4 +6652,21 @@ render=function(){ try{ v33Update(); }catch(e){} return v33RenderBase.apply(this
   const row=document.createElement("div"); row.className="settingsRow v34StatusRow";
   row.innerHTML='<span>🌦 আবহাওয়া · 🔧 গাড়ির অবস্থা</span>'; row.appendChild(st);
   const ref=card.querySelector(".volumeSlider"); if(ref&&ref.nextSibling) card.insertBefore(row,ref.nextSibling); else card.appendChild(row);
+})();
+
+// ============================================================
+// v36 — GAS আর BOOST এক বাটনে: চেপে ধরলে GAS; দুবার দ্রুত চেপে (দ্বিতীয়বার ধরে রাখলে) BOOST — বুস্ট-ট্যাংক থাকলে।
+// আলাদা BOOST বাটন নেই। কিবোর্ডে আগের মতো Shift/B = বুস্ট। বুস্ট খালি হলে ঠান্ডা হওয়া (v32) আগের মতো।
+// ============================================================
+(function v36(){
+  const g=document.querySelector("#controls .gasControl"); if(!g) return;
+  let lastDown=0;
+  const down=e=>{ if(state!=="play") return; const now=performance.now();
+    if(now-lastDown<45) return;   // একই টাচে pointerdown + touchstart দুটোই আসে — একবারই গোনা
+    if(now-lastDown<420){ keys.boost=true; g.classList.add("boosting"); } lastDown=now; };
+  const up=()=>{ if(g.classList.contains("boosting")){ keys.boost=false; g.classList.remove("boosting"); } };
+  g.addEventListener("pointerdown",down); g.addEventListener("touchstart",down,{passive:true});
+  ["pointerup","pointercancel","pointerleave","touchend","touchcancel"].forEach(ev=>g.addEventListener(ev,up));
+  // বুস্ট-ট্যাংক ভরা থাকলে বাটনের চারপাশে বেগুনি আভা (কখন ২× চাপা যায় বোঝা যায়)
+  setInterval(()=>{ try{ const ready=state==="play"&&!truck.boostLock&&(truck.boostEnergy||0)>20; g.classList.toggle("boostReady",ready); }catch(e){} },250);
 })();
