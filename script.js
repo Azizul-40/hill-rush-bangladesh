@@ -5775,6 +5775,8 @@ drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1) return v172GaugeBas
 // শুধু আঁকা বদলেছে — terrainY/খাদ/ফিজিক্স/কন্ট্রোল আগের মতোই। সব নিজের কোডে আঁকা।
 // ============================================================
 const V21=(function(){
+  let C=ctx; // আঁকার context (টাইল ক্যাশে আঁকার সময় বদলায়)
+  const polyC=(pts,fill)=>{ C.fillStyle=fill; C.beginPath(); pts.forEach((p,i)=>i?C.lineTo(p[0],p[1]):C.moveTo(p[0],p[1])); C.closePath(); C.fill(); };
   const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
   const sh=(c,f)=>c.map(v=>f<0?v*(1+f):v+(255-v)*f);
   const css=(c,a)=>`rgba(${c.map(v=>Math.round(Math.max(0,Math.min(255,v)))).join(',')},${a==null?1:a})`;
@@ -5799,35 +5801,35 @@ const V21=(function(){
   const STEP=8, N=8, ease=t=>Math.pow(t,1.15), rad=t=>Math.round(t*42*6/8);
 
   // ---------- গাছপালা ----------
-  const trunk=(x,y,w,h,c)=>{ ctx.fillStyle=c||"#5a3e28"; ctx.fillRect(x-w/2,y-h,w,h); };
-  const blob=(x,y,r,c)=>{ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,r,0,6.3); ctx.fill(); };
+  const trunk=(x,y,w,h,c)=>{ C.fillStyle=c||"#5a3e28"; C.fillRect(x-w/2,y-h,w,h); };
+  const blob=(x,y,r,c)=>{ C.fillStyle=c; C.beginPath(); C.arc(x,y,r,0,6.3); C.fill(); };
   function pine(x,y,s,c,snow){ trunk(x,y,4*s,14*s);
     for(let i=0;i<3;i++){ const yy=y-12*s-i*11*s, w=(15-i*3.5)*s;
-      ctx.fillStyle=css(sh(c,-.15)); ctx.beginPath(); ctx.moveTo(x,yy-16*s); ctx.lineTo(x+w,yy); ctx.lineTo(x,yy); ctx.closePath(); ctx.fill();
-      ctx.fillStyle=css(sh(c,.10)); ctx.beginPath(); ctx.moveTo(x,yy-16*s); ctx.lineTo(x-w,yy); ctx.lineTo(x,yy); ctx.closePath(); ctx.fill();
-      if(snow){ ctx.fillStyle="rgba(250,252,255,.92)"; ctx.beginPath(); ctx.moveTo(x,yy-16*s); ctx.lineTo(x-w*.55,yy-7*s); ctx.lineTo(x+w*.4,yy-8*s); ctx.closePath(); ctx.fill(); } } }
+      C.fillStyle=css(sh(c,-.15)); C.beginPath(); C.moveTo(x,yy-16*s); C.lineTo(x+w,yy); C.lineTo(x,yy); C.closePath(); C.fill();
+      C.fillStyle=css(sh(c,.10)); C.beginPath(); C.moveTo(x,yy-16*s); C.lineTo(x-w,yy); C.lineTo(x,yy); C.closePath(); C.fill();
+      if(snow){ C.fillStyle="rgba(250,252,255,.92)"; C.beginPath(); C.moveTo(x,yy-16*s); C.lineTo(x-w*.55,yy-7*s); C.lineTo(x+w*.4,yy-8*s); C.closePath(); C.fill(); } } }
   function round(x,y,s,c){ trunk(x,y,4.4*s,16*s); for(const [dx,dy,r,f] of [[0,-24,12,-.12],[-7,-19,8,0],[7,-20,8,-.2],[-3,-29,7,.14]]) blob(x+dx*s,y+dy*s,r*s,css(sh(c,f))); }
   function big(x,y,s,c){ trunk(x,y,6*s,26*s,"#4a3220"); for(const [dx,dy,r,f] of [[0,-38,16,-.15],[-12,-30,11,0],[12,-31,12,-.22],[-5,-46,10,.12],[8,-44,9,.05]]) blob(x+dx*s,y+dy*s,r*s,css(sh(c,f))); }
-  function shade(x,y,s,c){ trunk(x,y,3*s,30*s,"#6a5038"); ctx.fillStyle=css(sh(c,-.1)); ctx.beginPath(); ctx.ellipse(x,y-33*s,17*s,7*s,0,0,6.3); ctx.fill(); ctx.fillStyle=css(sh(c,.1)); ctx.beginPath(); ctx.ellipse(x-4*s,y-36*s,10*s,4*s,0,0,6.3); ctx.fill(); }
+  function shade(x,y,s,c){ trunk(x,y,3*s,30*s,"#6a5038"); C.fillStyle=css(sh(c,-.1)); C.beginPath(); C.ellipse(x,y-33*s,17*s,7*s,0,0,6.3); C.fill(); C.fillStyle=css(sh(c,.1)); C.beginPath(); C.ellipse(x-4*s,y-36*s,10*s,4*s,0,0,6.3); C.fill(); }
   function bush(x,y,s,c){ for(const [dx,dy,r,f] of [[-6,-4,6,-.15],[5,-5,7,-.05],[0,-8,5,.15]]) blob(x+dx*s,y+dy*s,r*s,css(sh(c,f))); }
   function tea(x,y,s,c){ // চা-বাগানের গোল ঝোপের সারি
-    for(let k=-1;k<=1;k++){ const xx=x+k*12*s; ctx.fillStyle=css(sh(c,-.18)); ctx.beginPath(); ctx.ellipse(xx,y-5*s,7*s,5.5*s,0,0,6.3); ctx.fill(); ctx.fillStyle=css(sh(c,.12)); ctx.beginPath(); ctx.ellipse(xx-1.5*s,y-7*s,4.5*s,3*s,0,0,6.3); ctx.fill(); } }
-  function bamboo(x,y,s){ ctx.lineCap="round"; for(let k=0;k<5;k++){ const dx=(k-2)*3*s, h=(34+k*5%11)*s, lean=(k-2)*2.5*s; ctx.strokeStyle=k%2?"#7aa344":"#5f8a34"; ctx.lineWidth=2.2*s; ctx.beginPath(); ctx.moveTo(x+dx,y); ctx.quadraticCurveTo(x+dx+lean*.4,y-h*.5,x+dx+lean,y-h); ctx.stroke();
-      ctx.fillStyle="#6c9a3c"; ctx.beginPath(); ctx.ellipse(x+dx+lean+3*s,y-h+2*s,6*s,1.8*s,-.5,0,6.3); ctx.fill(); ctx.beginPath(); ctx.ellipse(x+dx+lean*.7-4*s,y-h*.7,5*s,1.6*s,.5,0,6.3); ctx.fill(); } }
-  function banana(x,y,s){ ctx.strokeStyle="#6b7a3a"; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+1*s,y-22*s); ctx.stroke();
-    for(const [a,l] of [[-2.4,16],[-.7,16],[-1.9,13],[-1.1,13],[-1.55,11]]){ ctx.fillStyle="#5d9a3a"; ctx.save(); ctx.translate(x+1*s,y-22*s); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(l*s*.5,0,l*s*.55,3.2*s,0,0,6.3); ctx.fill(); ctx.restore(); } }
-  function fern(x,y,s,c){ ctx.strokeStyle=css(sh(c,-.05)); ctx.lineWidth=1.6*s; ctx.beginPath(); for(const a of [-2.6,-2.1,-1.6,-1.1,-.6]){ ctx.moveTo(x,y); ctx.quadraticCurveTo(x+Math.cos(a)*8*s,y+Math.sin(a)*12*s,x+Math.cos(a)*14*s,y+Math.sin(a)*9*s); } ctx.stroke(); }
+    for(let k=-1;k<=1;k++){ const xx=x+k*12*s; C.fillStyle=css(sh(c,-.18)); C.beginPath(); C.ellipse(xx,y-5*s,7*s,5.5*s,0,0,6.3); C.fill(); C.fillStyle=css(sh(c,.12)); C.beginPath(); C.ellipse(xx-1.5*s,y-7*s,4.5*s,3*s,0,0,6.3); C.fill(); } }
+  function bamboo(x,y,s){ C.lineCap="round"; for(let k=0;k<5;k++){ const dx=(k-2)*3*s, h=(34+k*5%11)*s, lean=(k-2)*2.5*s; C.strokeStyle=k%2?"#7aa344":"#5f8a34"; C.lineWidth=2.2*s; C.beginPath(); C.moveTo(x+dx,y); C.quadraticCurveTo(x+dx+lean*.4,y-h*.5,x+dx+lean,y-h); C.stroke();
+      C.fillStyle="#6c9a3c"; C.beginPath(); C.ellipse(x+dx+lean+3*s,y-h+2*s,6*s,1.8*s,-.5,0,6.3); C.fill(); C.beginPath(); C.ellipse(x+dx+lean*.7-4*s,y-h*.7,5*s,1.6*s,.5,0,6.3); C.fill(); } }
+  function banana(x,y,s){ C.strokeStyle="#6b7a3a"; C.lineWidth=3*s; C.beginPath(); C.moveTo(x,y); C.lineTo(x+1*s,y-22*s); C.stroke();
+    for(const [a,l] of [[-2.4,16],[-.7,16],[-1.9,13],[-1.1,13],[-1.55,11]]){ C.fillStyle="#5d9a3a"; C.save(); C.translate(x+1*s,y-22*s); C.rotate(a); C.beginPath(); C.ellipse(l*s*.5,0,l*s*.55,3.2*s,0,0,6.3); C.fill(); C.restore(); } }
+  function fern(x,y,s,c){ C.strokeStyle=css(sh(c,-.05)); C.lineWidth=1.6*s; C.beginPath(); for(const a of [-2.6,-2.1,-1.6,-1.1,-.6]){ C.moveTo(x,y); C.quadraticCurveTo(x+Math.cos(a)*8*s,y+Math.sin(a)*12*s,x+Math.cos(a)*14*s,y+Math.sin(a)*9*s); } C.stroke(); }
   function rock(x,y,s,c,snow){
-    ctx.fillStyle="rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(x+3*s,y+1*s,17*s,3.5*s,0,0,6.3); ctx.fill();
-    const A=[x-15*s,y],Bp=[x-9*s,y-13*s],C=[x+5*s,y-16*s],D=[x+15*s,y-5*s],E=[x+12*s,y+1*s],F=[x-1*s,y-6*s];
-    poly([A,Bp,C,F],css(sh(c,.22))); poly([C,D,E,F],css(sh(c,-.25))); poly([A,F,E],css(sh(c,-.05)));
-    if(snow) poly([[x-11*s,y-9*s],Bp,C,[x+9*s,y-12*s],[x-1*s,y-10*s]],"rgba(248,251,255,.95)"); }
-  function cactus(x,y,s){ ctx.fillStyle="#4f7f3a"; ctx.fillRect(x-2.5*s,y-24*s,5*s,24*s); ctx.fillRect(x-9*s,y-16*s,4*s,9*s); ctx.fillRect(x-9*s,y-10*s,8*s,3*s); ctx.fillRect(x+5*s,y-19*s,4*s,8*s); ctx.fillRect(x+1*s,y-13*s,8*s,3*s); ctx.fillStyle="rgba(255,255,255,.18)"; ctx.fillRect(x-2.5*s,y-24*s,1.5*s,24*s); }
-  function dry(x,y,s){ ctx.strokeStyle="#a08a52"; ctx.lineWidth=1.2*s; ctx.beginPath(); for(let i=-3;i<=3;i++){ ctx.moveTo(x+i*2*s,y); ctx.lineTo(x+i*3.6*s,y-(6+(i&1)*3)*s); } ctx.stroke(); }
-  function dead(x,y,s){ ctx.strokeStyle="#2a2220"; ctx.lineWidth=2.4*s; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-24*s); ctx.moveTo(x,y-14*s); ctx.lineTo(x-8*s,y-22*s); ctx.moveTo(x,y-18*s); ctx.lineTo(x+7*s,y-27*s); ctx.stroke(); }
-  function lava(x,y,s){ ctx.strokeStyle="rgba(255,96,36,.85)"; ctx.lineWidth=2*s; ctx.beginPath(); ctx.moveTo(x-12*s,y-2*s); ctx.lineTo(x-4*s,y-6*s); ctx.lineTo(x+3*s,y-3*s); ctx.lineTo(x+12*s,y-8*s); ctx.stroke(); }
-  function lamp(x,y,s){ ctx.fillStyle="#2c3138"; ctx.fillRect(x-1.5*s,y-36*s,3*s,36*s); ctx.fillRect(x-1.5*s,y-36*s,10*s,2.5*s); blob(x+8*s,y-33*s,3*s,"#ffe9a8"); }
-  function grassTuft(x,y,s,c){ ctx.strokeStyle=css(c); ctx.lineWidth=1.3*s; ctx.beginPath(); for(let i=-3;i<=3;i++){ ctx.moveTo(x+i*2.5*s,y); ctx.lineTo(x+i*3.4*s,y-(5+(i&1)*3)*s); } ctx.stroke(); }
+    C.fillStyle="rgba(0,0,0,.18)"; C.beginPath(); C.ellipse(x+3*s,y+1*s,17*s,3.5*s,0,0,6.3); C.fill();
+    const A=[x-15*s,y],Bp=[x-9*s,y-13*s],Cq=[x+5*s,y-16*s],D=[x+15*s,y-5*s],E=[x+12*s,y+1*s],F=[x-1*s,y-6*s];
+    polyC([A,Bp,Cq,F],css(sh(c,.22))); polyC([Cq,D,E,F],css(sh(c,-.25))); polyC([A,F,E],css(sh(c,-.05)));
+    if(snow) polyC([[x-11*s,y-9*s],Bp,Cq,[x+9*s,y-12*s],[x-1*s,y-10*s]],"rgba(248,251,255,.95)"); }
+  function cactus(x,y,s){ C.fillStyle="#4f7f3a"; C.fillRect(x-2.5*s,y-24*s,5*s,24*s); C.fillRect(x-9*s,y-16*s,4*s,9*s); C.fillRect(x-9*s,y-10*s,8*s,3*s); C.fillRect(x+5*s,y-19*s,4*s,8*s); C.fillRect(x+1*s,y-13*s,8*s,3*s); C.fillStyle="rgba(255,255,255,.18)"; C.fillRect(x-2.5*s,y-24*s,1.5*s,24*s); }
+  function dry(x,y,s){ C.strokeStyle="#a08a52"; C.lineWidth=1.2*s; C.beginPath(); for(let i=-3;i<=3;i++){ C.moveTo(x+i*2*s,y); C.lineTo(x+i*3.6*s,y-(6+(i&1)*3)*s); } C.stroke(); }
+  function dead(x,y,s){ C.strokeStyle="#2a2220"; C.lineWidth=2.4*s; C.lineCap="round"; C.beginPath(); C.moveTo(x,y); C.lineTo(x,y-24*s); C.moveTo(x,y-14*s); C.lineTo(x-8*s,y-22*s); C.moveTo(x,y-18*s); C.lineTo(x+7*s,y-27*s); C.stroke(); }
+  function lava(x,y,s){ C.strokeStyle="rgba(255,96,36,.85)"; C.lineWidth=2*s; C.beginPath(); C.moveTo(x-12*s,y-2*s); C.lineTo(x-4*s,y-6*s); C.lineTo(x+3*s,y-3*s); C.lineTo(x+12*s,y-8*s); C.stroke(); }
+  function lamp(x,y,s){ C.fillStyle="#2c3138"; C.fillRect(x-1.5*s,y-36*s,3*s,36*s); C.fillRect(x-1.5*s,y-36*s,10*s,2.5*s); blob(x+8*s,y-33*s,3*s,"#ffe9a8"); }
+  function grassTuft(x,y,s,c){ C.strokeStyle=css(c); C.lineWidth=1.3*s; C.beginPath(); for(let i=-3;i<=3;i++){ C.moveTo(x+i*2.5*s,y); C.lineTo(x+i*3.4*s,y-(5+(i&1)*3)*s); } C.stroke(); }
   function plant(type,x,y,s,b){
     const g=b.grass, leaf=sh(mix(g,[30,90,40],.45),-.18);
     switch(type){
@@ -5869,41 +5871,41 @@ const V21=(function(){
       const xl=X[ra]+(gapL?0:-STEP), xr=X[rb]+(gapR?0:STEP);
       // ১) ঢাল: মাটির রঙে স্তর (উপরে ঘাস-মেশানো, নিচে গাঢ় মাটি)
       for(let k=0;k<N;k++){ const t=k/N, A=L[k], Bn=L[k+1];
-        ctx.fillStyle=css(mix(top,low,Math.pow(t,.85))); ctx.beginPath(); ctx.moveTo(xl,A[0]);
-        for(let q=0;q<cnt;q++) ctx.lineTo(X[ra+q],A[q]); ctx.lineTo(xr,A[cnt-1]); ctx.lineTo(xr,Bn[cnt-1]+.8);
-        for(let q=cnt-1;q>=0;q--) ctx.lineTo(X[ra+q],Bn[q]+.8); ctx.lineTo(xl,Bn[0]+.8); ctx.closePath(); ctx.fill();
+        C.fillStyle=css(mix(top,low,Math.pow(t,.85))); C.beginPath(); C.moveTo(xl,A[0]);
+        for(let q=0;q<cnt;q++) C.lineTo(X[ra+q],A[q]); C.lineTo(xr,A[cnt-1]); C.lineTo(xr,Bn[cnt-1]+.8);
+        for(let q=cnt-1;q>=0;q--) C.lineTo(X[ra+q],Bn[q]+.8); C.lineTo(xl,Bn[0]+.8); C.closePath(); C.fill();
         if(k>6) continue; const fade=1-t*.75;
         for(let q=0;q+2<cnt;q+=2){ const lo=Math.max(0,q-3), hi=Math.min(cnt-1,q+5), sl=(A[hi]-A[lo])/(STEP*Math.max(1,hi-lo)); const lit=sl<0, al=Math.min(lit?.20:.30,Math.abs(sl)*(lit?.36:.48))*fade; if(al<.025) continue;
-          ctx.fillStyle=lit?`rgba(255,240,205,${al})`:`rgba(18,10,4,${al})`; ctx.beginPath(); ctx.moveTo(X[ra+q],A[q]); ctx.lineTo(X[ra+q+2]+.5,A[q+2]); ctx.lineTo(X[ra+q+2]+.5,Bn[q+2]+.8); ctx.lineTo(X[ra+q],Bn[q]+.8); ctx.closePath(); ctx.fill(); } }
+          C.fillStyle=lit?`rgba(255,240,205,${al})`:`rgba(18,10,4,${al})`; C.beginPath(); C.moveTo(X[ra+q],A[q]); C.lineTo(X[ra+q+2]+.5,A[q+2]); C.lineTo(X[ra+q+2]+.5,Bn[q+2]+.8); C.lineTo(X[ra+q],Bn[q]+.8); C.closePath(); C.fill(); } }
       // ২) ঘাসের ছোপ (ঝোপালো গুচ্ছ + ঘাসের ডগা) — খাড়া ঢালে কম, চূড়ার কাছে বেশি
       if(b.cover>0){ for(let q=1;q<cnt-1;q++){ const wx=x0+(ra+q)*STEP; if(wx%16!==0) continue; const h1=hash(wx*.37+.5), h2=hash(wx*.71+3.3); const t=.03+h2*.82;
           const steep=Math.abs(Y[Math.min(rb,ra+q+2)]-Y[Math.max(ra,ra+q-2)])/(STEP*4); if(h1>b.cover*(1.25-t*.5)-steep*.6) continue;
           const y=lineAt(ra+q,t); if(y>floor-3) continue; const s=.55+t*1.05, xx=X[ra+q]+(h1-.5)*12, gc=mix(b.grass,sh(b.grass,-.38),h2*.7+t*.3), w=(7+h2*9)*s;
-          ctx.fillStyle=css(sh(gc,-.12),.9); ctx.beginPath(); ctx.ellipse(xx,y,w,3.2*s,0,0,6.3); ctx.fill();
-          ctx.fillStyle=css(gc,.95); ctx.beginPath(); ctx.ellipse(xx-w*.35,y-1.6*s,w*.55,2.8*s,0,0,6.3); ctx.ellipse(xx+w*.3,y-1.2*s,w*.5,2.5*s,0,0,6.3); ctx.fill();
-          ctx.strokeStyle=css(sh(gc,.12)); ctx.lineWidth=1.1*s; ctx.beginPath(); for(let k=-2;k<=2;k++){ const bx=xx+k*w*.33; ctx.moveTo(bx,y-1*s); ctx.lineTo(bx+(k*.8)*s,y-(4.5+((k+5)%3)*1.8)*s); } ctx.stroke(); } }
+          C.fillStyle=css(sh(gc,-.12),.9); C.beginPath(); C.ellipse(xx,y,w,3.2*s,0,0,6.3); C.fill();
+          C.fillStyle=css(gc,.95); C.beginPath(); C.ellipse(xx-w*.35,y-1.6*s,w*.55,2.8*s,0,0,6.3); C.ellipse(xx+w*.3,y-1.2*s,w*.5,2.5*s,0,0,6.3); C.fill();
+          C.strokeStyle=css(sh(gc,.12)); C.lineWidth=1.1*s; C.beginPath(); for(let k=-2;k<=2;k++){ const bx=xx+k*w*.33; C.moveTo(bx,y-1*s); C.lineTo(bx+(k*.8)*s,y-(4.5+((k+5)%3)*1.8)*s); } C.stroke(); } }
       for(let q=2;q<cnt-2;q+=3){ const wx=x0+(ra+q)*STEP, h=hash(wx*.13+9.1); if(h>.22) continue; const t=.15+hash(wx*.29)*.7, y=lineAt(ra+q,t); if(y>floor-4) continue; const s=.6+t;
-        ctx.fillStyle=css(sh(b.soil,-.25),.35); ctx.beginPath(); ctx.ellipse(X[ra+q],y,6*s,1.6*s,0,0,6.3); ctx.fill(); // ছোট পাথর/মাটির দলা
-        ctx.fillStyle=css(sh(b.soil,.25),.4); ctx.beginPath(); ctx.ellipse(X[ra+q]-1*s,y-1*s,3*s,1*s,0,0,6.3); ctx.fill(); }
+        C.fillStyle=css(sh(b.soil,-.25),.35); C.beginPath(); C.ellipse(X[ra+q],y,6*s,1.6*s,0,0,6.3); C.fill(); // ছোট পাথর/মাটির দলা
+        C.fillStyle=css(sh(b.soil,.25),.4); C.beginPath(); C.ellipse(X[ra+q]-1*s,y-1*s,3*s,1*s,0,0,6.3); C.fill(); }
       // ৩) খাদের পাড়: প্রাকৃতিক পাথুরে খাড়া কিনারা (খাদ খোলা থাকে, আগের মতো)
       const cliff=(side)=>{ const q=side<0?0:cnt-1, ex=side<0?xl:xr, ey=Y[ra+q]; const bot=floor+8, dir=-side;
         const pts=[[ex,ey+2]]; for(let k=1;k<=8;k++){ const yy=ey+(bot-ey)*k/8, j=(hash(ex*.1+k*7.7)-.5)*7; pts.push([ex+dir*(k*1.6)+j*(side<0?1:-1)*.6+(side<0?j:-j)*.4,yy]); }
         pts.push([ex+dir*22,bot]); pts.push([ex+dir*22,ey+8]);
-        const g=ctx.createLinearGradient(0,ey,0,bot); g.addColorStop(0,css(sh(b.rock,side<0?.12:-.2))); g.addColorStop(1,css(sh(b.rock,-.55)));
-        ctx.fillStyle=g; ctx.beginPath(); pts.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle="rgba(0,0,0,.25)"; ctx.lineWidth=1.2; ctx.beginPath(); for(let k=1;k<8;k+=2){ ctx.moveTo(pts[k][0],pts[k][1]); ctx.lineTo(pts[k][0]+dir*12,pts[k][1]+5); } ctx.stroke();
-        ctx.strokeStyle=css(sh(b.rock,side<0?.35:-.35),.9); ctx.lineWidth=2; ctx.beginPath(); pts.slice(0,9).forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke();
+        const g=C.createLinearGradient(0,ey,0,bot); g.addColorStop(0,css(sh(b.rock,side<0?.12:-.2))); g.addColorStop(1,css(sh(b.rock,-.55)));
+        C.fillStyle=g; C.beginPath(); pts.forEach((p,k)=>k?C.lineTo(p[0],p[1]):C.moveTo(p[0],p[1])); C.closePath(); C.fill();
+        C.strokeStyle="rgba(0,0,0,.25)"; C.lineWidth=1.2; C.beginPath(); for(let k=1;k<8;k+=2){ C.moveTo(pts[k][0],pts[k][1]); C.lineTo(pts[k][0]+dir*12,pts[k][1]+5); } C.stroke();
+        C.strokeStyle=css(sh(b.rock,side<0?.35:-.35),.9); C.lineWidth=2; C.beginPath(); pts.slice(0,9).forEach((p,k)=>k?C.lineTo(p[0],p[1]):C.moveTo(p[0],p[1])); C.stroke();
         rock(ex+dir*9,ey+14,.42,b.rock,m.theme==="ice"); };
       if(gapL) cliff(-1); if(gapR) cliff(1);
     }
     // গোড়ায় হালকা ছায়া
-    { const g=ctx.createLinearGradient(0,floor-36,0,floor+8); g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,.2)"); ctx.fillStyle=g;
-      for(const [ra,rb] of runs) ctx.fillRect(X[ra],floor-36,X[rb]-X[ra],44); }
+    { const g=C.createLinearGradient(0,floor-36,0,floor+8); g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,.2)"); C.fillStyle=g;
+      for(const [ra,rb] of runs) C.fillRect(X[ra],floor-36,X[rb]-X[ra],44); }
 
     // ৪) চূড়ার পেছনে বন (ম্যাপ অনুযায়ী) — রাস্তার পেছনে ছোট গাছের সারি
     const forest=b.forest;
     if(forest){ for(let gx=Math.floor((camera.x-40)/34)*34; gx<camera.x+W+40; gx+=34){ const h=hash(gx*.61+4.4); if(h>.62) continue; const i=Math.round((gx-x0)/STEP); if(i<1||i>n-2||G[i]||G[i-1]||G[i+1]) continue;
-        const y=Y[i]-7; ctx.globalAlpha=.88; plant(forest,X[i]+(h-.3)*20,y,.55+h*.35,b); ctx.globalAlpha=1; } }
+        const y=Y[i]-7; C.globalAlpha=.88; plant(forest,X[i]+(h-.3)*20,y,.55+h*.35,b); C.globalAlpha=1; } }
     // ৫) ঢালের গাছপালা/পাথর — উপরের (দূরের) আগে, নিচের (কাছের) পরে
     const items=[];
     for(let gx=Math.floor((camera.x-60)/40)*40; gx<camera.x+W+60; gx+=40){
@@ -5919,44 +5921,65 @@ const V21=(function(){
     // ৬) চূড়ার রাস্তা: মাটির পথ, চাকার দাগ, ঘাসের কিনারা
     const path=m.theme==="ice"?[214,226,232]:m.theme==="desert"?[196,150,92]:m.theme==="volcano"?[88,72,64]:mix(b.soil,[150,112,74],.45);
     const verge=b.cover>.15?sh(b.grass,-.04):sh(b.soil,.08);
-    const P=(ra,rb,dy)=>{ ctx.beginPath(); for(let q=ra;q<=rb;q++) q===ra?ctx.moveTo(X[q],Y[q]+dy):ctx.lineTo(X[q],Y[q]+dy); };
-    ctx.lineCap="butt"; ctx.lineJoin="round";
+    const P=(ra,rb,dy)=>{ C.beginPath(); for(let q=ra;q<=rb;q++) q===ra?C.moveTo(X[q],Y[q]+dy):C.lineTo(X[q],Y[q]+dy); };
+    C.lineCap="butt"; C.lineJoin="round";
     for(const [ra,rb] of runs){
-      ctx.strokeStyle="rgba(0,0,0,.14)"; ctx.lineWidth=14; P(ra,rb,17); ctx.stroke();
-      ctx.strokeStyle=css(verge); ctx.lineWidth=20; P(ra,rb,0); ctx.stroke();
-      ctx.strokeStyle=css(path); ctx.lineWidth=9; P(ra,rb,-1); ctx.stroke();
-      ctx.strokeStyle=css(sh(path,-.3),.55); ctx.lineWidth=1.6; P(ra,rb,-3.5); ctx.stroke(); P(ra,rb,1.6); ctx.stroke();
-      ctx.strokeStyle="rgba(255,255,230,.32)"; ctx.lineWidth=2; P(ra,rb,-9.5); ctx.stroke();
-      if(b.cover>.15){ ctx.strokeStyle=css(sh(verge,-.28)); ctx.lineWidth=1.4; ctx.beginPath();
-        for(let q=ra;q<=rb;q++){ const hh=3+((q*7)%5); ctx.moveTo(X[q],Y[q]+11); ctx.lineTo(X[q]+1.5,Y[q]+11-hh); ctx.moveTo(X[q]+4,Y[q]+11); ctx.lineTo(X[q]+5,Y[q]+12-hh*.7); } ctx.stroke(); }
+      C.strokeStyle="rgba(0,0,0,.14)"; C.lineWidth=14; P(ra,rb,17); C.stroke();
+      C.strokeStyle=css(verge); C.lineWidth=20; P(ra,rb,0); C.stroke();
+      C.strokeStyle=css(path); C.lineWidth=9; P(ra,rb,-1); C.stroke();
+      C.strokeStyle=css(sh(path,-.3),.55); C.lineWidth=1.6; P(ra,rb,-3.5); C.stroke(); P(ra,rb,1.6); C.stroke();
+      C.strokeStyle="rgba(255,255,230,.32)"; C.lineWidth=2; P(ra,rb,-9.5); C.stroke();
+      if(b.cover>.15){ C.strokeStyle=css(sh(verge,-.28)); C.lineWidth=1.4; C.beginPath();
+        for(let q=ra;q<=rb;q++){ const hh=3+((q*7)%5); C.moveTo(X[q],Y[q]+11); C.lineTo(X[q]+1.5,Y[q]+11-hh); C.moveTo(X[q]+4,Y[q]+11); C.lineTo(X[q]+5,Y[q]+12-hh*.7); } C.stroke(); }
     }
   }
 
   // ---------- পানি: শান্ত, গভীর রং, পাহাড়ের প্রতিবিম্ব, হালকা ঢেউ ----------
   function water(){
     const m=maps[save.selectedMap]||maps[0], wy=H-118, t=performance.now()/1000, base=(()=>{ const h=String(m.water||"#2a8fb8").replace('#',''); const v=parseInt(h,16); return [v>>16&255,v>>8&255,v&255]; })();
-    const g=ctx.createLinearGradient(0,wy,0,H); g.addColorStop(0,css(mix(base,[170,210,225],.35))); g.addColorStop(.35,css(sh(base,-.25))); g.addColorStop(1,css(sh(base,-.62)));
-    ctx.fillStyle=g; ctx.fillRect(0,wy,W,H-wy);
+    const g=C.createLinearGradient(0,wy,0,H); g.addColorStop(0,css(mix(base,[170,210,225],.35))); g.addColorStop(.35,css(sh(base,-.25))); g.addColorStop(1,css(sh(base,-.62)));
+    C.fillStyle=g; C.fillRect(0,wy,W,H-wy);
     // পাহাড়ের প্রতিবিম্ব (আগের ফ্রেমের রেখা উল্টে)
-    if(last&&last.X.length){ const {X,Y,runs,floor}=last; ctx.save(); ctx.beginPath(); ctx.rect(0,wy,W,H-wy); ctx.clip();
-      ctx.fillStyle="rgba(10,30,30,.30)";
-      for(const [ra,rb] of runs){ ctx.beginPath(); ctx.moveTo(X[ra],wy); for(let q=ra;q<=rb;q++){ const d=floor-Y[q]; ctx.lineTo(X[q]+Math.sin(q*.9+t*2)*1.5,wy+d*.55); } ctx.lineTo(X[rb],wy); ctx.closePath(); ctx.fill(); }
-      ctx.restore(); }
+    { const floor=wy, X=[], Y=[], runs=[]; let st=-1;
+      for(let x=-24;x<=W+24;x+=12){ const wx=x+camera.x, i=X.length; X.push(x); Y.push(terrainY(wx)); if(isGap(wx)){ if(st>=0&&i-1>st) runs.push([st,i-1]); st=-1; } else if(st<0) st=i; }
+      if(st>=0&&X.length-1>st) runs.push([st,X.length-1]);
+      C.save(); C.beginPath(); C.rect(0,wy,W,H-wy); C.clip();
+      C.fillStyle="rgba(10,30,30,.30)";
+      for(const [ra,rb] of runs){ C.beginPath(); C.moveTo(X[ra],wy); for(let q=ra;q<=rb;q++){ const d=floor-Y[q]; C.lineTo(X[q]+Math.sin(q*.9+t*2)*1.5,wy+d*.55); } C.lineTo(X[rb],wy); C.closePath(); C.fill(); }
+      C.restore(); }
     // নরম ঢেউয়ের রেখা (কম, ধীরে চলে)
     for(let r=0;r<9;r++){ const y=wy+8+r*r*1.5+r*4; if(y>H) break; const a=.10+.12*(1-r/9);
-      ctx.strokeStyle=`rgba(235,250,255,${a})`; ctx.lineWidth=1+(r<3?.6:0);
+      C.strokeStyle=`rgba(235,250,255,${a})`; C.lineWidth=1+(r<3?.6:0);
       for(let k=0;k<6;k++){ const len=40+((k*37+r*13)%60), x=((k*211+r*97-camera.x*(.25+r*.03)+t*12*(r%2?1:-1))%(W+200)+W+200)%(W+200)-100;
-        ctx.beginPath(); ctx.moveTo(x,y); ctx.quadraticCurveTo(x+len/2,y-1.5,x+len,y); ctx.stroke(); } }
+        C.beginPath(); C.moveTo(x,y); C.quadraticCurveTo(x+len/2,y-1.5,x+len,y); C.stroke(); } }
     // তীরের ফেনা
-    ctx.strokeStyle="rgba(255,255,255,.55)"; ctx.lineWidth=2; ctx.beginPath(); for(let x=0;x<=W;x+=12){ const y=wy+1.5+Math.sin(x*.05+t*1.8)*1.2; x?ctx.lineTo(x,y):ctx.moveTo(x,y); } ctx.stroke();
+    C.strokeStyle="rgba(255,255,255,.55)"; C.lineWidth=2; C.beginPath(); for(let x=0;x<=W;x+=12){ const y=wy+1.5+Math.sin(x*.05+t*1.8)*1.2; x?C.lineTo(x,y):C.moveTo(x,y); } C.stroke();
     // আকাশের ঝিলিক
-    const sg=ctx.createLinearGradient(0,wy,0,wy+40); sg.addColorStop(0,"rgba(255,255,255,.18)"); sg.addColorStop(1,"rgba(255,255,255,0)"); ctx.fillStyle=sg; ctx.fillRect(0,wy,W,40);
+    const sg=C.createLinearGradient(0,wy,0,wy+40); sg.addColorStop(0,"rgba(255,255,255,.18)"); sg.addColorStop(1,"rgba(255,255,255,0)"); C.fillStyle=sg; C.fillRect(0,wy,W,40);
   }
-  return {draw,water,BIOME};
+  // ---------- টাইল ক্যাশ: পাহাড় একবার ৫১২px চওড়া টুকরায় এঁকে রাখা হয়, প্রতি ফ্রেমে শুধু বসানো (অনেক দ্রুত) ----------
+  const TILE=512, cache=new Map(); let key="";
+  function renderTile(i){
+    const c=document.createElement("canvas"); c.width=Math.ceil(TILE*DPR); c.height=Math.ceil(H*DPR);
+    const cx=c.getContext("2d"), sx=camera.x, sw=W;
+    C=cx; camera.x=i*TILE; W=TILE;
+    try{ cx.setTransform(DPR,0,0,DPR,0,0); draw(); } finally { C=ctx; camera.x=sx; W=sw; }
+    return c; }
+  function drawTiles(){
+    const k=[currentLevel,save.selectedMap,H,DPR,(typeof endlessMode!=="undefined"&&endlessMode)?1:0].join("|");
+    if(k!==key){ cache.clear(); key=k; }
+    const first=Math.floor(camera.x/TILE), lastT=Math.floor((camera.x+W)/TILE);
+    let made=0;
+    for(let i=first;i<=lastT+1;i++){ let c=cache.get(i);
+      if(!c){ if(i>lastT&&made>0) continue; c=renderTile(i); made++; }
+      cache.delete(i); cache.set(i,c);
+      if(i<=lastT) ctx.drawImage(c,i*TILE-camera.x,0,TILE,H); }
+    while(cache.size>7) cache.delete(cache.keys().next().value); }
+  return {draw,water,drawTiles,BIOME};
 })();
 drawPremiumWater=function(){ try{ V21.water(); }catch(e){} };
 drawTerrain=function(){
-  try{ V21.draw(); }catch(e){ try{ v163TerrainBase.apply(this,arguments); }catch(_){} }
+  try{ V21.drawTiles(); }catch(e){ try{ v163TerrainBase.apply(this,arguments); }catch(_){} }
   try{ v163DrawDetails(); }catch(e){}
 };
 
@@ -5987,9 +6010,31 @@ function timeOfDay(){
     if(tod==="night") icon=w==="rain"?"🌧":"🌙"; else if(tod==="evening"&&w==="clear") icon="🌅";
     if(el.textContent!==icon) el.textContent=icon; };
 
-  let lc=null, lx=null, flash=0, nextFlash=4;
-  function lampPos(){ const a=truck.angle, ca=Math.cos(a), sa=Math.sin(a), lx0=60, ly0=-14;
+  let lc=null, lx=null, sc=null, sx=null, bc=null, bx=null, flash=0, nextFlash=4;
+  const V22_FILTER=(()=>{ try{ const c=document.createElement('canvas').getContext('2d'); c.filter='blur(1px)'; return c.filter==='blur(1px)'; }catch(e){ return false; } })();
+  function lampPos(){ const a=truck.angle, ca=Math.cos(a), sa=Math.sin(a), kd=(vehiclesV22[save.selectedVehicle]||{}).kind, L={bus:[74,-16],cng:[65,-8]}[kd]||[60,-14], lx0=L[0], ly0=L[1];
     return [truck.x-camera.x+ca*lx0-sa*ly0, truck.y+sa*lx0+ca*ly0, a]; }
+  function clipAboveGround(c,x0,x1){ c.beginPath(); c.moveTo(x0,-60); for(let x=x0;x<=x1;x+=8){ const wx=x+camera.x; c.lineTo(x,isGap(wx)?H+60:terrainY(wx)-3); } c.lineTo(x1,-60); c.closePath(); c.clip(); }
+  function beam(c,hx,hy,dir,len,alpha,col){ for(const [sp,k] of [[.08,1],[.15,.6],[.24,.32]]){ const g=c.createRadialGradient(hx,hy,3,hx,hy,len); g.addColorStop(0,col(alpha*k)); g.addColorStop(.55,col(alpha*k*.4)); g.addColorStop(1,col(0)); c.fillStyle=g; cone(c,hx,hy,dir,len,sp); c.fill(); } }
+  const V22_LAYERS=[[-3,18,.95],[-24,44,.42],[-58,52,.16]];
+  // রাস্তা-বরাবর আলো: রাস্তার রেখা ধরে কয়েক স্তরের নরম আলো (দূরে গেলে কমে), খাদে ভেঙে যায়
+  // রাস্তায় পড়া আলো: প্রতিটা বিন্দুর জন্য হিসাব — রশ্মির ভেতরে কিনা, দূরত্ব কত, মাঝে পাহাড়ের আড়াল আছে কিনা
+  function roadLight(c,hx,hy,dir,L,col,strength){
+    const pts=[];
+    for(let x=hx-50;x<=hx+L;x+=10){ const wx=x+camera.x; if(isGap(wx)){ pts.push(null); continue; }
+      const y=terrainY(wx), dx=x-hx, dy=y-hy, d=Math.hypot(dx,dy);
+      const diff=Math.abs(Math.atan2(dy,Math.max(1,dx))-dir);
+      let v=dx>0?Math.max(0,1-Math.max(0,diff-.20)/.40):0;          // রশ্মির কোণ (মাঝে পুরো, কিনারায় কমে)
+      v*=Math.pow(Math.max(0,1-d/L),1.15);                           // দূরে গেলে কমে
+      if(v>0&&dx>30){ for(let t=.15;t<.96;t+=.12){ const ox=hx+dx*t, oy=hy+dy*t, owx=ox+camera.x; if(!isGap(owx)&&terrainY(owx)<oy-5){ v=0; break; } } } // পাহাড়ের আড়াল
+      v=Math.max(v,.6*Math.max(0,1-d/150));                          // বাতির ঠিক সামনে/নিচে ছড়ানো আলো
+      pts.push([x,y,v*strength]); }
+    c.lineCap="butt";
+    for(const [oy,w,al] of V22_LAYERS){ c.lineWidth=w;
+      for(let i=1;i<pts.length;i++){ const p0=pts[i-1], p1=pts[i]; if(!p0||!p1) continue; const v=(p0[2]+p1[2])/2*al; if(v<.02) continue;
+        c.strokeStyle=col(v); c.beginPath(); c.moveTo(p0[0],p0[1]+oy); c.lineTo(p1[0],p1[1]+oy); c.stroke(); } } }
+  // রশ্মির দিক: গাড়ির দিক আর সামনের রাস্তার দিকের মাঝামাঝি (একটু নিচে — low beam)
+  function beamDir(hx,hy,a){ const wx=hx+camera.x+170, ry=isGap(wx)?hy+40:terrainY(wx)-12; const rd=Math.atan2(ry-hy,170); let d=a+.10; d=d+(rd-d)*.55; return d; }
   function cone(c,x,y,a,len,spread){ c.beginPath(); c.moveTo(x,y); c.lineTo(x+Math.cos(a-spread)*len,y+Math.sin(a-spread)*len);
     c.quadraticCurveTo(x+Math.cos(a)*len*1.08,y+Math.sin(a)*len*1.08,x+Math.cos(a+spread)*len,y+Math.sin(a+spread)*len); c.closePath(); }
   drawNightOverlay=function(){
@@ -6007,29 +6052,35 @@ function timeOfDay(){
     // বৃষ্টির রাতে মাঝে মাঝে বিদ্যুৎ চমক
     if(w==="rain"&&tod!=="day"){ if(now>nextFlash){ flash=1; nextFlash=now+5+Math.random()*9; } }
     if(dark<.04) return;
-    const cw=canvas.width, ch=canvas.height;
-    if(!lc){ lc=document.createElement("canvas"); lx=lc.getContext("2d"); }
-    if(lc.width!==cw||lc.height!==ch){ lc.width=cw; lc.height=ch; }
-    lx.setTransform(1,0,0,1,0,0); lx.globalCompositeOperation="source-over"; lx.clearRect(0,0,cw,ch);
-    const k=cw/W; lx.setTransform(k,0,0,k,0,0);
-    lx.fillStyle=tod==="night"?`rgba(3,8,22,${dark})`:`rgba(28,22,40,${dark})`; lx.fillRect(0,0,W,H);
+    // কম-রেজোলিউশনের ক্যানভাসে আলো আঁকা হয়, তারপর ঝাপসা করে বড় করে বসানো হয় — আলোর কিনারা নরম, দাগ থাকে না, খরচও কম
+    const q=1/5, sw=Math.max(2,Math.ceil(W*q)), shh=Math.max(2,Math.ceil(H*q));
+    if(!lc){ lc=document.createElement("canvas"); lx=lc.getContext("2d"); sc=document.createElement("canvas"); sx=sc.getContext("2d"); bc=document.createElement("canvas"); bx=bc.getContext("2d"); }
+    for(const cv of [lc,sc,bc]) if(cv.width!==sw||cv.height!==shh){ cv.width=sw; cv.height=shh; }
     const lightsOn=dark>=.2;
-    lx.globalCompositeOperation="destination-out";
-    if(lightsOn){ const [hx,hy,a]=lampPos(), len=Math.min(560,Math.max(360,W*.45)), dir=a+.07;
-      const g=lx.createRadialGradient(hx,hy,4,hx,hy,len); g.addColorStop(0,"rgba(0,0,0,1)"); g.addColorStop(.45,"rgba(0,0,0,.9)"); g.addColorStop(.8,"rgba(0,0,0,.45)"); g.addColorStop(1,"rgba(0,0,0,0)");
-      lx.fillStyle=g; cone(lx,hx,hy,dir,len,.30); lx.fill();
-      // গাড়ির চারপাশে হালকা আলো (ড্যাশবোর্ড/প্রতিফলন)
-      const g2=lx.createRadialGradient(truck.x-camera.x,truck.y-10,10,truck.x-camera.x,truck.y-10,130); g2.addColorStop(0,"rgba(0,0,0,.55)"); g2.addColorStop(1,"rgba(0,0,0,0)");
-      lx.fillStyle=g2; lx.fillRect(truck.x-camera.x-140,truck.y-150,280,280); }
-    if(flash>0){ lx.fillStyle=`rgba(0,0,0,${Math.min(1,flash)*.85})`; lx.fillRect(0,0,W,H); flash-=.06; }
-    ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(lc,0,0); ctx.restore();
-    if(lightsOn){ const [hx,hy,a]=lampPos(), len=Math.min(560,Math.max(360,W*.45)), dir=a+.07, ca=Math.cos(a), sa=Math.sin(a);
+    // ১) আলোর নকশা (উষ্ণ হলুদ রঙে)
+    sx.setTransform(1,0,0,1,0,0); sx.globalCompositeOperation="source-over"; sx.globalAlpha=1; sx.clearRect(0,0,sw,shh); sx.setTransform(q,0,0,q,0,0);
+    if(lightsOn){ const [hx,hy,a]=lampPos(), dir=beamDir(hx,hy,a), warm=v=>`rgba(255,228,170,${v})`;
+      sx.save(); clipAboveGround(sx,hx-40,hx+420); beam(sx,hx,hy,dir,340,.26,warm); sx.restore();   // বাতাসে হালকা রশ্মি (পাহাড় ভেদ করে না)
+      roadLight(sx,hx,hy,dir,Math.min(600,Math.max(420,W*.5)),warm,1);                                 // রাস্তায় পড়া আসল আলো
+      const g2=sx.createRadialGradient(truck.x-camera.x,truck.y-10,10,truck.x-camera.x,truck.y-10,120); g2.addColorStop(0,"rgba(255,228,170,.45)"); g2.addColorStop(1,"rgba(255,228,170,0)");
+      sx.fillStyle=g2; sx.fillRect(truck.x-camera.x-130,truck.y-140,260,260); }
+    // ২) ঝাপসা কপি
+    bx.setTransform(1,0,0,1,0,0); bx.clearRect(0,0,sw,shh);
+    if(V22_FILTER) bx.filter="blur(1.6px)"; bx.drawImage(sc,0,0); if(V22_FILTER) bx.filter="none";
+    // ৩) অন্ধকারের মুখোশ: অন্ধকার − আলো
+    lx.setTransform(1,0,0,1,0,0); lx.globalCompositeOperation="source-over"; lx.clearRect(0,0,sw,shh);
+    lx.fillStyle=tod==="night"?`rgba(3,8,22,${dark})`:`rgba(28,22,40,${dark})`; lx.fillRect(0,0,sw,shh);
+    lx.globalCompositeOperation="destination-out"; lx.drawImage(bc,0,0);
+    if(flash>0){ lx.fillStyle=`rgba(0,0,0,${Math.min(1,flash)*.85})`; lx.fillRect(0,0,sw,shh); flash-=.06; }
+    ctx.save(); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="low"; ctx.drawImage(lc,0,0,W,H);
+    // ৪) আলোর উষ্ণ আভা
+    if(lightsOn){ ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=.28; ctx.drawImage(bc,0,0,W,H); ctx.globalAlpha=1; }
+    ctx.restore();
+    if(lightsOn){ const [hx,hy,a]=lampPos(), ca=Math.cos(a), sa=Math.sin(a);
       ctx.save(); ctx.globalCompositeOperation="lighter";
-      const g=ctx.createRadialGradient(hx,hy,2,hx,hy,len); g.addColorStop(0,"rgba(255,236,170,.30)"); g.addColorStop(.5,"rgba(255,228,160,.08)"); g.addColorStop(1,"rgba(0,0,0,0)");
-      ctx.fillStyle=g; cone(ctx,hx,hy,dir,len,.30); ctx.fill();
-      const lg=ctx.createRadialGradient(hx,hy,0,hx,hy,22); lg.addColorStop(0,"rgba(255,250,220,.95)"); lg.addColorStop(1,"rgba(255,240,180,0)"); ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(hx,hy,22,0,6.3); ctx.fill();
+      const lg=ctx.createRadialGradient(hx,hy,0,hx,hy,20); lg.addColorStop(0,"rgba(255,250,225,.9)"); lg.addColorStop(1,"rgba(255,240,180,0)"); ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(hx,hy,20,0,6.3); ctx.fill();
       // পেছনের লাল বাতি
-      const tx=truck.x-camera.x-ca*62+sa*12, ty=truck.y-sa*62-ca*12; const tg=ctx.createRadialGradient(tx,ty,0,tx,ty,16); tg.addColorStop(0,"rgba(255,60,50,.9)"); tg.addColorStop(1,"rgba(255,40,30,0)"); ctx.fillStyle=tg; ctx.beginPath(); ctx.arc(tx,ty,16,0,6.3); ctx.fill();
+      const tx=truck.x-camera.x-ca*62+sa*12, ty=truck.y-sa*62-ca*12; const tg=ctx.createRadialGradient(tx,ty,0,tx,ty,15); tg.addColorStop(0,"rgba(255,60,50,.85)"); tg.addColorStop(1,"rgba(255,40,30,0)"); ctx.fillStyle=tg; ctx.beginPath(); ctx.arc(tx,ty,15,0,6.3); ctx.fill();
       ctx.restore(); }
     // রাতে চাঁদ (মেঘ/বৃষ্টি না থাকলে)
     if(tod==="night"&&!wet){ const mx=W*.82, my=H*.14; ctx.save(); const mg=ctx.createRadialGradient(mx,my,10,mx,my,90); mg.addColorStop(0,"rgba(230,238,255,.35)"); mg.addColorStop(1,"rgba(230,238,255,0)"); ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(mx,my,90,0,6.3); ctx.fill();
