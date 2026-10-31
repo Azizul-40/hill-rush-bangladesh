@@ -5735,12 +5735,12 @@ showScreen=function(id){ v17ShowBase(id); if(id==="leaderMenu"){ document.getEle
 window.__k=1; let v172Last="";
 resizeCanvas=function(){
   const iw=innerWidth, ih=innerHeight, k=1; /* v17.3: portrait-স্কেল বন্ধ — ফোনে আড়াআড়ি ধরতে বলা হয় */
-  window.__k=k; W=iw/k; H=ih/k; DPR=Math.min(window.devicePixelRatio||1,2);
+  window.__k=k; W=iw/k; H=ih/k; DPR=Math.min(window.devicePixelRatio||1,window.__dprCap||2);
   canvas.width=Math.floor(iw*DPR); canvas.height=Math.floor(ih*DPR);
   ctx.setTransform(DPR*k,0,0,DPR*k,0,0); v172Last=iw+"x"+ih+"@"+DPR;
 };
 v16CheckSize=function(){
-  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const dpr=Math.min(window.devicePixelRatio||1,window.__dprCap||2);
   if(v172Last!==innerWidth+"x"+innerHeight+"@"+dpr||canvas.width!==Math.floor(innerWidth*DPR)||canvas.height!==Math.floor(innerHeight*DPR)) resizeCanvas();
 };
 resizeCanvas();
@@ -6476,3 +6476,42 @@ window.V28A=(function(){
 })();
 const v28TruckBase=drawTruck;
 drawTruck=function(){ try{ V28A.update(); V28A.drawGround(); }catch(e){} return v28TruckBase.apply(this,arguments); };
+
+// ============================================================
+// v31 — ফোনে মসৃণ চালানোর জন্য নিজে থেকে মান কমানো (adaptive quality)।
+// খেলার সময় ফ্রেমের গড় সময় মাপা হয়। ধীর হলে ধাপে ধাপে: (১) ৩D গাড়ির ছবি কম রেজোলিউশনে + চালকের প্যাডেল-হিসাব একফ্রেম পরপর,
+// (২) পুরো ক্যানভাসের রেজোলিউশন একটু কম (DPR ১.৫), (৩) আরও কম (DPR ১)। একবার কমলে ওই সেশনে আর বাড়ে না (ঝাঁকুনি এড়াতে)।
+// ============================================================
+(function v31(){
+  let last=0, acc=0, n=0, slowFor=0, level=0;
+  const apply=lv=>{ level=lv; window.__perfLevel=lv;
+    try{ if(window.V3DTruck&&V3DTruck.setQuality) V3DTruck.setQuality(lv); }catch(e){}
+    if(lv>=2){ window.__dprCap=lv>=3?1:1.5; try{ resizeCanvas(); }catch(e){} } };
+  window.__setPerfLevel=apply;
+  function tick(t){
+    requestAnimationFrame(tick);
+    if(state!=="play"||document.hidden){ last=0; return; }
+    if(last){ const dt=t-last; if(dt<1000){ acc+=Math.min(dt,250); n++; } }
+    last=t;
+    if(acc>=1500&&n>=8){ const avg=acc/n; acc=0; n=0; window.__perfAvg=Math.round(avg);
+      if(avg>24&&level<3){ slowFor++; if(slowFor>=2){ slowFor=0; apply(level+1); } } else slowFor=0; }
+  }
+  requestAnimationFrame(tick);
+})();
+// v31: ছোট ফোনে (যেমন iPhone SE) RPM/FUEL/BOOST ঘড়ি BOOST বাটনের নিচে ঢেকে যেত — বাম আর ডান বাটনের মাঝের ফাঁকে ছোট করে বসানো
+let v31Gap=null, v31GapKey="";
+const v31GaugeBase=drawGaugeCluster;
+drawGaugeCluster=function(){
+  if((window.__k||1)<1) return v31GaugeBase.apply(this,arguments);
+  const key=innerWidth+"x"+innerHeight;
+  if(key!==v31GapKey||!v31Gap){ v31GapKey=key; try{
+    const L=[...document.querySelectorAll(".controlLeft .driveControl")].map(b=>b.getBoundingClientRect()).filter(r=>r.width>0);
+    const R=[...document.querySelectorAll(".controlRight .driveControl")].map(b=>b.getBoundingClientRect()).filter(r=>r.width>0);
+    v31Gap=(L.length&&R.length)?[Math.max(...L.map(r=>r.right)),Math.min(...R.map(r=>r.left))]:null; }catch(e){ v31Gap=null; } }
+  if(!v31Gap||!v31Gap[0]) return v31GaugeBase.apply(this,arguments);
+  const [a,b]=v31Gap, half=128;
+  if(W/2-half>=a+4&&W/2+half<=b-4) return v31GaugeBase.apply(this,arguments);
+  const s=Math.max(.5,Math.min(1,(b-a-8)/(half*2))), cx=(a+b)/2, cy=H-58;
+  ctx.save(); ctx.translate(cx,cy+(1-s)*20); ctx.scale(s,s); ctx.translate(-W/2,-cy);
+  try{ return v31GaugeBase.apply(this,arguments); } finally{ ctx.restore(); }
+};

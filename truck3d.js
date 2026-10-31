@@ -102,13 +102,13 @@ T.render = function(opts){
 // রিকশায় আসল বাতি নেই, তাই হ্যান্ডেলের সামনে একটা ছোট বাতি (bulb) বসানো হয়।
 const VEH = {
   cng:      { file:'models/cng.glb',      Rt:14, lamp:[0.99, 0.84],
-              drv:{ upm:.93, hip:[0.16,0.70], feet:[0.60,0.32], hands:[0.78,0.90], lean:16 } },   // Rt = পেছনের চাকার ব্যাসার্ধ, গেমের পিক্সেলে (এটাই মাপ ঠিক করে)
+              drv:{ upm:.95, hip:[0.08,0.68], feet:[0.56,0.32], hands:[0.74,0.90], lean:6, maxLean:12, maxHead:1.36 } },   // Rt = পেছনের চাকার ব্যাসার্ধ, গেমের পিক্সেলে (এটাই মাপ ঠিক করে)
   rickshaw: { file:'models/rickshaw.glb', Rt:23, lamp:[1.56, 2.58], bulb:0.07,
               drv:{ upm:2.8, hip:[-0.02,2.88], pedal:{ c:[0.355,1.02], r:0.42, lift:0.2 }, hands:[1.28,2.70], lean:24 } },
   ebike:    { file:'models/ebike.glb',    Rt:17, lamp:[1.17, 1.09],
-              drv:{ upm:1,   hip:[0.28,0.90], feet:[0.64,0.33], hands:[0.84,1.10], lean:6 } },
+              drv:{ upm:1,   hip:[0.28,0.86], feet:[0.64,0.33], hands:[0.84,1.08], lean:6, maxHead:1.44 } },
   bus:      { file:'models/bus.glb',      Rt:10, lamp:[11.15, 3.2],
-              drv:{ upm:3.3, hip:[8.15,4.45], feet:[9.35,3.15], hands:[9.10,5.45], lean:4 } }
+              drv:{ upm:3.3, hip:[8.15,4.45], feet:[9.35,3.15], hands:[9.10,5.45], lean:4, maxHead:8.2 } }
 };
 // ---------- চালক: "indian man in pattern shirt" (Pixel_Monster, CC BY 4.0) — Mixamo-ধরনের হাড়।
 // কোডে বসানো হয়: হাড়গুলো IK দিয়ে পা প্যাডেল/মেঝেতে, হাত হ্যান্ডেল/স্টিয়ারিংয়ে। রিকশায় প্যাডেল ঘোরে।
@@ -138,13 +138,19 @@ function setupDriver(rec, cfg, root, holder){
     const need = ['Hips','Spine','Neck','LeftUpLeg','LeftLeg','LeftFoot','RightUpLeg','RightLeg','RightFoot','LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand'];
     if(need.some(n => !B[n])){ console.warn('driver bones missing', need.filter(n=>!B[n])); return; }
     man.rotation.y = Math.PI/2; root.add(man); holder.updateMatrixWorld(true);
-    const bb = new THREE.Box3().setFromObject(man), hLocal = (bb.max.y - bb.min.y) / rec.s;
-    man.scale.multiplyScalar(1.72*D.upm / hLocal); holder.updateMatrixWorld(true);
-    const hipL = root.worldToLocal(B.Hips.getWorldPosition(new THREE.Vector3()));
-    man.position.x += D.hip[0]-hipL.x; man.position.y += D.hip[1]-hipL.y; man.position.z += -hipL.z; holder.updateMatrixWorld(true);
     const rest = new Map(); man.traverse(o => { if(o.isBone) rest.set(o, o.quaternion.clone()); });
-    rec.drv = { B, rest, D, root };
-    poseDriver(rec, 0);
+    const bb = new THREE.Box3().setFromObject(man), hLocal = (bb.max.y - bb.min.y) / rec.s, base = man.scale.x;
+    const D2 = Object.assign({}, D); rec.drv = { B, rest, D:D2, root };
+    // মাপ ঠিক করে নিতম্ব (hips) সিটে বসানো
+    const place = k => { for(const [b, q] of rest) b.quaternion.copy(q); man.position.set(0,0,0); man.scale.setScalar(base * 1.72*D.upm*k / hLocal); holder.updateMatrixWorld(true);
+      const hipL = root.worldToLocal(B.Hips.getWorldPosition(new THREE.Vector3()));
+      man.position.set(D.hip[0]-hipL.x, D.hip[1]-hipL.y, -hipL.z); holder.updateMatrixWorld(true); };
+    // মাথা যেন ছাদে ঢুকে না যায়: বেশি উঁচু হলে আগে একটু বেশি ঝুঁকে বসে, তারপর দরকার হলে একটু ছোট
+    const top = B.HeadTop_End || B.Head; let k = 1; place(k); poseDriver(rec, 0);
+    for(let i=0; i<14 && D.maxHead; i++){
+      const hy = root.worldToLocal(top.getWorldPosition(new THREE.Vector3())).y; if(hy <= D.maxHead) break;
+      if(D2.lean < (D.maxLean||30)) D2.lean += 4; else { k *= .96; place(k); }
+      poseDriver(rec, 0); }
   }catch(e){ console.warn('driver setup failed', e); } }, undefined, e => console.warn('driver load failed', e));
 }
 function poseDriver(rec, crank){
@@ -249,11 +255,14 @@ T.renderVeh = function(kind, opts){
     rec.U.on.value = on ? 1 : 0; if(on){ rec.U.hsv.value.copy(hexHSV(opts.color)); rec.U.rgb.value.set(opts.color); } }
   if(rec.wr){ rec.wr.o.rotation.z = -(opts.spin||0); rec.wr.o.position.y = rec.wr.baseY - (opts.rs||0)/rec.s; }
   if(rec.wf){ rec.wf.o.rotation.z = -(opts.spin||0); rec.wf.o.position.y = rec.wf.baseY - (opts.fs||0)/rec.s; }
-  if(rec.drv && rec.drv.D.pedal) poseDriver(rec, (opts.spin||0)*.55);
+  frameN++; if(rec.drv && rec.drv.D.pedal && (QL===0 || frameN%2===0)) poseDriver(rec, (opts.spin||0)*.55);
   renderer.render(rec.sc, rec.cam);
   const dx = -rec.g0[0], dy = (opts.gy||58) - rec.g0[1];
   return { canvas: renderer.domElement, dx, dy, dw: CW, dh: CH, lamp:[rec.lamp[0]+dx, rec.lamp[1]+dy], tail:[rec.tail[0]+dx, rec.tail[1]+dy], R: rec.R, len: rec.len };
 };
+// ধীর ফোনে: ৩D ছবি ১x রেজোলিউশনে, রিকশাওয়ালার প্যাডেল-হিসাব একফ্রেম পরপর
+let QL = 0, frameN = 0;
+T.setQuality = lv => { QL = lv|0; if(!renderer) return; renderer.setPixelRatio(QL>0 ? 1 : DPRr); renderer.setSize(CW, CH, false); };
 T.has = kind => !!VEH[kind];
 T.preload = kind => { loadVeh(kind); };
 
