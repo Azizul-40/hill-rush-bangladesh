@@ -6013,7 +6013,7 @@ function timeOfDay(){
 
   let lc=null, lx=null, sc=null, sx=null, bc=null, bx=null, flash=0, nextFlash=4;
   const V22_FILTER=(()=>{ try{ const c=document.createElement('canvas').getContext('2d'); c.filter='blur(1px)'; return c.filter==='blur(1px)'; }catch(e){ return false; } })();
-  function lampPos(){ const a=truck.angle, ca=Math.cos(a), sa=Math.sin(a), kd=(vehiclesV22[save.selectedVehicle]||{}).kind, L={bus:[74,-16],cng:[65,-8]}[kd]||[60,-14], lx0=L[0], ly0=L[1];
+  function lampPos(){ const a=truck.angle, ca=Math.cos(a), sa=Math.sin(a), kd=(vehiclesV22[save.selectedVehicle]||{}).kind, L=(!kd&&typeof v26Lamp!=="undefined"&&v26Lamp)?v26Lamp:({bus:[74,-16],cng:[65,-8]}[kd]||[60,-14]), lx0=L[0], ly0=L[1];
     return [truck.x-camera.x+ca*lx0-sa*ly0, truck.y+sa*lx0+ca*ly0, a]; }
   function clipAboveGround(c,x0,x1){ c.beginPath(); c.moveTo(x0,-60); for(let x=x0;x<=x1;x+=8){ const wx=x+camera.x; c.lineTo(x,isGap(wx)?H+60:terrainY(wx)-3); } c.lineTo(x1,-60); c.closePath(); c.clip(); }
   function beam(c,hx,hy,dir,len,alpha,col){ for(const [sp,k] of [[.08,1],[.15,.6],[.24,.32]]){ const g=c.createRadialGradient(hx,hy,3,hx,hy,len); g.addColorStop(0,col(alpha*k)); g.addColorStop(.55,col(alpha*k*.4)); g.addColorStop(1,col(0)); c.fillStyle=g; cone(c,hx,hy,dir,len,sp); c.fill(); } }
@@ -6361,3 +6361,21 @@ const v24SkyBase=drawSky;
 drawSky=function(){ const r=v24SkyBase.apply(this,arguments); try{ V24.sky(); }catch(e){} return r; };
 const v24OverlayBase=drawNightOverlay;
 drawNightOverlay=function(){ const r=v24OverlayBase.apply(this,arguments); try{ V24.overlay(); }catch(e){} return r; };
+
+// ============================================================
+// v26 — আসল ৩D মনস্টার ট্রাক (truck3d.js, models/monster_truck.glb)। সাধারণ ট্রাকগুলো (রং অনুযায়ী) ৩D-তে আঁকা হয়।
+// রিকশা/CNG/ইজিবাইক/বাস আগের মতো ২D। ৩D লোড না হলে বা WebGL না থাকলে আগের ২D ট্রাক।
+// ============================================================
+let v26Lamp=null;
+const v26TruckBase=drawTruck;
+drawTruck=function(){
+  const base=vehiclesV22[save.selectedVehicle]||vehiclesV22[0], T=window.V3DTruck;
+  if(base.kind||!T||!T.ready||window.__no3d){ v26Lamp=null; return v26TruckBase.apply(this,arguments); }
+  const v=v15Eff(base); let img=null;
+  try{ img=T.render({color:v.color,spin:truck.wheelSpin||0,rs:truck.rearSusp||0,fs:truck.frontSusp||0,wb:98,rc:[-47,29]}); }catch(e){ img=null; }
+  if(!img){ v26Lamp=null; return v26TruckBase.apply(this,arguments); }
+  ctx.save(); ctx.translate(truck.x-camera.x,truck.y); ctx.rotate(truck.angle); ctx.translate(0,-(truck.onGround?Math.sin(performance.now()*.012)*1.1:0));
+  ctx.fillStyle="rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(2,54,80,8,0,0,Math.PI*2); ctx.fill();
+  ctx.drawImage(img.canvas,img.dx,img.dy,img.dw,img.dh);
+  ctx.restore(); v26Lamp=img.lamp;
+};

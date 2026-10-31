@@ -357,7 +357,9 @@
   <!-- Toast notification (যেমন: "Not enough balance!")। -->
   <div id="toast" class="toast hidden"></div>
 
+  <script type="importmap">{"imports":{"three":"./3d/lib/three.module.min.js","three/addons/":"./3d/lib/jsm/"}}</script>
   <script src="script.js"></script>
+  <script>/* ৩D ট্রাক শুধু ওয়েব সার্ভার থেকে খুললে (file:// এ মডিউল ব্লক হয়) */ if(/^https?:/.test(location.protocol)){ const m=document.createElement("script"); m.type="module"; m.src="truck3d.js"; document.body.appendChild(m); }</script>
 <div id="rotateOverlay"><div class="rotBox"><div class="rotIcon">📱</div><div class="rotTxt">ফোনটা আড়াআড়ি করো</div><div class="rotSub">গেম আড়াআড়ি (landscape) মোডে খেলতে হয়</div></div></div>
 </body>
 </html>
