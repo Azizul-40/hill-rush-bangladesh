@@ -38,3 +38,34 @@
 **আমাদের পরিবর্তন (CC BY 4.0 অনুযায়ী জানানো হলো):** সামনের দিক ঘুরিয়ে মাপমতো বসানো হয়েছে। চাকাগুলো আলাদা করা হয়েছে যাতে ঘোরে। বাসের দৃশ্য থেকে আকাশ, বালু আর ছায়া বাদ দেওয়া হয়েছে, অ্যানিমেশনও বাদ। রিকশার চেইন আর ছোট বল্টু বাদ দেওয়া হয়েছে, আর meshoptimizer দিয়ে ~৯ লাখ থেকে ~৬৩ হাজার ত্রিভুজে কমানো হয়েছে। টেক্সচার ছোট করে WebP করা হয়েছে, quantize করা হয়েছে। গেমে খেলোয়াড়ের বেছে নেওয়া রং অনুযায়ী বডির রং বদলায়। কাজটা হয় `truck3d.js` (`renderVeh`) দিয়ে।
 
 **সতর্কতা:** "PSX Bus"-এর লাইসেন্স Sketchfab Standard, এটা CC নয়। গেমের ভেতরে ব্যবহার করা যায়, কিন্তু মডেলটা আলাদা করে আবার বিতরণ করা যায় না। আমাদের রিপো পাবলিক, তাই `models/bus.glb` ফাইলটা যে কেউ নামাতে পারে। জমা দেওয়ার আগে এটা নিয়ে সুপারভাইজারের সাথে কথা বলা ভালো। দরকার হলে বাসের জন্য CC BY / CC0 মডেল খুঁজে বদলে দেওয়া যায়।
+
+## ৩D গাছ (v28)
+ব্যবহারকারী (Azizul) Sketchfab থেকে ডাউনলোড করে দিয়েছে। নাম, নির্মাতা, লাইসেন্স আর লিংক নেওয়া হয়েছে মডেল ফাইলের ভেতরের তথ্য (`asset.extras`) থেকে। গেমে মডেল ফাইল রাখা হয়নি। প্রতিটা মডেল three.js দিয়ে ৩ দিক থেকে একবার রেন্ডার করে ছবি (`models/trees/*.webp`, মোট ~৯০০KB) বানানো হয়েছে, পাহাড়ে সেই ছবি বসে।
+
+| গেমে (ধরন) | মডেল | নির্মাতা | লাইসেন্স | উৎস |
+|---|---|---|---|---|
+| বাঁশঝাড় (`bamboo`) | "bamboo tree" | tojamerlin | CC BY 4.0 | https://sketchfab.com/3d-models/bamboo-tree-d0161434cf6844a8bc6eaeb0c0692ed0 |
+| নারকেল গাছ (`coconut`) | "Coconut Tree" | gelmi.com.br | CC BY 4.0 | https://sketchfab.com/3d-models/coconut-tree-2b959f888db340259e0679839cd224e1 |
+| হলুদ পাতার গাছ (`autumn`) | "Platano Tree" | gelmi.com.br | CC BY 4.0 | https://sketchfab.com/3d-models/platano-tree-ef48485b7c534acc905c0d9964c5fe7c |
+| বড় গাছ (`oak`, `big`) | "Oak tree" | massive-graphisme | CC BY 4.0 | https://sketchfab.com/3d-models/oak-tree-3dc59560f2d24345bdbe65c44636453b |
+| বটগাছের মতো (`banyan`, `big`) | "Tree GN" | TechArtBGN | CC BY 4.0 | https://sketchfab.com/3d-models/tree-gn-40da979cb23f492583ec89c4196cff4e |
+| পাতাবাহার ঝোপ (`fern`, জঙ্গল) | "Monstera Tree" | sligocreatures | **CC BY-NC 4.0** | https://sketchfab.com/3d-models/monstera-tree-6d219fec989947698609f1b6945e009c |
+| পাতাহীন গাছ (`dead`, আগ্নেয়গিরি) | "Tree" | Epic_Tree_Store | CC BY 4.0 | https://sketchfab.com/3d-models/tree-c25e5fc2bfa54d24a165a8a207c0a6d7 |
+| গোল গাছ (`round`) | "Stylized Tree" | yonimantz | CC BY 4.0 | https://sketchfab.com/3d-models/stylized-tree-6d1aeea748f147789004bc03e1930d32 |
+| চা-বাগানের ছায়াগাছ (`shade`) | "Tree" | farhad.Guli | CC BY 4.0 | https://sketchfab.com/3d-models/tree-7016d1d32fe748f0a8b3f5eb39374bc4 |
+
+**আমাদের পরিবর্তন:** Platano, Oak আর Tree GN-এর পুরনো spec-gloss উপাদান metal-rough-এ বদলানো হয়েছে (gltf-transform), যাতে রং ঠিক আসে। স্বচ্ছ পাতায় alpha-cutout দেওয়া হয়েছে। সামনে-উপর-বাঁ দিক থেকে আলো দিয়ে ৩ কোণ থেকে রেন্ডার করা হয়েছে। তারপর কেটে ৩০০px উঁচু WebP বানানো হয়েছে। গেমে মাপ, উল্টানো (mirror) আর ছায়া যোগ হয়।
+
+## ৩D প্রাণী (v28)
+| গেমে | মডেল | নির্মাতা | লাইসেন্স | উৎস |
+|---|---|---|---|---|
+| নেকড়ে (রাস্তায় দৌড়ায়) | "Wolf - Realistic 3D Model Demo Free" | WildMesh 3D | **CC BY-NC 4.0** | https://sketchfab.com/3d-models/wolf-realistic-3d-model-demo-free-8840b859a566485c874a27b1731e1db8 |
+| খরগোশ (রাস্তায় লাফায়) | "Rabbit - Realistic 3D Model Demo Free" | WildMesh 3D | **CC BY-NC 4.0** | https://sketchfab.com/3d-models/rabbit-realistic-3d-model-demo-free-d70284ea0d7644988bdcd327c3ffb59a |
+| শালিক (আকাশে উড়ে যায়) | "Common Myna 3D Model Free" | iRahulRajput | CC BY 4.0 | https://sketchfab.com/3d-models/common-myna-3d-model-free-102ccde8b113480fab81de79e432dcd5 |
+| পাখির ঝাঁক | "Birds" | Zacxophone | Sketchfab Standard | https://sketchfab.com/3d-models/birds-3a9bb97be78944f9bffc23fb25c2154e |
+
+**আমাদের পরিবর্তন:** নেকড়ে আর খরগোশের হাঁটার অ্যানিমেশন থেকে, আর পাখির ঝাঁকের ডানা ঝাপটানো অ্যানিমেশন থেকে, ৮টা করে ফ্রেম রেন্ডার করা হয়েছে (`models/animals/*.webp`, মোট ~১০০KB)। শালিকের একটা ছবি। মডেল ফাইল গেমে রাখা হয়নি।
+
+**লাইসেন্স নিয়ে খেয়াল রাখার বিষয়:**
+- **NC (অবাণিজ্যিক):** নেকড়ে, খরগোশ আর Monstera। ইউনিভার্সিটি প্রজেক্টে ব্যবহার করা যাবে, কিন্তু গেম বিক্রি করলে বা বিজ্ঞাপন দিলে এগুলো বাদ দিতে হবে।
+- **পাখির দুই ফাইল:** ব্যবহারকারী দুটো পাখির ফাইল দিয়েছিল। "bird" (Blender Artist, CC BY 4.0) আর "Birds" (Zacxophone, Sketchfab Standard)-এর জ্যামিতি হুবহু এক, অর্থাৎ একটা আরেকটার কপি। কোনটা আসল জানা নেই, তাই বেশি কড়া লাইসেন্সটা ধরে Zacxophone-কে ক্রেডিট দেওয়া হয়েছে। গেমে শুধু রেন্ডার করা ছবি আছে, মডেল ফাইল নেই।

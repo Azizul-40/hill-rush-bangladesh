@@ -5782,13 +5782,13 @@ const V21=(function(){
   const css=(c,a)=>`rgba(${c.map(v=>Math.round(Math.max(0,Math.min(255,v)))).join(',')},${a==null?1:a})`;
   // ম্যাপ-থিম অনুযায়ী মাটি, ঘাস, পাথর আর গাছপালার সেট
   const BIOME={
-    hills:       {soil:[128,98,68], grass:[96,142,62], rock:[120,118,112], veg:["pine","round","bush","rock","pine"], forest:"pine", cover:.55},
-    sajek:       {soil:[146,92,58], grass:[88,146,64], rock:[126,112,98],  veg:["round","banana","bamboo","bush","rock"], forest:"round", cover:.6},
-    bandarban:   {soil:[118,90,62], grass:[74,130,64], rock:[110,112,108], veg:["round","pine","bamboo","bush","rock"], forest:"round", cover:.65},
+    hills:       {soil:[128,98,68], grass:[96,142,62], rock:[120,118,112], veg:["pine","round","bush","rock","pine","oak"], forest:"pine", cover:.55},
+    sajek:       {soil:[146,92,58], grass:[88,146,64], rock:[126,112,98],  veg:["round","banana","bamboo","coconut","bush","rock"], forest:"round", cover:.6},
+    bandarban:   {soil:[118,90,62], grass:[74,130,64], rock:[110,112,108], veg:["round","banyan","bamboo","oak","bush","rock"], forest:"round", cover:.65},
     sylhet:      {soil:[132,94,62], grass:[86,150,60], rock:[118,114,104], veg:["tea","tea","tea","shade","bush"], forest:"shade", cover:.7},
-    khagrachhari:{soil:[164,82,50], grass:[96,140,58], rock:[130,104,88],  veg:["bamboo","bamboo","round","bush","rock"], forest:"bamboo", cover:.5},
-    kaptai:      {soil:[120,88,62], grass:[78,134,66], rock:[112,108,100], veg:["round","banana","bush","rock","round"], forest:"round", cover:.6},
-    jungle:      {soil:[92,70,48],  grass:[58,120,52], rock:[96,104,86],   veg:["big","big","fern","round","bush"], forest:"big", cover:.75},
+    khagrachhari:{soil:[164,82,50], grass:[96,140,58], rock:[130,104,88],  veg:["bamboo","bamboo","round","coconut","bush","rock"], forest:"bamboo", cover:.5},
+    kaptai:      {soil:[120,88,62], grass:[78,134,66], rock:[112,108,100], veg:["round","banana","coconut","coconut","bush","rock","oak"], forest:"round", cover:.6},
+    jungle:      {soil:[92,70,48],  grass:[58,120,52], rock:[96,104,86],   veg:["big","banyan","fern","round","bush","oak"], forest:"big", cover:.75},
     canyon:      {soil:[170,100,62],grass:[120,140,70],rock:[150,96,66],   veg:["rock","rock","bush","dry","pine"], forest:null, cover:.2},
     autumn:      {soil:[130,88,58], grass:[170,130,60],rock:[118,108,98],  veg:["autumn","autumn","bush","rock","pine"], forest:"autumn", cover:.4},
     desert:      {soil:[212,168,108],grass:[170,150,80],rock:[150,112,80], veg:["cactus","rock","dry","dry","rock"], forest:null, cover:.08},
@@ -5830,13 +5830,28 @@ const V21=(function(){
   function lava(x,y,s){ C.strokeStyle="rgba(255,96,36,.85)"; C.lineWidth=2*s; C.beginPath(); C.moveTo(x-12*s,y-2*s); C.lineTo(x-4*s,y-6*s); C.lineTo(x+3*s,y-3*s); C.lineTo(x+12*s,y-8*s); C.stroke(); }
   function lamp(x,y,s){ C.fillStyle="#2c3138"; C.fillRect(x-1.5*s,y-36*s,3*s,36*s); C.fillRect(x-1.5*s,y-36*s,10*s,2.5*s); blob(x+8*s,y-33*s,3*s,"#ffe9a8"); }
   function grassTuft(x,y,s,c){ C.strokeStyle=css(c); C.lineWidth=1.3*s; C.beginPath(); for(let i=-3;i<=3;i++){ C.moveTo(x+i*2.5*s,y); C.lineTo(x+i*3.4*s,y-(5+(i&1)*3)*s); } C.stroke(); }
+  // v28: আসল ৩D গাছের মডেল থেকে আগে বানানো ছবি (models/trees/*.webp, ক্রেডিট: docs/ASSET_CREDITS.md)।
+  // লোড হলে টাইল আবার আঁকা হয়; লোড না হলে আগের কোডে আঁকা গাছ।
+  const SPR={}, SPR_H={bamboo:86,coconut:120,autumn:84,oak:82,banyan:92,fern:38,dead:68,round:68,shade:86,big:94};
+  const SPR_SRC={bamboo:["bamboo"],coconut:["coconut"],autumn:["autumn"],oak:["oak"],banyan:["banyan"],big:["banyan","oak"],fern:["fern"],dead:["dead"],round:["round"],shade:["shade"]};
+  (function loadSprites(){ if(typeof Image==="undefined") return; const names=["bamboo","coconut","autumn","oak","banyan","fern","dead","round","shade"]; let left=names.length*3;
+    for(const nm of names){ SPR[nm]=[]; for(let k=0;k<3;k++){ const im=new Image(); im.decoding="async";
+      im.onload=im.onerror=()=>{ if(--left===0) window.__treeVer=(window.__treeVer||0)+1; }; im.src="models/trees/"+nm+"_"+k+".webp"; SPR[nm].push(im); } } })();
+  function sprite(type,x,y,s){
+    const src=SPR_SRC[type]; if(!src) return false; const nm=src[Math.floor(hash(x*.53+y*.07+1.7)*src.length)%src.length], arr=SPR[nm]; if(!arr) return false;
+    const im=arr[Math.floor(hash(x*.91+y*.17)*arr.length)%arr.length]; if(!im||!im.complete||!im.naturalWidth) return false;
+    const h=(SPR_H[type]||56)*s*(.85+hash(x*.37)*.3), w=h*im.naturalWidth/im.naturalHeight, flip=hash(x*1.31+.2)<.5;
+    C.fillStyle="rgba(0,0,0,.16)"; C.beginPath(); C.ellipse(x+2*s,y+1*s,Math.min(w*.32,22*s),3*s,0,0,6.3); C.fill();
+    C.save(); C.translate(x,y+2*s); if(flip) C.scale(-1,1); C.drawImage(im,-w/2,-h,w,h); C.restore(); return true; }
   function plant(type,x,y,s,b){
+    if(sprite(type,x,y,s)) return;
     const g=b.grass, leaf=sh(mix(g,[30,90,40],.45),-.18);
     switch(type){
       case "pine": return pine(x,y,s,sh(leaf,-.05));
       case "snowpine": return pine(x,y,s,[64,104,96],true);
       case "round": return round(x,y,s,leaf);
-      case "big": return big(x,y,s,sh(leaf,-.1));
+      case "big": case "oak": case "banyan": return big(x,y,s,sh(leaf,-.1));
+      case "coconut": return banana(x,y,s);
       case "shade": return shade(x,y,s,leaf);
       case "autumn": return round(x,y,s,hash(x*.3)<.5?[206,96,40]:[226,160,52]);
       case "bush": return bush(x,y,s,sh(leaf,.05));
@@ -5967,7 +5982,7 @@ const V21=(function(){
     try{ cx.setTransform(DPR,0,0,DPR,0,0); draw(); } finally { C=ctx; camera.x=sx; W=sw; }
     return c; }
   function drawTiles(){
-    const k=[currentLevel,save.selectedMap,H,DPR,(typeof endlessMode!=="undefined"&&endlessMode)?1:0].join("|");
+    const k=[currentLevel,save.selectedMap,H,DPR,(typeof endlessMode!=="undefined"&&endlessMode)?1:0,window.__treeVer||0].join("|");
     if(k!==key){ cache.clear(); key=k; }
     const first=Math.floor(camera.x/TILE), lastT=Math.floor((camera.x+W)/TILE);
     let made=0;
@@ -6300,11 +6315,18 @@ const V24=(function(){
     if(ra>.02){ const g=ctx.createLinearGradient(0,0,0,H*.5); g.addColorStop(0,`rgba(40,44,56,${.55*ra})`); g.addColorStop(1,"rgba(40,44,56,0)"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H*.5); }
     // পাখির ঝাঁক (রোদেলা দিনে/বিকেলে)
     if(L.sun>.5&&ra<.3&&state==="play"&&t>nextFlock){ nextFlock=t+rnd(7,15); const n=3+Math.floor(Math.random()*5), y=rnd(.08,.3)*H, dir=Math.random()<.5?1:-1;
+      const A=window.V28A;
+      if(A&&A.ok("bird")){ // v28: আসল ৩D পাখির ঝাঁক (ডানা ঝাপটানো ছবি) আর মাঝে মাঝে কাছ দিয়ে উড়ে যাওয়া শালিক
+        for(let i=0;i<1+(n>5?1:0);i++) birds.push({sp:"bird",x:dir>0?-90-i*120:W+90+i*120, y:y+i*rnd(10,24), vx:dir*rnd(55,80), ph:Math.random()*6, s:rnd(.75,1.15)});
+        if(A.ok("myna")&&Math.random()<.45) birds.push({sp:"myna",x:dir>0?-60:W+60, y:rnd(.25,.42)*H, vx:dir*rnd(95,130), ph:Math.random()*6, s:rnd(.85,1.1)});
+      } else
       for(let i=0;i<n;i++) birds.push({x:dir>0?-40-i*rnd(16,28):W+40+i*rnd(16,28), y:y+(i%2?1:-1)*i*rnd(4,8), vx:dir*rnd(55,80), ph:Math.random()*6, s:rnd(.7,1.1)});
       if(Math.random()<.85) setTimeout(birdCall,rnd(200,900)); }
     birds=birds.filter(b=>b.x>-140&&b.x<W+140);
     ctx.strokeStyle=L.warm>.4?"rgba(40,20,30,.85)":"rgba(30,36,44,.85)"; ctx.lineWidth=2.4; ctx.lineCap="round";
-    for(const b of birds){ b.x+=b.vx/60; b.y+=Math.sin(t*1.3+b.ph)*.15; const f=Math.sin(t*9+b.ph)*7*b.s, s=b.s*11;
+    for(const b of birds){ b.x+=b.vx/60; b.y+=Math.sin(t*1.3+b.ph)*.15;
+      if(b.sp){ const A=window.V28A; if(b.sp==="bird") A.draw(ctx,"bird",Math.floor(t*12+b.ph),b.x,b.y,30*b.s,b.vx<0,(L.warm>.4?.8:.85)); else A.draw(ctx,"myna",0,b.x,b.y+Math.sin(t*2+b.ph)*3,28*b.s,b.vx<0,1); continue; }
+      const f=Math.sin(t*9+b.ph)*7*b.s, s=b.s*11;
       ctx.beginPath(); ctx.moveTo(b.x-s,b.y-f); ctx.quadraticCurveTo(b.x-s*.4,b.y-f*.3-2,b.x,b.y); ctx.quadraticCurveTo(b.x+s*.4,b.y-f*.3-2,b.x+s,b.y-f); ctx.stroke(); }
   }
 
@@ -6399,3 +6421,46 @@ drawTruck=function(){
   ctx.drawImage(img.canvas,img.dx,img.dy,img.dw,img.dh);
   ctx.restore(); v26Lamp=img.lamp; v27Tail=img.tail;
 };
+
+// ============================================================
+// v28 — আসল ৩D মডেল থেকে বানানো প্রাণী: নেকড়ে আর খরগোশ পাহাড়ের রাস্তায় দৌড়ায়, আকাশে পাখির ঝাঁক ও শালিক।
+// ছবিগুলো (models/animals/*.webp) মডেলের হাঁটা/ওড়ার অ্যানিমেশন থেকে ৮টা ফ্রেমে বানানো। ক্রেডিট: docs/ASSET_CREDITS.md
+// শুধু দেখার জন্য — গাড়ির সাথে ধাক্কা বা খেলার নিয়মে কোনো প্রভাব নেই।
+// ============================================================
+window.V28A=(function(){
+  const SH={wolf:8,rabbit:8,bird:8,myna:1}, IM={}, rnd=(a,b)=>a+Math.random()*(b-a);
+  for(const k in SH){ const im=new Image(); im.decoding="async"; im.src="models/animals/"+k+".webp"; IM[k]=im; }
+  const ok=k=>{ const im=IM[k]; return !!(im&&im.complete&&im.naturalWidth); };
+  // h = উচ্চতা (পিক্সেলে), x/y = নিচের মাঝখান (পাখির ক্ষেত্রে মাঝখান)
+  function draw(c,k,f,x,y,h,flip,alpha,ang){ if(!ok(k)) return; const im=IM[k], n=SH[k], fw=im.naturalWidth/n, fh=im.naturalHeight, w=h*fw/fh, fi=((f%n)+n)%n;
+    c.save(); c.translate(x,y); if(ang) c.rotate(ang); if(flip) c.scale(-1,1); if(alpha!=null) c.globalAlpha*=alpha;
+    const bird=k==="bird"||k==="myna"; c.drawImage(im,fi*fw,0,fw,fh,-w/2,bird?-h/2:-h,w,h); c.restore(); }
+  let list=[], nextSpawn=0, lastT=0, lastLevel="";
+  const WOLF={jungle:1,bandarban:1,night:1,hills:.6,sajek:.6,autumn:.8,ice:.7,khagrachhari:.5}, RAB={hills:1,sajek:1,bandarban:.8,sylhet:1,kaptai:1,khagrachhari:1,jungle:.6,autumn:1,night:.4};
+  function update(){
+    const now=performance.now()/1000, dt=Math.min(.05,lastT?now-lastT:0); lastT=now;
+    const lk=currentLevel+"|"+save.selectedMap; if(lk!==lastLevel){ lastLevel=lk; list=[]; nextSpawn=now+rnd(4,8); }
+    if(state!=="play") return;
+    const m=maps[save.selectedMap]||maps[0], th=m.theme, dark=typeof v25Light==="function"?(v25Light().dark||0):0;
+    if(now>nextSpawn&&list.length<2){ nextSpawn=now+rnd(9,18);
+      const pw=(WOLF[th]||0)*(.4+dark), pr=(RAB[th]||0)*(1-dark*.7); const tot=pw+pr;
+      if(tot>0&&Math.random()<.85){ const kind=Math.random()*tot<pw?"wolf":"rabbit", x=camera.x+W+rnd(40,160);
+        if(!isGap(x)&&ok(kind)) list.push({k:kind,x,dir:Math.random()<.75?1:-1,v:kind==="wolf"?rnd(120,170):rnd(110,150),ph:Math.random()*8,flee:0}); } }
+    for(const a of list){
+      const d=a.x-truck.x; if(a.dir>0&&d>-40&&d<260) a.flee=Math.min(1,a.flee+dt*2); else a.flee=Math.max(0,a.flee-dt*.5);
+      if(a.dir<0&&d<220&&d>-40){ a.dir=1; } // গাড়ি দেখলে ঘুরে পালায়
+      const sp=a.v*(1+a.flee*.9), nx=a.x+a.dir*sp*dt;
+      if(isGap(nx+a.dir*30)) a.gone=1; else a.x=nx;
+      a.ph+=dt*(a.k==="wolf"?10:9)*(.8+a.flee*.6);
+      if(a.x<camera.x-160||a.x>camera.x+W+260) a.gone=1; }
+    list=list.filter(a=>!a.gone);
+  }
+  function drawGround(){
+    for(const a of list){ const x=a.x-camera.x, y=terrainY(a.x)+1, sl=terrainSlope(a.x), h=a.k==="wolf"?44:24;
+      ctx.fillStyle="rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(x,y,h*.7,2.5,sl,0,6.3); ctx.fill();
+      draw(ctx,a.k,Math.floor(a.ph),x,y,h,a.dir<0,1,sl*.8); }
+  }
+  return {ok,draw,update,drawGround,_list:()=>list,_spawn:(k,x,dir)=>list.push({k,x,dir:dir||1,v:k==="wolf"?140:130,ph:0,flee:0})};
+})();
+const v28TruckBase=drawTruck;
+drawTruck=function(){ try{ V28A.update(); V28A.drawGround(); }catch(e){} return v28TruckBase.apply(this,arguments); };
