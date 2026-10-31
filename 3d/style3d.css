@@ -45,6 +45,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0}
 .card.sel{background:rgba(51,209,90,.25);box-shadow:inset 0 0 0 2px #33d15a}
 .startRow{display:flex;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap;font-weight:700}
 .startRow input{width:80px;padding:8px;border-radius:10px;border:0;font-size:18px;font-weight:800;text-align:center}
+.startRow label{display:flex;align-items:center;gap:10px}
 .keys{font-size:11px;opacity:.7;margin:10px 0 0;text-align:center}
 .noGL{position:fixed;inset:0;z-index:40;background:#0b1a26;align-items:center;justify-content:center}
 @media (max-height:520px){.ctl.steer{width:68px;height:68px;font-size:24px}.ctl{width:74px;height:74px;font-size:12px}.gas{width:86px;height:86px}.boost{width:64px;height:64px}.tilt{width:46px;height:46px}.track{width:90px}.menuPanel{padding:10px 14px}.card span{display:none}}
