@@ -6831,7 +6831,7 @@ const V38=(function(){
     ["আমার পরিসংখ্যান","My stats"],["মোট দূরত্ব","Total distance"],["মোট স্টান্ট","Total stunts"],["অনলাইন","Online"],["দেখা হচ্ছে…","Checking…"],["লোড হচ্ছে…","Loading…"],
     ["প্রোফাইল","Profile"],["নিবন্ধিত ✓","Registered ✓"],["(নিবন্ধিত)","(registered)"],["(গেস্ট)","(guest)"],["গেস্ট হিসেবে খেলো","Play as guest"],["গেস্ট","Guest"],["রেজিস্টার","Register"],["লগইন","Log in"],["নিবন্ধিত হও","Register"],
     ["এই ডিভাইস থেকে বের হও","Log out on this device"],["সামগ্রিক","Overall"],["এন্ডলেস","Endless"],["দেখাও","Show"],["শেষ করা","Done"],["আনলকড","Unlocked"],["কয়েন","Coins"],["নাম","Name"],["সময়","Time"],["দূরত্ব","Distance"],
-    ["গাড়ি","Vehicles"],["চেকপয়েন্ট ব্যবহার করায় এই দৌড় অনলাইন তালিকায় যায়নি","This run used a checkpoint, so it isn't on the online board"],["checkpoint ব্যবহার — সময় রেকর্ডে গণ্য নয়","checkpoint used — time not counted"],["ভুল স্কোর","Invalid score"],["নাম-PIN ছাড়াই খেলো, স্কোর তালিকায়","Play without a name or PIN; your scores show as"],["নামে যাবে (শুধু এই ডিভাইসে)।","(this device only)."],["সমস্যা হয়েছে","Something went wrong"],["লেভেল","Level"],
+    ["গাড়ি","Vehicles"],["নম্বর প্লেট","Number plate"],["+ফুয়েল","+Fuel"],["+বুস্ট","+Boost"],["⛽ FUEL কম!","⛽ LOW FUEL!"],["বুস্ট ঠান্ডা হচ্ছে…","Boost cooling down…"],["পুরো রুট শেষ করেছ! 🎉","You finished the whole route! 🎉"],["চেকপয়েন্ট ব্যবহার করায় এই দৌড় অনলাইন তালিকায় যায়নি","This run used a checkpoint, so it isn't on the online board"],["checkpoint ব্যবহার — সময় রেকর্ডে গণ্য নয়","checkpoint used — time not counted"],["ভুল স্কোর","Invalid score"],["নাম-PIN ছাড়াই খেলো, স্কোর তালিকায়","Play without a name or PIN; your scores show as"],["নামে যাবে (শুধু এই ডিভাইসে)।","(this device only)."],["সমস্যা হয়েছে","Something went wrong"],["লেভেল","Level"],
     ["এই ডিভাইস থেকে প্রোফাইল সরাবে?","Remove the profile from this device?"],["গেস্ট প্রোফাইল আর ফেরত আনা যাবে না।","A guest profile can't be recovered."],["নাম আর PIN দিয়ে আবার লগইন করা যাবে।","You can log in again with your name and PIN."],["ম্যাপ","Maps"],["মিটার","m"],["কিমি","km"],["নতুন সেরা রেকর্ড!","New best!"],["সেরা:","Best:"]];
   PH.forEach(x=>x[0]=x[0].replace(/\u200d/g,"")); PH.sort((x,y)=>y[0].length-x[0].length);
   const BD="০১২৩৪৫৬৭৮৯";
@@ -7055,4 +7055,37 @@ addEventListener("keydown",e=>{
   try{ resumeAudio(); }catch(_){}
   for(const k in keys) keys[k]=false;
   if(typeof endlessMode!=="undefined"&&endlessMode&&typeof startEndless==="function") startEndless(); else startLevel(currentLevel);
+});
+
+// ============================================================
+// v40.6 — ক্যানভাসে আঁকা লেখাও ভাষা মানে (ভাসমান লেখা: তেল/বুস্ট নেওয়া, FLIP, AIR TIME, CHECKPOINT ...)
+// আগে শুধু পাতার (DOM) লেখা বদলাত, ক্যানভাসের লেখা নয়। গাড়ির গায়ে আঁকা নাম (বাসের "ঢাকা", "মুড়ির টিন") সাজসজ্জা, তাই বদলায় না।
+// ============================================================
+const V40L=(function(){
+  const KEEP=new Set(["ঢাকা","মুড়ির টিন"]);
+  const BN=[[/AIR TIME/g,"শূন্যে ভাসা"],[/FLIP!/g,"ফ্লিপ!"],[/FLIP x/g,"ফ্লিপ ×"],[/COMBO x/g,"কম্বো ×"],[/CHECKPOINT/g,"চেকপয়েন্ট"],[/LOW FUEL!/g,"FUEL কম!"]];
+  const cache=new Map();
+  function xl(t){
+    if(typeof t!=="string"||t.length>90) return t;
+    const lang=V38.get(); const key=lang+"|"+t; if(cache.has(key)) return cache.get(key);
+    let out=t;
+    if(lang==="en"){ if(/[\u0980-\u09FF]/.test(t)&&!KEEP.has(t.trim())) out=V38.t(t); }
+    else if(/[A-Z]/.test(t)){ let o=t; BN.forEach(([re,rep])=>{ o=o.replace(re,rep); }); out=o; }
+    if(cache.size>400) cache.clear(); cache.set(key,out); return out; }
+  const P=CanvasRenderingContext2D.prototype, f=P.fillText, st=P.strokeText;
+  P.fillText=function(t,...r){ return f.call(this,xl(t),...r); };
+  P.strokeText=function(t,...r){ return st.call(this,xl(t),...r); };
+  addEventListener("hr-lang",()=>cache.clear());
+  return {xl,clear:()=>cache.clear()};
+})();
+
+// v40.6 — দুর্ঘটনা পর্দায় ↑ (Up arrow) চাপলে চেকপয়েন্ট থেকে শুরু (চেকপয়েন্ট না থাকলে লেভেলের শুরু থেকে)। চলার সময় ↑ আগের মতো GAS।
+addEventListener("keydown",e=>{
+  if(e.key!=="ArrowUp"||e.repeat||state!=="crash") return;
+  const t=e.target, tag=t&&t.tagName; if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+  e.preventDefault(); try{ resumeAudio(); }catch(_){}
+  for(const k in keys) keys[k]=false;
+  if(typeof v15Checkpoint!=="undefined"&&v15Checkpoint&&!(typeof endlessMode!=="undefined"&&endlessMode)) v15Respawn();
+  else if(typeof endlessMode!=="undefined"&&endlessMode&&typeof startEndless==="function") startEndless(); else startLevel(currentLevel);
+  for(const k in keys) keys[k]=false;
 });
