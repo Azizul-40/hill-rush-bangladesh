@@ -4717,10 +4717,10 @@ function updatePhysics(dt){
   if(truck.x>=finishX()) completeLevel();
 }
 
-// পর্দায় আঁকার ক্রম—ghost truck-এর পরে আসল truck, তারপর আবহাওয়া/রাত-দৃশ্যমানতা overlay।
+// পর্দায় আঁকার ক্রম—তারপর আবহাওয়া/রাত-দৃশ্যমানতা overlay।
+// (v40.1: ঘোস্ট (আগের সেরা দৌড়ের স্বচ্ছ গাড়ি) বাদ দেওয়া হয়েছে — আসল ৩D গাড়ির পাশে আলাদা সিলুয়েট "body ক্লোন" এর মতো লাগছিল)
 function render(){
   drawSky();drawTerrain();drawBridges();drawFinish();drawCoins();drawFuelCans();drawBoostCans();drawCheckpointFlags();drawParticles();
-  drawGhost();
   drawTruck();
   drawWeather();
   drawNightOverlay();
@@ -5773,6 +5773,12 @@ drawGaugeCluster=function(){ const k=window.__k||1; if(k>=1||innerWidth>innerHei
   // v33: খোলসের (shell) iframe-এর ভেতরে থাকলে পুরো পর্দা/লক বাইরের পাতা করে — প্রতিটা টাচে অনুরোধ পাঠানো হয় (পুরো পর্দা থেকে বেরিয়ে গেলেও আবার ঢোকে)
   if(window.__EMBED&&window.parent!==window){ addEventListener("pointerup",e=>{ if(e.pointerType==="touch"){ try{ window.parent.postMessage("hr-fullscreen","*"); }catch(_){} } }); }
   else addEventListener("pointerup",function once(e){ if(e.pointerType==="touch"){ lockLandscape(); removeEventListener("pointerup",once); } });
+  // v40.1: লেখার বক্সে (নাম/PIN) ফোকাস হলে/ছাড়লে খোলস-কে জানানো, যাতে কিবোর্ড খোলা অবস্থায় পর্দা না লাফায়
+  if(window.__EMBED&&window.parent!==window){
+    const isField=el=>el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA");
+    addEventListener("focusin",e=>{ if(isField(e.target)) try{ window.parent.postMessage("hr-kb-open","*"); }catch(_){} });
+    addEventListener("focusout",e=>{ if(isField(e.target)) try{ window.parent.postMessage("hr-kb-close","*"); }catch(_){} });
+  }
 })();
 
 // ============================================================

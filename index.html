@@ -407,8 +407,18 @@
     function lay(){ var w=window.innerWidth,h=window.innerHeight;
       if(h>w*1.05){ f.style.width=h+"px"; f.style.height=w+"px"; f.style.transformOrigin="0 0"; f.style.transform="translateX("+w+"px) rotate(90deg)"; document.documentElement.setAttribute("data-rot","1"); }
       else { f.style.width=w+"px"; f.style.height=h+"px"; f.style.transform="none"; document.documentElement.removeAttribute("data-rot"); } }
-    addEventListener("resize",lay); addEventListener("orientationchange",function(){ setTimeout(lay,120); });
-    if(window.visualViewport) visualViewport.addEventListener("resize",lay); lay(); setInterval(lay,1000);
+    // v40.1: ফোনে লেখার বক্সে (নাম/PIN) টাইপ করতে গেলে কিবোর্ড খোলে, তখন visualViewport ছোট হয়ে যায় আর
+    // পুরোনো কোড বারবার lay() চালিয়ে পর্দা লাফাত/বদলে যেত। এখন কিবোর্ড খোলা অবস্থায় lay() থামিয়ে রাখা হয় (ফ্রিজ)।
+    var kbBase=window.innerHeight, kbOpen=false;
+    addEventListener("message",function(e){ if(e.source!==f.contentWindow) return;
+      if(e.data==="hr-kb-open") kbOpen=true; else if(e.data==="hr-kb-close"){ kbOpen=false; kbBase=window.innerHeight; setTimeout(lay,60); } });
+    function maybeLay(){
+      if(kbOpen) return; // কিবোর্ড খোলা থাকলে আগের লে-আউটই রাখো, নতুন করে বদলাবে না
+      if(window.visualViewport && window.visualViewport.height < kbBase*.75) return; // কিবোর্ড খোলার মাঝামাঝি animation—এখনো বদলাবে না
+      kbBase=Math.max(kbBase,window.innerHeight); lay();
+    }
+    addEventListener("resize",maybeLay); addEventListener("orientationchange",function(){ setTimeout(function(){ kbOpen=false; kbBase=window.innerHeight; lay(); },120); });
+    if(window.visualViewport) visualViewport.addEventListener("resize",maybeLay); lay(); setInterval(maybeLay,1000);
     // ভেতরের গেমে প্রথম টাচে: পুরো পর্দা + আড়াআড়ি লক চেষ্টা (Android-এ কাজ করে; না হলে ঘোরানো iframe তো আছেই)
     addEventListener("message",function(e){ if(e.source!==f.contentWindow||e.data!=="hr-fullscreen") return;
       var d=document.documentElement; try{ var p=(!document.fullscreenElement&&d.requestFullscreen)?d.requestFullscreen({navigationUI:"hide"}):null;
