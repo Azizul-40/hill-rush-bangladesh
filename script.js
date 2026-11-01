@@ -6686,7 +6686,9 @@ const V37=(function(){
   const KEY="hillrush_ctl_layout_v1";
   const btns=()=>[...document.querySelectorAll("#controls .driveControl")];
   const id=b=>b.dataset.key;
-  const load=()=>{ try{ const j=JSON.parse(localStorage.getItem(KEY)||"null"); return j&&j.items?j:null; }catch(e){ return null; } };
+  // v40.2: v38.1-এর আগে সেভ করা পুরোনো সাজানো জায়গা বাতিল (তখনকার ডিফল্ট উল্টো ছিল, সেটাই আটকে থেকে GAS/DRIVE বাঁয়ে দেখাচ্ছিল)
+  const CUT=1793456556000;
+  const load=()=>{ try{ const j=JSON.parse(localStorage.getItem(KEY)||"null"); if(j&&j.items&&!(j.saved>=CUT)){ localStorage.removeItem(KEY); return null; } return j&&j.items?j:null; }catch(e){ return null; } };
   const store=l=>{ try{ if(l) localStorage.setItem(KEY,JSON.stringify(l)); else localStorage.removeItem(KEY); }catch(e){} };
   const clear=b=>{ ["position","left","top","right","bottom","width","height","min-width","min-height","margin","z-index","order","transform","--ctlS"].forEach(p=>b.style.removeProperty(p)); b.classList.remove("v37Placed"); };
   const baseSize=b=>{ if(!b.dataset.v37base){ const r=b.getBoundingClientRect(); if(r.width>10) b.dataset.v37base=String(Math.round(r.width)); } return +(b.dataset.v37base||64); };
