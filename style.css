@@ -3772,3 +3772,24 @@ body #mainMenu .developerPlaque .supervisorName{
 /* v39: প্রধান মেনুর ⚙ (ভাষা) */
 .homeSettingsBtn{position:absolute;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:60;width:44px;height:44px;border-radius:14px;border:2px solid rgba(255,255,255,.55);background:linear-gradient(180deg,#1d6fa8,#0d3e63);color:#fff;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 0 #062b45;}
 @media (max-height:520px){ .homeSettingsBtn{width:36px;height:36px;font-size:18px;top:8px;right:8px;border-radius:11px;} }
+
+/* v40.3: লেভেল-শেষ কার্ড ছোট, মাঝখানে (গাড়ি বাঁয়ে দেখা যায়); গাড়ি গড়িয়ে থামা পর্যন্ত লুকানো */
+#completeMenu.v40Wait{opacity:0 !important;pointer-events:none !important;}
+#completeMenu{justify-content:center !important;transition:opacity .25s;}
+#completeMenu .modalCard{width:300px !important;max-width:calc(100vw - 24px) !important;padding:14px 18px 16px !important;gap:6px !important;border-radius:20px !important;
+  display:flex !important;flex-direction:column !important;flex-wrap:nowrap !important;}
+#completeMenu .modalCard > *{flex:0 0 auto !important;max-width:100% !important;}
+#completeMenu .modalIcon{font-size:34px !important;line-height:1 !important;height:auto !important;margin:0 !important;}
+#completeMenu .modalCard h2{font-size:22px !important;margin:0 !important;line-height:1.1 !important;}
+#completeMenu .resultTime{font-size:24px !important;margin:0 !important;line-height:1.15 !important;}
+#completeMenu .resultStars{font-size:24px !important;margin:0 !important;line-height:1.1 !important;}
+#completeMenu .modalCard p{font-size:12px !important;margin:2px 0 4px !important;line-height:1.3 !important;}
+#completeMenu .modalCard .actionBtn{width:100% !important;max-width:none !important;height:38px !important;min-height:38px !important;font-size:14px !important;margin:3px 0 0 !important;padding:0 12px !important;}
+#completeMenu .v39Rank{font-size:12px !important;margin:2px 0 !important;}
+@media (max-height:520px){
+  #completeMenu .modalCard{width:min(250px,40vw) !important;padding:8px 14px 10px !important;gap:3px !important;}
+  #completeMenu .modalIcon{font-size:24px !important;}
+  #completeMenu .modalCard h2{font-size:17px !important;}
+  #completeMenu .resultTime,#completeMenu .resultStars{font-size:18px !important;}
+  #completeMenu .modalCard .actionBtn{height:32px !important;min-height:32px !important;font-size:12px !important;margin-top:2px !important;}
+}

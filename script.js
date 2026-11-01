@@ -6831,7 +6831,7 @@ const V38=(function(){
     ["আমার পরিসংখ্যান","My stats"],["মোট দূরত্ব","Total distance"],["মোট স্টান্ট","Total stunts"],["অনলাইন","Online"],["দেখা হচ্ছে…","Checking…"],["লোড হচ্ছে…","Loading…"],
     ["প্রোফাইল","Profile"],["নিবন্ধিত ✓","Registered ✓"],["(নিবন্ধিত)","(registered)"],["(গেস্ট)","(guest)"],["গেস্ট হিসেবে খেলো","Play as guest"],["গেস্ট","Guest"],["রেজিস্টার","Register"],["লগইন","Log in"],["নিবন্ধিত হও","Register"],
     ["এই ডিভাইস থেকে বের হও","Log out on this device"],["সামগ্রিক","Overall"],["এন্ডলেস","Endless"],["দেখাও","Show"],["শেষ করা","Done"],["আনলকড","Unlocked"],["কয়েন","Coins"],["নাম","Name"],["সময়","Time"],["দূরত্ব","Distance"],
-    ["গাড়ি","Vehicles"],["নাম-PIN ছাড়াই খেলো, স্কোর তালিকায়","Play without a name or PIN; your scores show as"],["নামে যাবে (শুধু এই ডিভাইসে)।","(this device only)."],["সমস্যা হয়েছে","Something went wrong"],["লেভেল","Level"],
+    ["গাড়ি","Vehicles"],["চেকপয়েন্ট ব্যবহার করায় এই দৌড় অনলাইন তালিকায় যায়নি","This run used a checkpoint, so it isn't on the online board"],["checkpoint ব্যবহার — সময় রেকর্ডে গণ্য নয়","checkpoint used — time not counted"],["ভুল স্কোর","Invalid score"],["নাম-PIN ছাড়াই খেলো, স্কোর তালিকায়","Play without a name or PIN; your scores show as"],["নামে যাবে (শুধু এই ডিভাইসে)।","(this device only)."],["সমস্যা হয়েছে","Something went wrong"],["লেভেল","Level"],
     ["এই ডিভাইস থেকে প্রোফাইল সরাবে?","Remove the profile from this device?"],["গেস্ট প্রোফাইল আর ফেরত আনা যাবে না।","A guest profile can't be recovered."],["নাম আর PIN দিয়ে আবার লগইন করা যাবে।","You can log in again with your name and PIN."],["ম্যাপ","Maps"],["মিটার","m"],["কিমি","km"],["নতুন সেরা রেকর্ড!","New best!"],["সেরা:","Best:"]];
   PH.forEach(x=>x[0]=x[0].replace(/\u200d/g,"")); PH.sort((x,y)=>y[0].length-x[0].length);
   const BD="০১২৩৪৫৬৭৮৯";
@@ -6890,6 +6890,8 @@ function v39RankLine(el,txt){ if(!el) return; let r=el.parentNode.querySelector(
 v17Submit=async function(){
   const p=v17Profile(), el=document.getElementById("rewardText");
   if(!p||endlessMode){ v39RankLine(el,p?"":"🏅 লিডারবোর্ডে নাম তুলতে LEADERBOARD থেকে গেস্ট হও বা রেজিস্টার করো"); return; }
+  // v40.3: চেকপয়েন্ট ব্যবহার করলে এই দৌড়ের সময় রেকর্ডে ধরা হয় না; এই লেভেলে আগের কোনো সময় না থাকলে পাঠানোর মতো সময়ই নেই (আগে "ভুল স্কোর" দেখাত)
+  if(!(save.best[currentLevel]>=8)){ v39RankLine(el,"🏅 চেকপয়েন্ট ব্যবহার করায় এই দৌড় অনলাইন তালিকায় যায়নি"); return; }
   v39RankLine(el,"🏅 র‍্যাংক দেখা হচ্ছে…");
   try{ const j=await v17Api("/api/submit",{method:"POST",body:JSON.stringify(v39SubmitBody({map:save.selectedMap||0,level:currentLevel,time:save.best[currentLevel]}))});
     v39RankLine(el,j.rank?`🏅 এই লেভেলে তোমার র‍্যাংক: #${j.rank} / ${j.total}`:""); }
@@ -6984,3 +6986,36 @@ renderRecords=function(){
   if(!p){ on.textContent="প্রোফাইল নেই — LEADERBOARD থেকে গেস্ট হও বা রেজিস্টার করো।"; return; }
   v17Api("/api/leaderboard?type=overall&me="+encodeURIComponent(p.id)).then(j=>{ on.textContent=`${p.name}${p.guest?" (গেস্ট)":""} — সামগ্রিক র‍্যাংক: `+(j.me?`#${j.me.rank} / ${j.me.total}`:"এখনো নেই"); }).catch(e=>{ on.textContent=p.name+" — "+v39Err(e); });
 };
+
+// ============================================================
+// v40.3 — লেভেল শেষ: গাড়ি ফিনিশ লাইন পেরিয়ে একটু সামনে গড়িয়ে থামে (দেখা যায়), তারপর ছোট ফলাফল-কার্ড ডান পাশে আসে।
+// আগে: ফিনিশ করার মুহূর্তেই গাড়ি আটকে যেত আর পর্দার মাঝখানে বড় কার্ড গাড়িকে ঢেকে দিত।
+// ============================================================
+const V40=(function(){
+  const R={on:false,t:0,v:0,off:56};
+  const menu=()=>document.getElementById("completeMenu");
+  const base=completeLevel;
+  completeLevel=function(){
+    const was=state; const wasEndless=(typeof endlessMode!=="undefined"&&endlessMode);
+    const r=base.apply(this,arguments);
+    if(was!=="play"||state!=="complete"||wasEndless) return r;
+    // ফলাফল (সময়, কয়েন, সেভ) আগের মতোই এখনই হিসাব হয়ে গেছে; শুধু কার্ড একটু পরে দেখানো হবে
+    const m=menu(); if(m) m.classList.add("v40Wait");
+    R.on=true; R.t=0; R.v=Math.max(120,Math.min(520,truck.vx||0)); R.off=Math.max(40,Math.min(70,terrainY(truck.x)-truck.y));
+    return r; };
+  function step(dt){
+    R.t+=dt;
+    truck.x+=R.v*dt; R.v*=Math.pow(.18,dt);                 // ধীরে ধীরে থামে
+    const ty=terrainY(truck.x)-R.off; truck.y+=(ty-truck.y)*Math.min(1,dt*14);
+    const a=Math.atan2(terrainY(truck.x+22)-terrainY(truck.x-22),44); truck.angle+=(a-truck.angle)*Math.min(1,dt*10);
+    truck.wheelSpin=(truck.wheelSpin||0)+R.v*dt/27; truck.vx=R.v; truck.vy=0;
+    updateCamera(dt); { const tg=Math.max(0,truck.x-W*.17); camera.x+=(tg-camera.x)*Math.min(1,dt*3.5); }   // কার্ড মাঝখানে আসবে, তাই গাড়ি একটু বাঁয়ে সরে দাঁড়ায়
+    if(R.t>1.15||R.v<8&&R.t>.6){ R.on=false; const m=menu(); if(m) m.classList.remove("v40Wait"); } }
+  let last=0;
+  const rb=render;
+  render=function(){ const now=performance.now(), dt=Math.min(.05,last?(now-last)/1000:0); last=now;
+    if(R.on&&state==="complete"){ try{ step(dt); }catch(e){ R.on=false; const m=menu(); if(m) m.classList.remove("v40Wait"); } }
+    else if(R.on){ R.on=false; const m=menu(); if(m) m.classList.remove("v40Wait"); }
+    return rb.apply(this,arguments); };
+  return R;
+})();
