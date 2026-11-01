@@ -7040,3 +7040,19 @@ const V40S=(function(){
   };
   return S;
 })();
+
+// ============================================================
+// v40.5 — কিবোর্ড: Enter চাপলে লেভেল রিস্টার্ট (চলার সময়, থামানো, দুর্ঘটনা বা লেভেল-শেষ পর্দায়)
+// অন্য কিবোর্ড শর্টকাট (বাটন-ম্যাপ) পরে ঠিক করা হবে
+// ============================================================
+addEventListener("keydown",e=>{
+  if(e.key!=="Enter"||e.repeat||e.ctrlKey||e.altKey||e.metaKey) return;
+  const t=e.target, tag=t&&t.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT"||tag==="BUTTON"||(t&&t.isContentEditable)) return;   // লেখার সময় বা বাটনে ফোকাস থাকলে নিজের কাজ
+  if(document.getElementById("ctlEditor")) return;
+  if(!["play","pause","crash","complete"].includes(state)) return;
+  e.preventDefault();
+  try{ resumeAudio(); }catch(_){}
+  for(const k in keys) keys[k]=false;
+  if(typeof endlessMode!=="undefined"&&endlessMode&&typeof startEndless==="function") startEndless(); else startLevel(currentLevel);
+});
