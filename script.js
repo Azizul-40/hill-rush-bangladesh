@@ -6778,7 +6778,7 @@ const V38=(function(){
     ["Collect a free coin pack.","একটা ফ্রি কয়েন প্যাক নাও।"],["Get a small starter pack.","ছোট একটা শুরুর প্যাক নাও।"],["Instant boost upgrade token.","সাথে সাথে বুস্ট আপগ্রেডের টোকেন।"],
     ["One-time boost to ALL upgrades (+1 level).","একবারে সব আপগ্রেড +১ লেভেল।"],["Unlock every remaining map at once, discounted.","বাকি সব ম্যাপ একসাথে, ছাড়ে।"],["Unlock every remaining truck at once, discounted.","বাকি সব গাড়ি একসাথে, ছাড়ে।"],
     ["DEVELOPED BY","বানিয়েছে"],["SUPERVISED BY","তত্ত্বাবধানে"],["DAILY MISSIONS","দৈনিক মিশন"],["ACHIEVEMENTS","অর্জন"],["MISSIONS & ACHIEVEMENTS","মিশন ও অর্জন"],["ENDLESS RUN","এন্ডলেস দৌড়"],
-    ["The truck crashed.","গাড়ি দুর্ঘটনায় পড়েছে।"],["You fell off the mountain!","পাহাড় থেকে পড়ে গেছ!"],["You fell into the gap!","খাদে পড়ে গেছ!"],["The truck rolled over!","গাড়ি উল্টে গেছে!"],["The truck landed upside down!","গাড়ি উল্টো হয়ে পড়েছে!"],
+    ["The truck crashed.","গাড়ি দুর্ঘটনায় পড়েছে।"],["Stuck! The engine can't climb this slope. Try another line or use boost.","আটকে গেছ! ইঞ্জিন এই ঢাল উঠতে পারছে না। অন্য পথে বা বুস্টে চেষ্টা করো।"],["Out of fuel — the truck stopped.","ফুয়েল ফুরিয়ে গাড়ি থেমে গেছে"],["You fell off the mountain!","পাহাড় থেকে পড়ে গেছ!"],["You fell into the gap!","খাদে পড়ে গেছ!"],["The truck rolled over!","গাড়ি উল্টে গেছে!"],["The truck landed upside down!","গাড়ি উল্টো হয়ে পড়েছে!"],
     ["Landed on its back! (ease off GAS in the air)","পেছনে উল্টে পড়েছে! (বাতাসে GAS কম চাপো)"],["Nose-dived into the ground!","সামনে মুখ থুবড়ে পড়েছে!"],
     ["2× boost","২× বুস্ট"],["🎮 Arrange buttons (move / resize)","🎮 বাটন সাজাও (সরাও / ছোট-বড়)"],["🌦 Weather · 🔧 Vehicle condition","🌦 আবহাওয়া · 🔧 গাড়ির অবস্থা"],
     ["Arrange buttons","বাটন সাজাও"],["Drag to move · tap to pick, then resize","বাটন টেনে সরাও · ছুঁয়ে বেছে নিয়ে সাইজ বদলাও"],["Size","সাইজ"],["All together","সব একসাথে"],["↺ Default","↺ আগের মতো"],["Cancel","বাতিল"],["✓ Save","✓ সেভ"],
@@ -7018,4 +7018,25 @@ const V40=(function(){
     else if(R.on){ R.on=false; const m=menu(); if(m) m.classList.remove("v40Wait"); }
     return rb.apply(this,arguments); };
   return R;
+})();
+
+// ============================================================
+// v40.4 — আটকে গেলে (গ্যাস/ড্রাইভ চেপে ধরে রেখেও এগোতে না পারলে) গাড়ি অমর হয়ে বসে থাকবে না
+// ৮ সেকেন্ড গ্যাস/ড্রাইভ চেপে আছে অথচ গাড়ি ৪০ পিক্সেলও নতুন জায়গায় যায়নি → "আটকে গেছে" দুর্ঘটনা। (ঢাল, দেয়াল বা তেল শেষ — যেকোনো কারণে)
+// রিভার্স/ব্রেকে সরলে বা বাতাসে থাকলে গোনা হয় না।
+// ============================================================
+const V40S=(function(){
+  const S={best:0,t:0,key:""};
+  const base=updatePhysics;
+  updatePhysics=function(dt){
+    base.apply(this,arguments);
+    if(state!=="play"){ S.t=0; return; }
+    const k=currentLevel+"|"+save.selectedMap+"|"+(typeof endlessMode!=="undefined"&&endlessMode?1:0);
+    if(k!==S.key||truck.x<S.best-4000||(elapsed<.3&&state==="play")){ S.key=k; S.best=truck.x; S.t=0; }
+    if(truck.x>S.best+40){ S.best=truck.x; S.t=0; return; }
+    const pushing=(keys.gas||keys.right)&&!keys.brake&&!keys.left;
+    if(pushing&&truck.onGround){ S.t+=dt; } else if(!pushing){ S.t=Math.max(0,S.t-dt*2); }
+    if(S.t>8){ S.t=0; crash(truck.fuel<=0?"ফুয়েল ফুরিয়ে গাড়ি থেমে গেছে":"আটকে গেছ! ইঞ্জিন এই ঢাল উঠতে পারছে না। অন্য পথে বা বুস্টে চেষ্টা করো।"); }
+  };
+  return S;
 })();
