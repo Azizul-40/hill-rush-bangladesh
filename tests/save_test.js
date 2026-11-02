@@ -19,7 +19,8 @@ const { chromium } = require('playwright');
   await p.reload(); await p.waitForTimeout(300);
   cl=await p.evaluate(()=>currentLevel); ok('level 3 খেলে রিফ্রেশ → level 3',cl===3,cl);
   const u=await p.evaluate(()=>save.unlocked); ok('unlocked কমেনি (7)',u===7,u);
-  await p.click('#playBtn'); await p.waitForTimeout(300);
+  // v41: PLAY → ম্যাপ পপআপ → লেভেল পপআপ (হলুদ = চালিয়ে যাওয়ার লেভেল)
+  await p.click('#playBtn'); await p.waitForTimeout(300); await p.click('.v41Map.sel'); await p.waitForTimeout(300); await p.click('.v41Lv.cur'); await p.waitForTimeout(300);
   cl=await p.evaluate(()=>currentLevel); const st=await p.evaluate(()=>state); ok('PLAY চাপলে level 3 শুরু',cl===3&&st==='play',cl+'/'+st);
   // 3: complete level -> next, reward once
   const before=await p.evaluate(()=>coins);

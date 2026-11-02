@@ -3796,3 +3796,62 @@ body #mainMenu .developerPlaque .supervisorName{
 
 /* v40.7: ম্যাপ আর মিশন পাতার পেছনে আগে চলতি ম্যাপের খেলার দৃশ্য দেখা যেত; এখন অন্য মেনুর মতোই স্থির নীল ব্যাকগ্রাউন্ড */
 #mapsMenu,#missionsMenu{background:linear-gradient(#0d8bd8,#43caeb) !important;}
+
+/* v41: বাছাইয়ের পপআপ (PLAY → ম্যাপ → লেভেল; গাড়ি/ম্যাপ বাছাই নিশ্চিতকরণ) */
+.v41Pop{position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;background:rgba(4,24,40,.62);backdrop-filter:blur(3px);padding:12px;box-sizing:border-box;}
+.v41Pop.hidden{display:none !important;}
+.v41Card{width:min(860px,96vw);max-height:min(640px,calc(100vh - 24px));display:flex;flex-direction:column;background:linear-gradient(#0f6fb0,#0b4f80);border:3px solid rgba(255,255,255,.55);border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#fff;overflow:hidden;}
+.v41Head{display:flex;align-items:center;gap:10px;padding:12px 14px 4px;}
+.v41Title{flex:1;text-align:center;font-weight:900;font-size:24px;letter-spacing:.5px;text-shadow:0 2px 0 #062b45;}
+.v41Back,.v41Close{width:40px;height:40px;border-radius:12px;border:2px solid rgba(255,255,255,.6);background:#0a3d63;color:#fff;font-size:24px;font-weight:900;line-height:1;cursor:pointer;flex:0 0 auto;}
+.v41Sub{text-align:center;font-size:13px;color:#cfe9ff;padding:0 14px 8px;}
+.v41Body{overflow:auto;padding:6px 14px 16px;-webkit-overflow-scrolling:touch;}
+.v41MapGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;}
+.v41Map{display:flex;flex-direction:column;text-align:left;padding:0;border-radius:14px;border:3px solid rgba(255,255,255,.35);background:#0a3a5e;color:#fff;cursor:pointer;overflow:hidden;font:inherit;}
+.v41Map:hover{border-color:#ffe066;transform:translateY(-2px);}
+.v41Map.sel{border-color:#7dff5a;box-shadow:0 0 0 2px #7dff5a55;}
+.v41Map.locked .v41Thumb img{filter:grayscale(.65) brightness(.75);}
+.v41Thumb{position:relative;display:block;aspect-ratio:16/8;background:#06263d;overflow:hidden;}
+.v41Thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.v41Lock{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.72);padding:3px 8px;border-radius:9px;font-weight:800;font-size:13px;}
+.v41Map b{font-size:14px;padding:7px 9px 0;}
+.v41Map small{font-size:11px;color:#bcdcf3;padding:2px 9px 9px;line-height:1.25;}
+.v41LvGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:8px;}
+.v41Lv{height:62px;border-radius:12px;border:2px solid rgba(255,255,255,.5);background:linear-gradient(#2fbf4f,#1d8f37);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font:inherit;box-shadow:0 3px 0 #0d5320;}
+.v41Lv b{font-size:20px;font-weight:900;line-height:1;}
+.v41Lv i{font-style:normal;font-size:11px;color:#ffe066;line-height:1.2;min-height:13px;}
+.v41Lv.cur{background:linear-gradient(#ffcf3a,#f39a12);box-shadow:0 3px 0 #9a5a00;}
+.v41Lv.cur i{color:#fff;}
+.v41Lv.locked{background:#33485a;box-shadow:none;cursor:not-allowed;opacity:.7;}
+.v41Lv.locked i{color:#9fb5c6;}
+.v41Lv:not(.locked):hover{filter:brightness(1.12);}
+.v41Confirm{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:4px 6px 4px;}
+.v41Confirm p{margin:0;font-size:15px;}
+.v41BigImg{width:min(360px,70vw);aspect-ratio:16/8;object-fit:cover;border-radius:14px;border:3px solid rgba(255,255,255,.5);}
+.v41VehPic{height:130px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+.v41VehPic > img{position:static !important;transform:none !important;height:auto !important;width:auto !important;max-height:130px !important;max-width:280px !important;margin:0 !important;}
+.v41Fb{transform:scale(.55);transform-origin:center center;}
+.v41Fb > *{position:relative !important;left:auto !important;top:auto !important;margin:0 !important;transform:none !important;}
+.v41Btns{display:flex;gap:10px;justify-content:center;width:100%;margin-top:6px;}
+.v41Btns .actionBtn{flex:1 1 0;max-width:220px;height:46px;min-height:46px;margin:0 !important;}
+@media (max-height:520px){
+  .v41Pop{padding:6px;}
+  .v41Card{max-height:calc(100vh - 12px);border-radius:16px;width:min(760px,98vw);}
+  .v41Head{padding:6px 8px 0;}
+  .v41Title{font-size:17px;}
+  .v41Back,.v41Close{width:32px;height:32px;font-size:19px;border-radius:9px;}
+  .v41Sub{font-size:11px;padding-bottom:4px;}
+  .v41Body{padding:4px 8px 10px;}
+  .v41MapGrid{grid-template-columns:repeat(4,1fr);gap:7px;}
+  .v41Map b{font-size:11px;padding:4px 6px 0;}
+  .v41Map small{display:none;}
+  .v41Map b{padding-bottom:6px;}
+  .v41LvGrid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:5px;}
+  .v41Lv{height:46px;border-radius:9px;}
+  .v41Lv b{font-size:15px;}
+  .v41Lv i{font-size:9px;}
+  .v41BigImg{width:min(240px,40vw);}
+  .v41VehPic{height:76px;} .v41VehPic > img{max-height:76px !important;} .v41Fb{transform:scale(.34);}
+  .v41Confirm{gap:4px;} .v41Confirm p{font-size:13px;}
+  .v41Btns .actionBtn{height:36px;min-height:36px;font-size:13px;}
+}

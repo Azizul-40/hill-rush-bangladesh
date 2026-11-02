@@ -7089,3 +7089,84 @@ addEventListener("keydown",e=>{
   else if(typeof endlessMode!=="undefined"&&endlessMode&&typeof startEndless==="function") startEndless(); else startLevel(currentLevel);
   for(const k in keys) keys[k]=false;
 });
+
+// ============================================================
+// v41 — স্যারের কথামতো বাছাইয়ের ধাপ পপআপে:
+//   PLAY → ম্যাপ বাছাইয়ের পপআপ → লেভেল বাছাইয়ের পপআপ → খেলা শুরু।
+//   গ্যারেজে গাড়ি বা ম্যাপ পাতায় ম্যাপ বাছাই/কেনা হলে নিশ্চিতকরণ পপআপ (▶ খেলো / ঠিক আছে)।
+// ============================================================
+const V41=(function(){
+  const L=(en,bn)=>(typeof V38!=="undefined"&&V38.get()==="bn")?bn:en;
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const order=()=>(typeof V15_MAP_ORDER!=="undefined"&&V15_MAP_ORDER.length===maps.length)?V15_MAP_ORDER:maps.map((_,i)=>i);
+  let ov=null;
+  function shell(){
+    if(ov) return ov;
+    ov=document.createElement("div"); ov.id="v41Pop"; ov.className="v41Pop hidden";
+    ov.innerHTML='<div class="v41Card" role="dialog" aria-modal="true"><div class="v41Head"><button type="button" class="v41Back" aria-label="Back">‹</button><div class="v41Title"></div><button type="button" class="v41Close" aria-label="Close">×</button></div><div class="v41Sub"></div><div class="v41Body"></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener("click",e=>{ if(e.target===ov) close(); });
+    ov.querySelector(".v41Close").onclick=()=>{ try{ tone(330,.05,.04); }catch(_){} close(); };
+    return ov; }
+  function open(title,sub,html,back){
+    const o=shell(); o.querySelector(".v41Title").textContent=title; o.querySelector(".v41Sub").textContent=sub||"";
+    o.querySelector(".v41Sub").style.display=sub?"":"none";
+    o.querySelector(".v41Body").innerHTML=html; const b=o.querySelector(".v41Back");
+    b.style.visibility=back?"visible":"hidden"; b.onclick=back?()=>{ try{ tone(330,.05,.04); }catch(_){} back(); }:null;
+    o.classList.remove("hidden"); o.querySelector(".v41Body").scrollTop=0; return o; }
+  function close(){ if(ov) ov.classList.add("hidden"); }
+  const isOpen=()=>!!ov&&!ov.classList.contains("hidden");
+  const stars=t=>t==null?"":(t<42?"★★★":t<70?"★★☆":"★☆☆");
+
+  // ---- ১) ম্যাপ বাছাই ----
+  function mapPicker(){
+    const cards=order().map(i=>{ const m=maps[i], owned=save.ownedMaps.includes(i), sel=save.selectedMap===i;
+      return `<button type="button" class="v41Map${sel?" sel":""}${owned?"":" locked"}" data-i="${i}">
+        <span class="v41Thumb"><img src="models/maps/${i}.webp" alt="" loading="lazy">${owned?"":`<span class="v41Lock">🔒 ${m.price} 🪙</span>`}</span>
+        <b>${esc(m.name)}</b><small>${esc(m.desc||"")}</small></button>`; }).join("");
+    open(L("CHOOSE A MAP","ম্যাপ বেছে নাও"),L("Then pick a level","তারপর লেভেল বাছবে"),`<div class="v41MapGrid">${cards}</div>`,null);
+    ov.querySelectorAll(".v41Map").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; try{ resumeAudio(); }catch(_){}
+      if(save.ownedMaps.includes(i)){ save.selectedMap=i; persist(); try{ selectSound(); }catch(_){} levelPicker(); return; }
+      buyMap(i); }); }
+  function buyMap(i){
+    const m=maps[i];
+    open(L("UNLOCK MAP?","ম্যাপ কিনবে?"),"",`<div class="v41Confirm"><img class="v41BigImg" src="models/maps/${i}.webp" alt=""><p><b>${esc(m.name)}</b></p>
+      <p>${L("Price","দাম")}: <b>${m.price} 🪙</b> · ${L("You have","তোমার আছে")}: <b>${coins} 🪙</b></p>
+      <div class="v41Btns"><button type="button" class="actionBtn primary v41Yes">${L("BUY","কিনো")} ${m.price} 🪙</button><button type="button" class="actionBtn v41No">${L("CANCEL","বাতিল")}</button></div></div>`,mapPicker);
+    ov.querySelector(".v41No").onclick=mapPicker;
+    ov.querySelector(".v41Yes").onclick=()=>{ if(coins<m.price){ notEnoughCoins(); return; }
+      coins-=m.price; save.coins=coins; if(!save.ownedMaps.includes(i)) save.ownedMaps.push(i); save.selectedMap=i; persist(); try{ purchaseSound(); }catch(_){} updateCoinsUI();
+      try{ if(typeof renderMaps==="function") renderMaps(); }catch(_){} levelPicker(); }; }
+
+  // ---- ২) লেভেল বাছাই ----
+  function levelPicker(){
+    const m=maps[save.selectedMap]||maps[0], un=save.unlocked||1, cl=Math.max(1,Math.min(un,currentLevel||un));   // হলুদ = যেখান থেকে চালিয়ে যাওয়া (আগে PLAY এখান থেকেই শুরু করত)
+    let h=""; for(let n=1;n<=TOTAL_LEVELS;n++){ const open_=n<=un, t=save.best&&save.best[n], cur=n===cl;
+      h+=`<button type="button" class="v41Lv${open_?"":" locked"}${cur?" cur":""}" data-n="${n}"${open_?"":" disabled"}><b>${open_?n:"🔒"}</b><i>${open_?(stars(t)||(cur?"▶":"")):n}</i></button>`; }
+    open(L("CHOOSE A LEVEL","লেভেল বেছে নাও"),`🗺 ${m.name} · ${L("Unlocked","আনলকড")}: ${un}/${TOTAL_LEVELS}`,`<div class="v41LvGrid">${h}</div>`,mapPicker);
+    ov.querySelectorAll(".v41Lv:not(.locked)").forEach(b=>b.onclick=()=>{ close(); try{ resumeAudio(); tone(540,.08,.08); }catch(_){} startLevel(+b.dataset.n); });
+    const c=ov.querySelector(".v41Lv.cur"); if(c) setTimeout(()=>{ try{ c.scrollIntoView({block:"center"}); }catch(_){} },30); }
+
+  // ---- ৩) গ্যারেজ/ম্যাপ পাতায় বাছাই হলে নিশ্চিতকরণ ----
+  function confirmPick(kind,id,bought){
+    const isV=kind==="v", name=isV?vehiclesV22[id].name:maps[id].name;
+    const mk=isV?miniTruckMarkup(vehiclesV22[id],"vehicleMini"):"";
+    const pic=isV?`<div class="v41VehPic">${/^\s*<img/i.test(mk)?mk:`<div class="v41Fb">${mk}</div>`}</div>`:`<img class="v41BigImg" src="models/maps/${id}.webp" alt="">`;
+    const head=bought?L("🎉 UNLOCKED!","🎉 কেনা হয়েছে!"):L("✓ SELECTED","✓ বাছাই হয়েছে");
+    open(head,"",`<div class="v41Confirm">${pic}<p><b>${esc(name)}</b> ${isV?L("is your vehicle now.","এখন তোমার গাড়ি।"):L("is your map now.","এখন তোমার ম্যাপ।")}</p>
+      <div class="v41Btns"><button type="button" class="actionBtn primary v41Yes">▶ ${L("PLAY","খেলো")}</button><button type="button" class="actionBtn v41No">${L("OK","ঠিক আছে")}</button></div></div>`,null);
+    ov.querySelector(".v41No").onclick=close;
+    ov.querySelector(".v41Yes").onclick=()=>{ isV?mapPicker():levelPicker(); }; }
+  function watch(listId,kind){
+    const el=document.getElementById(listId); if(!el) return;
+    el.addEventListener("click",()=>{ const sel0=kind==="v"?save.selectedVehicle:save.selectedMap, own0=(kind==="v"?save.ownedVehicles:save.ownedMaps).length;
+      setTimeout(()=>{ const sel1=kind==="v"?save.selectedVehicle:save.selectedMap, own1=(kind==="v"?save.ownedVehicles:save.ownedMaps).length;
+        if(sel1!==sel0||own1>own0) confirmPick(kind,sel1,own1>own0); },0); },true); }
+  watch("vehicleList","v"); watch("mapGrid","m");
+
+  // PLAY বাটন: সরাসরি খেলা নয়, আগে ম্যাপ বাছাই
+  const pb=document.getElementById("playBtn");
+  if(pb) pb.onclick=()=>{ try{ resumeAudio(); tone(540,.08,.08); }catch(_){} mapPicker(); };
+  addEventListener("keydown",e=>{ if(e.key==="Escape"&&isOpen()){ e.preventDefault(); e.stopImmediatePropagation(); close(); } },true);
+  return {mapPicker,levelPicker,close,isOpen,confirmPick};
+})();
