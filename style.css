@@ -3855,3 +3855,10 @@ body #mainMenu .developerPlaque .supervisorName{
   .v41Confirm{gap:4px;} .v41Confirm p{font-size:13px;}
   .v41Btns .actionBtn{height:36px;min-height:36px;font-size:13px;}
 }
+
+/* v41.1: হোমের ⚙ সেটিংসে শব্দের সারি */
+.homeSetCard .hsSound{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(18,60,89,.15);}
+.homeSetCard .hsSound .settingsRow{display:flex;justify-content:space-between;align-items:center;}
+.homeSetCard .hsSound .volumeSlider{width:100%;}
+.homeSetCard .hsSound .muteRow{display:flex;align-items:center;gap:8px;cursor:pointer;}
+@media (max-height:520px){ .homeSetCard .hsSound{gap:4px;margin-top:6px;padding-top:6px;} .homeSetCard .hsSound .muteRow{font-size:12px;} }

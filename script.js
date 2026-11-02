@@ -6773,7 +6773,7 @@ const V38=(function(){
     ["PAUSED","থামানো আছে"],["RESUME","চালিয়ে যাও"],["CRASH!","দুর্ঘটনা!"],["RETRY","আবার চেষ্টা"],["LEVEL COMPLETE","লেভেল শেষ!"],["NEXT LEVEL","পরের লেভেল"],
     ["SELECT","বেছে নাও"],["SELECTED","বাছাই করা"],["✓ SELECTED","✓ বাছাই করা"],["UPGRADES","আপগ্রেড"],["ENGINE","ইঞ্জিন"],["TIRES","টায়ার"],["SUSPENSION","সাসপেনশন"],["BOOST","বুস্ট"],
     ["SPEED","গতি"],["GRIP","গ্রিপ"],["POWER","শক্তি"],["CUSTOMIZE","নিজের মতো সাজাও"],["CONDITION","অবস্থা"],["FULL CONDITION","পুরোপুরি ঠিক আছে"],
-    ["GAS","গ্যাস"],["DRIVE","চালাও"],["REVERSE","পেছনে"],["BRAKE","ব্রেক"],["BEST:","সেরা:"],["LEVEL","লেভেল"],
+    ["MENU MUSIC","মেনুর মিউজিক"],["GAS","গ্যাস"],["DRIVE","চালাও"],["REVERSE","পেছনে"],["BRAKE","ব্রেক"],["BEST:","সেরা:"],["LEVEL","লেভেল"],
     ["DAILY BONUS","দৈনিক বোনাস"],["COIN PACK","কয়েন প্যাক"],["BOOST PACK","বুস্ট প্যাক"],["MAP BUNDLE","ম্যাপ বান্ডেল"],["VEHICLE BUNDLE","গাড়ির বান্ডেল"],["VIP UPGRADE","ভিআইপি আপগ্রেড"],
     ["Collect a free coin pack.","একটা ফ্রি কয়েন প্যাক নাও।"],["Get a small starter pack.","ছোট একটা শুরুর প্যাক নাও।"],["Instant boost upgrade token.","সাথে সাথে বুস্ট আপগ্রেডের টোকেন।"],
     ["One-time boost to ALL upgrades (+1 level).","একবারে সব আপগ্রেড +১ লেভেল।"],["Unlock every remaining map at once, discounted.","বাকি সব ম্যাপ একসাথে, ছাড়ে।"],["Unlock every remaining truck at once, discounted.","বাকি সব গাড়ি একসাথে, ছাড়ে।"],
@@ -7169,4 +7169,64 @@ const V41=(function(){
   if(pb) pb.onclick=()=>{ try{ resumeAudio(); tone(540,.08,.08); }catch(_){} mapPicker(); };
   addEventListener("keydown",e=>{ if(e.key==="Escape"&&isOpen()){ e.preventDefault(); e.stopImmediatePropagation(); close(); } },true);
   return {mapPicker,levelPicker,close,isOpen,confirmPick};
+})();
+
+// ============================================================
+// v41.1 — হোম/মেনুতে রেসিং ধরনের ব্যাকগ্রাউন্ড মিউজিক + হোমের ⚙ সেটিংসে ভলিউম, মিউট আর মিউজিক চালু/বন্ধ
+// মিউজিক কোনো ফাইল নয়: WebAudio দিয়ে বানানো লুপ (কিক, স্নেয়ার, হাই-হ্যাট, বেস, আর্পেজিও), ~১৪৪ BPM, Am–F–C–G।
+// শুধু মেনুতে বাজে (খেলার সময় ইঞ্জিনের শব্দ থাকে, তাই থামে)। মূল ভলিউম/মিউট এর ওপরও কাজ করে।
+// ব্রাউজারের নিয়মে প্রথম একটা ট্যাপ/ক্লিকের আগে কোনো শব্দ বাজানো যায় না — তাই প্রথম ছোঁয়াতেই শুরু হয়।
+// ============================================================
+const V41M=(function(){
+  const KEY="hillRushMusic"; let on=true; try{ on=localStorage.getItem(KEY)!=="0"; }catch(e){}
+  let g=null, noiseBuf=null, timer=null, next=0, step=0, playing=false;
+  const BPM=144, S16=60/BPM/4;
+  const CH=[[110,220,261.63,329.63],[87.31,174.61,220,261.63],[130.81,261.63,329.63,392],[98,196,246.94,293.66]]; // Am F C G (বেস, তারপর কর্ডের সুর)
+  function nodes(){ if(!audio||!master) return false; if(!g){ g=audio.createGain(); g.gain.value=0; g.connect(master);
+      noiseBuf=audio.createBuffer(1,audio.sampleRate*.5,audio.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; } return true; }
+  function env(node,t,peak,dec){ node.gain.setValueAtTime(0.0001,t); node.gain.exponentialRampToValueAtTime(peak,t+.005); node.gain.exponentialRampToValueAtTime(0.0001,t+dec); }
+  function kick(t){ const o=audio.createOscillator(), a=audio.createGain(); o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(42,t+.22); env(a,t,.9,.26); o.connect(a); a.connect(g); o.start(t); o.stop(t+.3); }
+  function noise(t,hp,peak,dec){ const n=audio.createBufferSource(), f=audio.createBiquadFilter(), a=audio.createGain(); n.buffer=noiseBuf; f.type="highpass"; f.frequency.value=hp; env(a,t,peak,dec); n.connect(f); f.connect(a); a.connect(g); n.start(t); n.stop(t+dec+.02); }
+  function snare(t){ noise(t,1400,.38,.16); const o=audio.createOscillator(), a=audio.createGain(); o.type="triangle"; o.frequency.value=190; env(a,t,.22,.09); o.connect(a); a.connect(g); o.start(t); o.stop(t+.12); }
+  function synth(t,f,type,peak,dec,cut){ const o=audio.createOscillator(), fl=audio.createBiquadFilter(), a=audio.createGain(); o.type=type; o.frequency.value=f; fl.type="lowpass"; fl.frequency.value=cut; env(a,t,peak,dec); o.connect(fl); fl.connect(a); a.connect(g); o.start(t); o.stop(t+dec+.03); }
+  function sched(t,s){ const bar=Math.floor(s/16)%4, b=s%16, c=CH[bar], phrase=Math.floor(s/64)%2;
+    if(b%4===0) kick(t); if(b===10&&phrase) kick(t);
+    if(b===4||b===12) snare(t);
+    if(b%2===0) noise(t,7500,b%4===2?.12:.06,.035);
+    if(b%2===0){ const bf=(b%8===6)?c[0]*2:c[0]; synth(t,bf,"sawtooth",.2,S16*1.8,520); }
+    const arp=[c[1],c[2],c[3],c[2]*2]; synth(t,arp[b%4]*2,phrase?"square":"triangle",phrase?.045:.06,S16*.9,2600);
+    if(phrase&&b===0) synth(t,c[3]*2,"sawtooth",.05,S16*7,1800); }
+  function tick(){ if(!playing||!audio) return; const ahead=audio.currentTime+.25; while(next<ahead){ sched(next,step); step++; next+=S16; } }
+  function start(){ if(playing||!on||!nodes()) return; playing=true; next=audio.currentTime+.08; step=0; g.gain.cancelScheduledValues(audio.currentTime); g.gain.setTargetAtTime(.32,audio.currentTime,.4); clearInterval(timer); timer=setInterval(tick,90); tick(); }
+  function stop(){ if(!playing) return; playing=false; clearInterval(timer); if(g&&audio) g.gain.setTargetAtTime(0,audio.currentTime,.25); }
+  const wanted=()=>on&&state==="menu"&&!document.hidden;
+  setInterval(()=>{ try{ if(wanted()&&audio&&audio.state==="running") start(); else if(!wanted()) stop(); }catch(e){} },300);
+  // প্রথম ছোঁয়া/ক্লিক/কী-তে অডিও চালু (ব্রাউজারের অটোপ্লে নিয়ম)
+  const kick0=()=>{ try{ resumeAudio(); }catch(e){} };
+  ["pointerdown","keydown","touchstart"].forEach(ev=>addEventListener(ev,kick0,{passive:true}));
+  function set(v){ on=!!v; try{ localStorage.setItem(KEY,on?"1":"0"); }catch(e){} if(!on) stop(); }
+  return {set,get:()=>on,start,stop,isPlaying:()=>playing};
+})();
+
+// v41.1: নতুন ব্রাউজারে সেভ করা ভলিউম না থাকলে Number(null)=0 হয়ে পুরো গেম নিঃশব্দ থাকত — এখন ডিফল্ট ৫৫%
+try{ if(localStorage.getItem("hillRushVolume")===null){ userVolume=55; applyAudioVolume(); } }catch(e){}
+// হোমের ⚙ সেটিংসে শব্দের সারি (খেলার ভেতরের সেটিংসের সাথে মিলিয়ে রাখা হয়)
+(function v41HomeSound(){
+  const card=document.querySelector("#homeSettings .homeSetCard"); if(!card) return;
+  const box=document.createElement("div"); box.className="hsSound";
+  box.innerHTML='<div class="settingsRow"><span>🔊 VOLUME</span><strong id="hsVolVal">55%</strong></div>'+
+    '<input id="hsVol" class="volumeSlider" type="range" min="0" max="100" value="55">'+
+    '<label class="muteRow"><input id="hsMute" type="checkbox"> <span>🔇 MUTE SOUND</span></label>'+
+    '<label class="muteRow"><input id="hsMusic" type="checkbox"> <span>🎵 MENU MUSIC</span></label>';
+  const lr=card.querySelector(".langRow"); if(lr&&lr.nextSibling) card.insertBefore(box,lr.nextSibling); else card.appendChild(box);
+  const $=id=>document.getElementById(id);
+  function sync(){ $("hsVol").value=Math.round(userVolume); $("hsVolVal").textContent=Math.round(userVolume)+"%"; $("hsMute").checked=!!userMuted; $("hsMusic").checked=V41M.get();
+    const vs=$("volumeSlider"), vv=$("volumeValue"), mt=$("muteToggle"), cm=$("ctlMute");
+    if(vs) vs.value=Math.round(userVolume); if(vv) vv.textContent=Math.round(userVolume)+"%"; if(mt) mt.checked=!!userMuted;
+    if(cm){ cm.textContent=userMuted?"🔇":"🔊"; cm.classList.toggle("muted",!!userMuted); } }
+  $("hsVol").oninput=e=>{ userVolume=Number(e.target.value); try{ localStorage.setItem("hillRushVolume",String(userVolume)); }catch(_){} if(userVolume>0&&userMuted){ userMuted=false; try{ localStorage.setItem("hillRushMuted","0"); }catch(_){} } applyAudioVolume(); sync(); };
+  $("hsMute").onchange=e=>{ userMuted=e.target.checked; try{ localStorage.setItem("hillRushMuted",userMuted?"1":"0"); }catch(_){} applyAudioVolume(); sync(); };
+  $("hsMusic").onchange=e=>{ try{ resumeAudio(); }catch(_){} V41M.set(e.target.checked); sync(); };
+  const hb=$("homeSettingsBtn"); if(hb) hb.addEventListener("click",sync);
+  sync();
 })();
