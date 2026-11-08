@@ -7458,10 +7458,13 @@ const V45=(function(){
     m.earnedTotal=Math.max(loc.earnedTotal||0,cl.earnedTotal||0);
     m.vehicleCondition=Object.assign({},older.vehicleCondition,newer.vehicleCondition); m.custom=newer.custom||older.custom; m.pic=newer.pic||older.pic||"";
     // কয়েন
-    let c=Math.floor(newer.coins||0);
-    for(const i of m.ownedVehicles) if(!(newer.ownedVehicles||[]).includes(i)) c-=priceOf(vehiclesV22,i);
-    for(const i of m.ownedMaps) if(!(newer.ownedMaps||[]).includes(i)) c-=priceOf(maps,i);
-    for(const v of Object.keys(m.upgrades)) for(const t of ["engine","tires","suspension","boost"]){ const have=((newer.upgrades||{})[v]||{})[t]||1; for(let l=have;l<m.upgrades[v][t];l++) c-=upgradeCost(t,l); }
+    // v52: দুই পাশ থেকেই হিসাব করে বড়টা নেওয়া — নইলে নতুন/ফাঁকা ফোনের ২৫০ থেকে ক্লাউডের কেনা সব জিনিসের দাম কেটে ০ হয়ে যেত
+    const adj=side=>{ let c=Math.floor(side.coins||0);
+      for(const i of m.ownedVehicles) if(!(side.ownedVehicles||[0]).includes(i)) c-=priceOf(vehiclesV22,i);
+      for(const i of m.ownedMaps) if(!(side.ownedMaps||[0]).includes(i)) c-=priceOf(maps,i);
+      for(const v of Object.keys(m.upgrades)) for(const t of ["engine","tires","suspension","boost"]){ const have=((side.upgrades||{})[v]||{})[t]||1; for(let l=have;l<m.upgrades[v][t];l++) c-=upgradeCost(t,l); }
+      return c; };
+    const c=Math.max(adj(newer),adj(older));
     m.coins=Math.max(0,c);
     const sv=newer.selectedVehicle, sm=newer.selectedMap; m.selectedVehicle=m.ownedVehicles.includes(sv)?sv:0; m.selectedMap=m.ownedMaps.includes(sm)?sm:0;
     return m;
