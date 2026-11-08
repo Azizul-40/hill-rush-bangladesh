@@ -110,6 +110,7 @@
     <div class="menuStage">
 
     <!-- Main menu actions। -->
+    <button id="homeChip" type="button" class="homeChip" aria-label="Profile"><span class="hcPic">👤</span><span class="hcName">—</span></button>
     <div class="mainActions">
       <div class="menuCoin">🪙 <span id="menuCoins">250</span></div>
       <button id="playBtn" class="actionBtn primary" type="button"><i>▶</i><span>PLAY</span></button>
@@ -124,6 +125,7 @@
       <button id="raceBtn" type="button" class="actionBtn"><i>🏎️</i><span>RACE</span></button>
       <button id="recordsBtn" type="button" class="actionBtn"><i>📊</i><span>RECORDS</span></button>
       <button id="leaderBtn" type="button" class="actionBtn"><i>🏅</i><span>LEADERBOARD</span></button>
+      <button id="profileBtn" type="button" class="actionBtn"><i>👤</i><span>PROFILE</span></button>
     </div>
 
     <!-- v38: ক্রেডিট (CC BY লাইসেন্সে নাম দেখানো দরকার) — সেটিংস থেকে সরিয়ে মেনুর কোণে ছোট লিংকে -->
@@ -355,6 +357,15 @@
       <div style="width:90px"></div>
     </div>
     <div id="leaderBody" class="recordsList"></div>
+  </section>
+
+  <section id="profileMenu" class="screen hidden">
+    <div class="levelHeader">
+      <button id="backProfileBtn" type="button" class="backBtn">‹ MENU</button>
+      <div class="headerTitle"><span>HILL RUSH BANGLADESH</span><strong>PROFILE</strong></div>
+      <div style="width:90px"></div>
+    </div>
+    <div id="profileBody" class="recordsList"></div>
   </section>
 
   <section id="endlessMenu" class="screen hidden">

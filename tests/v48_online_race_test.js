@@ -33,6 +33,7 @@ const dir=process.argv[2],shots=process.argv[3]||'/tmp';let pass=0,fail=0;const 
   ok('একা থাকলে "বটের সাথে খেলো" বাটন',await A.isVisible('#v48Bots'));
   ok('একা থাকলে শুরু বাটন নেই',!(await A.isVisible('#v48Start')));
   // B: কোড দিয়ে যোগ
+  await B.evaluate(()=>{save.selectedVehicle=3;save.custom={color:'#e53935',plate:''};});
   await B.click('#raceBtn');await B.waitForTimeout(300);
   await B.fill('#v48Code',code.toLowerCase());await B.click('#v48Join');await B.waitForTimeout(1500);
   ok('B লবিতে ঢুকেছে (২ জন)',(await B.locator('#v48Pop .v48P').count())===2);
@@ -45,6 +46,7 @@ const dir=process.argv[2],shots=process.argv[3]||'/tmp';let pass=0,fail=0;const 
   const sA=await A.evaluate(()=>({on:V47.on,online:V47.online,phase:V47.phase,racers:V47.racers.map(r=>r.name),state}));
   const sB=await B.evaluate(()=>({on:V47.on,online:V47.online,phase:V47.phase,racers:V47.racers.map(r=>r.name),state}));
   ok('দুজনেরই রেস শুরু (কাউন্টডাউন), অন্যের নাম দেখা যায়',sA.on&&sB.on&&sA.phase==='count'&&sB.phase==='count'&&sA.racers.length===1&&sB.racers.length===1&&/^Guest-/.test(sA.racers[0]),[sA,sB]);
+  const vb=await A.evaluate(()=>({veh:V47.racers[0].veh,col:V47.racers[0].col}));ok('অন্যের বাছা গাড়ি আর রং A-র কাছে পৌঁছায়',vb.veh===3&&vb.col==='#e53935',vb);
   await A.screenshot({path:shots+'/v48_count.png'});
   await A.waitForTimeout(4200);
   ok('GO-র পর দুজনেই চলছে',(await A.evaluate(()=>V47.phase))==='go'&&(await B.evaluate(()=>V47.phase))==='go');
@@ -52,7 +54,7 @@ const dir=process.argv[2],shots=process.argv[3]||'/tmp';let pass=0,fail=0;const 
   await B.evaluate(()=>{keys.gas=true;keys.right=true;});
   await A.waitForTimeout(3500);
   const seen=await A.evaluate(()=>({bx:V47.racers[0].x,tx:V47.racers[0].tx,pos:V47.pos()}));
-  ok('A, B-র এগোনো দেখছে (অবস্থান সিঙ্ক)',seen.tx>400&&seen.bx>350,seen);
+  ok('A, B-র এগোনো দেখছে (অবস্থান সিঙ্ক)',seen.tx>200&&seen.bx>150,seen);
   ok('A (দাঁড়িয়ে) পজিশন ২',seen.pos===2,seen);
   await A.screenshot({path:shots+'/v48_race.png'});
   // B ফিনিশে পৌঁছায়

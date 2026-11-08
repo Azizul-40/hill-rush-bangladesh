@@ -16,10 +16,12 @@ async function view(env, code, pid, now) {
   const room = await env.DB.prepare("SELECT code,host,level,map,maxp,pub,status,start_at,ready_at FROM race_rooms WHERE code=?").bind(code).first();
   if (!room) return null;
   const rows = (await env.DB.prepare("SELECT pid,name,x,fin,seen,joined FROM race_players WHERE code=? ORDER BY joined").bind(code).all()).results || [];
-  return { room: { code: room.code, level: room.level, map: room.map, maxp: room.maxp, pub: room.pub, status: room.status, start_at: room.start_at, now, host: room.host === pid }, players: rows.map(r => ({ name: r.name, x: Math.round(r.x), fin: r.fin, you: r.pid === pid, host: r.pid === room.host, gone: now - r.seen > GONE_MS })) };
+  return { room: { code: room.code, level: room.level, map: room.map, maxp: room.maxp, pub: room.pub, status: room.status, start_at: room.start_at, now, host: room.host === pid }, players: rows.map(r => { const [nm, veh, col] = String(r.name).split("\u0001"); return { name: nm, veh: Number(veh) || 0, col: col || "", x: Math.round(r.x), fin: r.fin, you: r.pid === pid, host: r.pid === room.host, gone: now - r.seen > GONE_MS }; }) };
 }
-async function addPlayer(env, code, p, now) {
-  await env.DB.prepare("INSERT INTO race_players (code,pid,name,x,fin,joined,seen) VALUES (?,?,?,0,NULL,?,?) ON CONFLICT(code,pid) DO UPDATE SET seen=excluded.seen").bind(code, p.id, p.name, now, now).run();
+// গাড়ির নম্বর আর রং নামের সাথে জুড়ে রাখা হয় (আলাদা কলাম লাগে না): "নাম\u0001গাড়ি\u0001#রং"
+async function addPlayer(env, code, p, now, b) {
+  b = b || {}; const veh = Number.isInteger(b.veh) && b.veh >= 0 && b.veh < 60 ? b.veh : 0, col = /^#[0-9a-fA-F]{6}$/.test(b.col || "") ? b.col : "";
+  await env.DB.prepare("INSERT INTO race_players (code,pid,name,x,fin,joined,seen) VALUES (?,?,?,0,NULL,?,?) ON CONFLICT(code,pid) DO UPDATE SET seen=excluded.seen, name=excluded.name").bind(code, p.id, p.name + "\u0001" + veh + "\u0001" + col, now, now).run();
 }
 export async function onRequestPost({ request, env }) {
   const e = needDB(env); if (e) return e;
@@ -35,12 +37,12 @@ export async function onRequestPost({ request, env }) {
       if (op === "quick") {
         const cand = (await env.DB.prepare("SELECT r.code AS code, r.maxp AS maxp, (SELECT COUNT(*) FROM race_players q WHERE q.code=r.code AND q.seen > ?) AS n FROM race_rooms r WHERE r.pub=1 AND r.status='wait' AND r.level=? AND r.map=? AND r.created > ? ORDER BY r.created").bind(now - GONE_MS, level, map, now - 600e3).all()).results || [];
         const hit = cand.find(c => c.n >= 1 && c.n < c.maxp);
-        if (hit) { await addPlayer(env, hit.code, p, now); return json({ ok: true, ...(await view(env, hit.code, p.id, now)) }); }
+        if (hit) { await addPlayer(env, hit.code, p, now, b); return json({ ok: true, ...(await view(env, hit.code, p.id, now)) }); }
       }
       const maxp = int(b.maxp, 2, MAXP) ?? 6, pub = op === "quick" ? 1 : (b.pub ? 1 : 0);
       let code = newCode(); for (let i = 0; i < 5; i++) { const ex = await env.DB.prepare("SELECT 1 AS k FROM race_rooms WHERE code=?").bind(code).first(); if (!ex) break; code = newCode(); }
       await env.DB.prepare("INSERT INTO race_rooms (code,host,level,map,maxp,pub,status,start_at,ready_at,created) VALUES (?,?,?,?,?,?,'wait',0,0,?)").bind(code, p.id, level, map, maxp, pub, now).run();
-      await addPlayer(env, code, p, now);
+      await addPlayer(env, code, p, now, b);
       return json({ ok: true, ...(await view(env, code, p.id, now)) });
     }
     const code = String(b.code || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5); if (code.length !== 5) return bad("রুম কোড ৫ অক্ষরের");
@@ -54,7 +56,7 @@ export async function onRequestPost({ request, env }) {
         if (n.n >= room.maxp) return bad("রুম ভর্তি", 409);
         await env.DB.prepare("DELETE FROM race_players WHERE pid=? AND code IN (SELECT code FROM race_rooms WHERE status='wait')").bind(p.id).run();
       }
-      await addPlayer(env, code, p, now);
+      await addPlayer(env, code, p, now, b);
       return json({ ok: true, ...(await view(env, code, p.id, now)) });
     }
     const mine = await env.DB.prepare("SELECT 1 AS k FROM race_players WHERE code=? AND pid=?").bind(code, p.id).first();

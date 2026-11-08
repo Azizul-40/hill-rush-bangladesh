@@ -7190,7 +7190,7 @@ const V41=(function(){
 const V41M=(function(){
   const KEY="hillRushMusic"; let on=true; try{ on=localStorage.getItem(KEY)!=="0"; }catch(e){}
   let g=null, noiseBuf=null, timer=null, next=0, step=0, playing=false;
-  const BPM=144, S16=60/BPM/4;
+  const BPM=160, S16=60/BPM/4;
   const CH=[[110,220,261.63,329.63],[87.31,174.61,220,261.63],[130.81,261.63,329.63,392],[98,196,246.94,293.66]]; // Am F C G (বেস, তারপর কর্ডের সুর)
   function nodes(){ if(!audio||!master) return false; if(!g){ g=audio.createGain(); g.gain.value=0; g.connect(master);
       noiseBuf=audio.createBuffer(1,audio.sampleRate*.5,audio.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; } return true; }
@@ -7199,13 +7199,24 @@ const V41M=(function(){
   function noise(t,hp,peak,dec){ const n=audio.createBufferSource(), f=audio.createBiquadFilter(), a=audio.createGain(); n.buffer=noiseBuf; f.type="highpass"; f.frequency.value=hp; env(a,t,peak,dec); n.connect(f); f.connect(a); a.connect(g); n.start(t); n.stop(t+dec+.02); }
   function snare(t){ noise(t,1400,.38,.16); const o=audio.createOscillator(), a=audio.createGain(); o.type="triangle"; o.frequency.value=190; env(a,t,.22,.09); o.connect(a); a.connect(g); o.start(t); o.stop(t+.12); }
   function synth(t,f,type,peak,dec,cut){ const o=audio.createOscillator(), fl=audio.createBiquadFilter(), a=audio.createGain(); o.type=type; o.frequency.value=f; fl.type="lowpass"; fl.frequency.value=cut; env(a,t,peak,dec); o.connect(fl); fl.connect(a); a.connect(g); o.start(t); o.stop(t+dec+.03); }
-  function sched(t,s){ const bar=Math.floor(s/16)%4, b=s%16, c=CH[bar], phrase=Math.floor(s/64)%2;
-    if(b%4===0) kick(t); if(b===10&&phrase) kick(t);
+  // v51: নতুন "ক্রেজি" লুপ — ১৬০ BPM, ফোর-অন-দ্য-ফ্লোর কিক, অফবিট হাই-হ্যাট, ছুটন্ত বেস, লিড হুক, ৪ বারের শেষে স্নেয়ার ফিল, ৮ বারে সাইরেন-রাইজার
+  const LEAD=[[0,3,5,7,5,3,0,3],[7,10,12,10,7,5,3,5]]; // পেন্টাটনিক (সেমিটোন, ১৬-স্টেপের প্রতি ২ স্টেপে একটা নোট)
+  function sched(t,s){ const barN=Math.floor(s/16), bar=barN%4, b=s%16, c=CH[bar], phrase=Math.floor(s/64)%2, eight=barN%8;
+    if(b%4===0) kick(t); if(phrase&&(b===14)) kick(t);
     if(b===4||b===12) snare(t);
-    if(b%2===0) noise(t,7500,b%4===2?.12:.06,.035);
-    if(b%2===0){ const bf=(b%8===6)?c[0]*2:c[0]; synth(t,bf,"sawtooth",.2,S16*1.8,520); }
-    const arp=[c[1],c[2],c[3],c[2]*2]; synth(t,arp[b%4]*2,phrase?"square":"triangle",phrase?.045:.06,S16*.9,2600);
-    if(phrase&&b===0) synth(t,c[3]*2,"sawtooth",.05,S16*7,1800); }
+    if(b%4===2) noise(t,8500,.16,.07); else if(b%2===0) noise(t,7500,.05,.03);
+    // ছুটন্ত বেস: ৮ম নোটে, অক্টেভ লাফ
+    if(b%2===0){ const bf=(b%8===6||b===14)?c[0]*2:c[0]; synth(t,bf,"sawtooth",.22,S16*1.7,640); }
+    // আর্পেজিও
+    const arp=[c[1],c[2],c[3],c[2]*2]; synth(t,arp[b%4]*2,phrase?"square":"triangle",phrase?.04:.055,S16*.9,2800);
+    // লিড হুক (দ্বিতীয় ফ্রেজে জোরালো)
+    if(b%2===0 && (phrase || bar%2===1)){ const semi=LEAD[bar%2][b/2]; synth(t,c[0]*4*Math.pow(2,semi/12),"square",phrase?.075:.05,S16*1.6,3400); }
+    if(b===0) synth(t,c[3]*2,"sawtooth",.05,S16*7,1800);
+    // ৪ বারের শেষে স্নেয়ার রোল
+    if(bar===3&&b>=12) snare(t);
+    // ৮ বারের শেষ বারে সাইরেন রাইজার
+    if(eight===7&&b%2===0){ synth(t,330*Math.pow(2,(b/16)*1.5),"sawtooth",.06,S16*1.8,4200); noise(t,3000+b*300,.05+b*.006,.09); }
+    if(eight===0&&b===0){ kick(t); noise(t,900,.3,.5); } }
   function tick(){ if(!playing||!audio) return; const ahead=audio.currentTime+.25; while(next<ahead){ sched(next,step); step++; next+=S16; } }
   function start(){ if(playing||!on||!nodes()) return; playing=true; next=audio.currentTime+.08; step=0; g.gain.cancelScheduledValues(audio.currentTime); g.gain.setTargetAtTime(.32,audio.currentTime,.4); clearInterval(timer); timer=setInterval(tick,90); tick(); }
   function stop(){ if(!playing) return; playing=false; clearInterval(timer); if(g&&audio) g.gain.setTargetAtTime(0,audio.currentTime,.25); }
@@ -7415,7 +7426,7 @@ var V45AV=["🚙","🏎️","🚜","🚌","🛺","🏍️","🦁","🐯","🦅",
 const V45=(function(){
   const S={auth:"guest",f:{email:"",code:"",name:"",pin:"",login:"",newpin:""},msg:"",ok:"",cool:0,busy:false,lastSync:0,timer:null,ts:0};
   const L=(bn,en)=>(typeof V38!=="undefined"&&V38.get&&V38.get()==="en")?en:bn;
-  const SAVE_FIELDS=["coins","unlocked","completed","best","collected","ownedVehicles","ownedMaps","upgrades","selectedVehicle","selectedMap","endlessBest","lastLevel","vehicleCondition","custom","achClaimed","lifetime","earnedTotal"];
+  const SAVE_FIELDS=["coins","unlocked","completed","best","collected","ownedVehicles","ownedMaps","upgrades","selectedVehicle","selectedMap","endlessBest","lastLevel","vehicleCondition","custom","achClaimed","lifetime","earnedTotal","pic"];
   // ---- মোট আয় করা কয়েন ----
   let lastCoins=null;
   function trackEarn(){
@@ -7445,7 +7456,7 @@ const V45=(function(){
     m.upgrades={}; for(const v of uni(Object.keys(loc.upgrades||{}),Object.keys(cl.upgrades||{}))){ m.upgrades[v]={}; for(const t of ["engine","tires","suspension","boost"]){ m.upgrades[v][t]=Math.max(((loc.upgrades||{})[v]||{})[t]||1,((cl.upgrades||{})[v]||{})[t]||1); } }
     m.lifetime={}; for(const k of uni(Object.keys(loc.lifetime||{}),Object.keys(cl.lifetime||{}))){ m.lifetime[k]=Math.max((loc.lifetime||{})[k]||0,(cl.lifetime||{})[k]||0); }
     m.earnedTotal=Math.max(loc.earnedTotal||0,cl.earnedTotal||0);
-    m.vehicleCondition=Object.assign({},older.vehicleCondition,newer.vehicleCondition); m.custom=newer.custom||older.custom;
+    m.vehicleCondition=Object.assign({},older.vehicleCondition,newer.vehicleCondition); m.custom=newer.custom||older.custom; m.pic=newer.pic||older.pic||"";
     // কয়েন
     let c=Math.floor(newer.coins||0);
     for(const i of m.ownedVehicles) if(!(newer.ownedVehicles||[]).includes(i)) c-=priceOf(vehiclesV22,i);
@@ -7493,7 +7504,7 @@ const V45=(function(){
       <div class="lbRow2">${input("v45_code",L("৬ সংখ্যার কোড","6-digit code"),"text",6,"numeric")}${input("v45_newpin",L("নতুন PIN","New PIN"),"password",8,"numeric")}<button class="lbBtn" id="v45Reset">${L("PIN বদলাও","Set new PIN")}</button><button class="lbBtn gray" id="v45Back">${L("ফিরে যাও","Back")}</button></div>`;
   }
   S.mount=function(){
-    const box=document.querySelector("#leaderBody .v39Prof"); if(!box) return;
+    const box=document.querySelector("#profileBody .v39Prof"); if(!box) return;
     const p=v17Profile(); let h=`<h3>👤 ${L("প্রোফাইল","Profile")}</h3>`;
     if(p&&!p.guest){
       const av=V45AV[p.avatar|0]||"🚙", t=S.lastSync?new Date(S.lastSync).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):"—";
@@ -7511,7 +7522,7 @@ const V45=(function(){
     if(S.msg) h+=`<div class="lbNote lbErr">${esc(S.msg)}</div>`; if(S.ok) h+=`<div class="lbNote v45Ok">${esc(S.ok)}</div>`;
     box.innerHTML=h; bind(box); cooldownTick();
   };
-  const rerender=()=>{ if(typeof v17Render==="function") v17Render(); };
+  const rerender=()=>{ const pm=document.getElementById("profileMenu"); if(pm&&!pm.classList.contains("hidden")&&window.V50) V50.render(); else if(typeof v17Render==="function") v17Render(); };
   const errT=e=>(typeof v39Err==="function"?v39Err(e):(e&&e.message)||"error");
   const done=async(j,guest,msgOk)=>{
     v17SetProfile({id:j.id,token:j.token,name:j.name,guest:!!guest,avatar:j.avatar|0}); S.msg=""; S.ok=msgOk||"";
@@ -7671,16 +7682,23 @@ const V47=(function(){
   // ---- রেস শুরু ----
   S.start=function(){
     const rnd=seedRand(Date.now()&0xffffff), pool=NAMES.slice().sort(()=>rnd()-.5);
+    S.longTrack=true; S.deaths=0; S.myFin=0; S.lastPos=0;
     startLevel(S.lvl);
     S.on=true; S.over=false; S.result=null; S.phase="count"; S.cd=3.4;
     if(typeof V44!=="undefined"){ V44.timed=false; V44.capsules=[]; }
     S.racers=[]; const colors=COLORS.slice().sort(()=>rnd()-.5);
-    for(let i=0;i<S.n-1;i++) S.racers.push({name:pool[i],color:colors[i],x:250,base:(330+rnd()*110)*S.diff,ph:rnd()*6.28,fin:0,speedNow:0});
+    for(let i=0;i<S.n-1;i++) S.racers.push({name:pool[i],color:colors[i],x:250,base:(330+rnd()*110)*S.diff,ph:rnd()*6.28,fin:0,speedNow:0,bot:true,veh:Math.floor(rnd()*vehiclesV22.length),col:V15_COLORS[1+Math.floor(rnd()*(V15_COLORS.length-1))]});
     state="play"; truck.vx=0; // কাউন্টডাউনে দাঁড়িয়ে
     const b=document.getElementById("cpRetryBtn"); if(b) b.style.display="none";
   };
   const vNow=(r,t)=>r.base*(1+.09*Math.sin(t*.6+r.ph)+.05*Math.sin(t*1.7+r.ph*2));
-  S.pos=function(){ const px=truck.x; let p=1; for(const r of S.racers){ if(r.fin>0||(r.fin!==-1&&r.x>px)) p++; } return p; };
+  S.pos=function(){ const px=truck.x; let p=1; for(const r of S.racers){ if(S.myFin>0){ if(r.fin>0&&r.fin<S.myFin) p++; } else if(r.fin>0||(r.fin!==-1&&r.x>px)) p++; } return p; };
+  S.board=function(){
+    const rows=S.racers.map(r=>({name:r.name,x:r.x,fin:r.fin,col:r.col||r.color,you:false}));
+    rows.push({name:L("তুমি","YOU"),x:truck.x,fin:S.myFin||0,col:"#ffd34e",you:true});
+    const key=r=>r.fin>0?[0,r.fin]:(r.fin===-1?[2,0]:[1,-r.x]);
+    rows.sort((a,b)=>{ const A=key(a),B=key(b); return A[0]-B[0]||A[1]-B[1]; }); return rows;
+  };
   S.tick=function(dt){ // বটদের এগিয়ে নেওয়া
     const t=(performance.now()-S.startT)/1000, fx=finishX();
     for(const r of S.racers){ if(r.fin) continue; const gapSlow=isGap(r.x+60)||isGap(r.x)?.8:1; r.speedNow=vNow(r,t)*gapSlow; r.x+=r.speedNow*dt; if(r.x>=fx){ r.x=fx; r.fin=t; } }
@@ -7699,9 +7717,23 @@ const V47=(function(){
     up.apply(this,arguments); if(state==="play") S.tick(dt); if(S.goFlash>0) S.goFlash-=dt;
   };
   const cr=crash;
-  crash=function(reason){ const was=state; cr.apply(this,arguments); if(S.on&&was==="play"&&(state==="crash"||state==="endlessOver")&&!S.over){ S.over=true; setTimeout(()=>S.finish(true),700); } };
+  crash=function(reason){
+    const was=state; cr.apply(this,arguments);
+    // রেসে মরলে বাদ নয়: ১ সেকেন্ড পর শেষ চেকপয়েন্ট (না থাকলে শুরু) থেকে আবার চালু; সময় থামে না
+    if(S.on&&was==="play"&&(state==="crash"||state==="endlessOver")&&!S.over&&S.phase==="go"){ S.deaths=(S.deaths||0)+1; clearTimeout(S.rt); S.rt=setTimeout(()=>S.respawn(),1000); }
+  };
+  S.respawn=function(){
+    if(!S.on||S.over||(state!=="crash"&&state!=="endlessOver")) return;
+    const cpx=(typeof v15Checkpoint!=="undefined"&&v15Checkpoint&&!endlessMode)?v15Checkpoint.x:null;
+    state="play"; hideScreens(); document.getElementById("hud").classList.remove("hidden"); document.getElementById("controls").classList.remove("hidden");
+    const b=document.getElementById("cpRetryBtn"); if(b) b.style.display="none";
+    resetTruck();
+    if(cpx!==null){ truck.x=cpx; truck.angle=terrainSlope(cpx); truck.y=terrainY(cpx)-truck.wheelR-31; truck.lastGroundY=truck.y; truck.fuel=Math.min(FUEL_CONFIG.cap,60); truck.boostEnergy=60; camera.x=Math.max(0,truck.x-W*.30); }
+    for(const k in keys) keys[k]=false;
+    try{ resumeAudio(); setAudioSuppressed(false); engineStart(); updateHUD(); spawnFloatText(truck.x,truck.y-95,cpx!==null?L("📍 চেকপয়েন্ট থেকে","📍 From checkpoint"):L("🔁 আবার শুরু","🔁 Restart"),"#ffd34e"); }catch(_){}
+  };
   const cl=completeLevel;
-  completeLevel=function(){ const was=state; cl.apply(this,arguments); if(S.on&&was==="play"&&state==="complete"&&!S.over){ S.over=true; setTimeout(()=>S.finish(false),500); } };
+  completeLevel=function(){ const was=state; cl.apply(this,arguments); if(S.on&&was==="play"&&state==="complete"&&!S.over){ S.over=true; S.myFin=elapsed||0; setTimeout(()=>S.finish(false),500); } };
   S.finish=function(dnf){
     const t=(performance.now()-S.startT)/1000, fx=finishX();
     const rows=S.rowsOverride?S.rowsOverride():S.racers.map(r=>{ const tt=r.fin||(t+Math.max(0,fx-r.x)/Math.max(200,r.speedNow||r.base)); return {name:r.name,time:tt,you:false,color:r.color,fin:!!r.fin}; });
@@ -7727,23 +7759,29 @@ const V47=(function(){
     o.querySelector("#v47Menu").onclick=()=>{ closePop(); S.on=false; goMain(); };
   };
   // কোনোভাবে অন্য লেভেল শুরু হলে রেস মোড বন্ধ
-  const sl=startLevel; startLevel=function(){ if(!S.starting) { S.on=false; S.phase="idle"; } return sl.apply(this,arguments); };
+  const sl=startLevel; startLevel=function(){ if(!S.starting) { S.on=false; S.phase="idle"; S.longTrack=false; } return sl.apply(this,arguments); };
   const st0=S.start; S.start=function(){ S.starting=true; try{ st0.apply(this,arguments); } finally{ S.starting=false; } };
   // ---- আঁকা ----
+  // অন্য রেসারের গাড়ি: গেমের নিজের আঁকার ফাংশনই (v28TruckBase = ২D/৩D সব স্তর) ঐ গাড়ি/রং দিয়ে চালানো
+  function drawRemote(r,y,ang){
+    const vid=Math.max(0,Math.min(vehiclesV22.length-1,r.veh|0)), V=vehiclesV22[vid]||vehiclesV22[0];
+    const keep={x:truck.x,y:truck.y,a:truck.angle,sp:truck.wheelSpin,rs:truck.rearSusp,fs:truck.frontSusp,og:truck.onGround,wr:truck.wheelR,sv:save.selectedVehicle,cu:save.custom,lamp:v26Lamp,tail:v27Tail};
+    try{
+      truck.x=r.x; truck.y=y; truck.angle=ang; truck.wheelSpin=r.x*.045; truck.rearSusp=0; truck.frontSusp=0; truck.onGround=true;
+      truck.wheelR=27+Math.min(4,((V.suspension||1)-1)*12); save.selectedVehicle=vid; save.custom={color:r.col||"",plate:r.plate||""};
+      v28TruckBase();
+    }catch(e){} finally{
+      truck.x=keep.x; truck.y=keep.y; truck.angle=keep.a; truck.wheelSpin=keep.sp; truck.rearSusp=keep.rs; truck.frontSusp=keep.fs; truck.onGround=keep.og; truck.wheelR=keep.wr; save.selectedVehicle=keep.sv; save.custom=keep.cu; v26Lamp=keep.lamp; v27Tail=keep.tail;
+    }
+  }
   function drawBot(r){
     const sx=r.x-camera.x; if(sx<-120||sx>W+120) return;
     const g0=terrainY(r.x); let y=g0-48, ang=terrainSlope(r.x);
     if(isGap(r.x)||isGap(r.x-40)||isGap(r.x+40)){ const G=getGaps().find(g=>r.x>=g[0]-60&&r.x<=g[0]+g[1]+60); if(G){ const a=G[0],b=G[0]+G[1],tt=Math.max(0,Math.min(1,(r.x-(a-40))/((b-a)+80))); y=(1-tt)*(terrainY(a)-48)+tt*(terrainY(b)-48)-Math.sin(Math.PI*tt)*60; ang=(tt-.5)*.6; } }
-    ctx.save(); ctx.translate(sx,y); ctx.rotate(ang);
-    ctx.fillStyle="rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0,40,58,8,0,0,6.3); ctx.fill();
-    ctx.fillStyle=r.color; ctx.strokeStyle="rgba(0,0,0,.55)"; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(-54,-4); ctx.lineTo(-38,-34); ctx.lineTo(14,-38); ctx.lineTo(40,-22); ctx.lineTo(56,4); ctx.lineTo(46,16); ctx.lineTo(-46,16); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle="rgba(200,240,255,.85)"; ctx.beginPath(); ctx.moveTo(-26,-30); ctx.lineTo(8,-34); ctx.lineTo(24,-18); ctx.lineTo(-30,-16); ctx.closePath(); ctx.fill();
-    for(const wx of [-34,34]){ ctx.fillStyle="#1b1f24"; ctx.beginPath(); ctx.arc(wx,22,19,0,6.3); ctx.fill(); ctx.fillStyle="#9aa3ad"; ctx.beginPath(); ctx.arc(wx,22,8,0,6.3); ctx.fill(); }
-    ctx.restore();
+    drawRemote(r,y+48-(27+Math.min(4,(((vehiclesV22[Math.max(0,Math.min(vehiclesV22.length-1,r.veh|0))]||{}).suspension||1)-1)*12))-31,ang);
     ctx.save(); ctx.font="bold 15px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="bottom";
-    const w=ctx.measureText(r.name).width+14; ctx.fillStyle="rgba(0,0,0,.55)"; if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(sx-w/2,y-92,w,20,8); ctx.fill(); } else ctx.fillRect(sx-w/2,y-92,w,20);
-    ctx.fillStyle="#fff"; ctx.fillText(r.name,sx,y-74); ctx.restore();
+    const tag=(r.bot?"🤖 ":(r.fin>0?"🏁 ":""))+r.name; const w=ctx.measureText(tag).width+14, ty=y-98; ctx.fillStyle="rgba(0,0,0,.6)"; if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(sx-w/2,ty,w,20,8); ctx.fill(); } else ctx.fillRect(sx-w/2,ty,w,20);
+    ctx.fillStyle=r.col||"#fff"; ctx.fillStyle="#fff"; ctx.fillText(tag,sx,ty+17); ctx.restore();
   }
   const rd=render;
   render=function(){
@@ -7754,10 +7792,16 @@ const V47=(function(){
     // "YOU" লেবেল
     const tx=truck.x-camera.x, ty=truck.y; ctx.font="bold 15px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="bottom";
     ctx.fillStyle="rgba(255,211,78,.92)"; if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(tx-24,ty-118,48,20,8); ctx.fill(); } else ctx.fillRect(tx-24,ty-118,48,20); ctx.fillStyle="#222"; ctx.fillText("YOU",tx,ty-101);
-    // পজিশন
-    const pos=S.pos(), tot=S.racers.length+1;
-    ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.fillStyle="rgba(10,25,45,.78)"; if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(16,76,104,40,12); ctx.fill(); } else ctx.fillRect(16,76,104,40);
-    ctx.fillStyle="#ffd34e"; ctx.font="bold 24px system-ui,sans-serif"; ctx.fillText(pos+"",30,96); const pw=ctx.measureText(pos+"").width; ctx.fillStyle="#fff"; ctx.font="bold 15px system-ui,sans-serif"; ctx.fillText("/ "+tot,34+pw,98);
+    // লাইভ পজিশন তালিকা (সবার নাম, কে কত নম্বরে); নিজের সারি হলুদ
+    const pos=S.pos(), tot=S.racers.length+1, rows=S.board();
+    if(S.phase==="go"&&S.lastPos&&pos<S.lastPos){ try{ spawnFloatText(truck.x,truck.y-130,"⬆ "+L("ওভারটেক! ","OVERTAKE! ")+pos+"/"+tot,"#4cff9a"); tone(880,.06,.06); }catch(_){} }
+    if(S.phase==="go") S.lastPos=pos;
+    const rh=20, bx0=12, by0=74, bw0=Math.min(176,Math.max(130,W*.2));
+    ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.fillStyle="rgba(10,25,45,.72)"; if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(bx0,by0,bw0,rows.length*rh+8,10); ctx.fill(); } else ctx.fillRect(bx0,by0,bw0,rows.length*rh+8);
+    ctx.font="bold 13px system-ui,sans-serif";
+    rows.forEach((r,k)=>{ const yy=by0+4+k*rh+rh/2; if(r.you){ ctx.fillStyle="rgba(255,211,78,.28)"; ctx.fillRect(bx0+3,yy-rh/2,bw0-6,rh); }
+      ctx.fillStyle=r.you?"#ffd34e":"#fff"; ctx.fillText((k===0?"👑":(k+1)+"."),bx0+7,yy); ctx.fillStyle=r.col; ctx.beginPath(); ctx.arc(bx0+36,yy,5,0,6.3); ctx.fill();
+      ctx.fillStyle=r.fin===-1?"#9aa":(r.you?"#ffd34e":"#fff"); const nm=(r.name.length>10?r.name.slice(0,9)+"…":r.name); ctx.fillText(nm+(r.fin>0?" 🏁":""),bx0+46,yy); });
     // প্রগ্রেস বার (সবার বিন্দুসহ)
     const bw=Math.min(420,W-300),bx=W/2-bw/2,by=70; ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(bx,by+10,bw,6); const fx=finishX();
     for(const r of S.racers){ const p=Math.max(0,Math.min(1,(r.x-250)/(fx-250))); ctx.fillStyle=r.color; ctx.beginPath(); ctx.arc(bx+bw*p,by+13,6,0,6.3); ctx.fill(); ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke(); }
@@ -7800,7 +7844,8 @@ const V47=(function(){
     if(!p){ const j=await v17Api("/api/register",{method:"POST",body:JSON.stringify({guest:true})}); v17SetProfile({id:j.id,token:j.token,name:j.name,guest:true}); p=v17Profile(); }
     return p;
   }
-  async function api(op,extra){ const p=await profile(); return v17Api("/api/race",{method:"POST",body:JSON.stringify(Object.assign({id:p.id,token:p.token,op},extra||{}))}); }
+  const myCar=()=>({veh:save.selectedVehicle|0,col:(save.custom&&/^#[0-9a-fA-F]{6}$/.test(save.custom.color||""))?save.custom.color:""});
+  async function api(op,extra){ const p=await profile(); return v17Api("/api/race",{method:"POST",body:JSON.stringify(Object.assign({id:p.id,token:p.token,op},myCar(),extra||{}))}); }
   const errText=e=>e&&e.message==="server-off"?L("অনলাইন সার্ভার চালু নেই — বটের সাথে খেলো।","Online server is off — race the bots."):(e&&e.message)||"error";
   // ---- সেটআপে অনলাইন অংশ ----
   const setup0=S.setup;
@@ -7858,10 +7903,10 @@ const V47=(function(){
   O.begin=function(j){
     const r=j.room; O.view=j; O.off=r.now-Date.now();
     O.prevMap=save.selectedMap||0; save.selectedMap=r.map|0;
-    S.beginning=true; S.starting=true; try{ startLevel(r.level); } finally{ S.starting=false; S.beginning=false; }
+    S.longTrack=true; S.deaths=0; S.myFin=0; S.lastPos=0; S.beginning=true; S.starting=true; try{ startLevel(r.level); } finally{ S.starting=false; S.beginning=false; }
     S.on=true; S.over=false; S.result=null; S.phase="count"; S.online=true; S.startLocal=r.start_at-O.off; S.cd=Math.max(0.2,(S.startLocal-Date.now())/1000); S.goFlash=0; S.lastN=0;
     if(typeof V44!=="undefined"){ V44.timed=false; V44.capsules=[]; }
-    S.racers=j.players.filter(p=>!p.you).map((p,i)=>({name:p.name,color:COLORS[(i+1)%8],x:250,tx:250,vel:0,fin:0,speedNow:0,base:300,remote:true,lt:performance.now()}));
+    S.racers=j.players.filter(p=>!p.you).map((p,i)=>({name:p.name,color:COLORS[(i+1)%8],veh:p.veh|0,col:p.col||"",x:250,tx:250,vel:0,fin:0,speedNow:0,base:300,remote:true,lt:performance.now()}));
     state="play"; truck.vx=0; const b=document.getElementById("cpRetryBtn"); if(b) b.style.display="none";
     clearInterval(O.raceT); O.raceT=setInterval(O.pollRace,250);
   };
@@ -7869,7 +7914,7 @@ const V47=(function(){
     if(!S.online||!O.code||O.busy) return; O.busy=true;
     try{
       const j=await api("poll",{code:O.code,x:S.phase==="go"?Math.round(truck.x):undefined}); const others=j.players.filter(p=>!p.you), now=performance.now();
-      others.forEach((p,i)=>{ const r=S.racers[i]; if(!r) return; const nx=Math.max(r.tx,p.x); if(S.phase==="go"&&r.lt&&nx>r.tx){ r.vel=Math.min(900,Math.max(0,(nx-r.tx)/Math.max(0.1,(now-r.lt)/1000))); } else if(nx===r.tx) r.vel*=0.6; r.tx=nx; r.lt=now; r.fin=p.fin==null?0:p.fin; if(p.gone&&!r.fin) r.fin=-1; });
+      others.forEach((p,i)=>{ const r=S.racers[i]; if(!r) return; const nx=p.x; if(S.phase==="go"&&r.lt&&nx>r.tx){ r.vel=Math.min(900,Math.max(0,(nx-r.tx)/Math.max(0.1,(now-r.lt)/1000))); } else if(nx<r.tx-80){ r.vel=0; r.x=nx; } else r.vel*=0.6; r.tx=nx; r.lt=now; r.fin=p.fin==null?0:p.fin; if(p.gone&&!r.fin) r.fin=-1; });
     }catch(e){}
     O.busy=false;
   };
@@ -7900,4 +7945,97 @@ const V47=(function(){
   const sl0=startLevel;
   startLevel=function(){ if(S.online&&!S.beginning){ const c=O.code; if(c&&S.on&&!S.over) api("dnf",{code:c}).catch(()=>{}); O.stop(false); S.on=false; S.phase="idle"; } return sl0.apply(this,arguments); };
   S.O=O;
+})();
+
+// ============================================================
+// v49 — রেসের ট্র্যাক একটু লম্বা (×১.৭) + বাড়তি ফাঁক (gap)
+// শুধু রেসের সময় (V47.longTrack) — সাধারণ লেভেল/এন্ডলেস আগের মতোই। ট্র্যাক শুধু লেভেল+ম্যাপের ওপর নির্ভর করে, তাই অনলাইনে সবার একই।
+// ============================================================
+(function(){
+  const S=V47, RK=1.7;
+  const fx0=finishX; finishX=function(){ const b=fx0(); return (S.longTrack&&!endlessMode)?Math.round(b*RK):b; };
+  const gg0=getGaps; let cache={key:null,g:null};
+  getGaps=function(){
+    const base=gg0(); if(!S.longTrack||endlessMode) return base;
+    const key=currentLevel+"_"+(save.selectedMap||0)+"_"+base.length; if(cache.key===key&&cache.g) return cache.g;
+    const fin=finishX(), res=base.slice(); let last=0; for(const g of base) last=Math.max(last,g[0]+g[1]);
+    let gx=Math.max(last+620,4300), i=0;
+    while(gx<fin-560&&i<60){ const w=Math.max(96,Math.round((108+((Math.floor(gx*.731)+i*53)%42))*.75)); res.push([gx,w]); gx+=660+((Math.floor(gx*.317))%260); i++; }
+    res.sort((a,b)=>a[0]-b[0]); cache={key,g:res}; return res;
+  };
+  const sl0=startLevel; startLevel=function(){ _gapsCache={key:null,gaps:null}; cache={key:null,g:null}; return sl0.apply(this,arguments); };
+})();
+
+// ============================================================
+// v50 — আলাদা PROFILE পাতা (লিডারবোর্ড থেকে আলাদা)
+// • ছবি আপলোড: ফোন/কম্পিউটার থেকে ছবি বাছলে ১২৮×১২৮ করে ছোট করে (≈৮ KB) সেভে রাখা হয়; নিবন্ধিত অ্যাকাউন্টে ক্লাউড সেভের সাথে সব ডিভাইসে যায়।
+// • লগইন: ইমেইল বা নাম + PIN (আগের সার্ভার API-ই); নতুন অ্যাকাউন্ট: ইমেইলে কোড → নাম+PIN; PIN ভুললে ইমেইল কোডে রিসেট।
+// • হোম মেনুর কোণায় ছোট প্রোফাইল চিপ (ছবি + নাম); চাপলে প্রোফাইল পাতা।
+// সীমাবদ্ধতা: লিডারবোর্ড/রেস-লবিতে অন্যরা তোমার ছবি দেখে না (শুধু ইমোজি অ্যাভাটার) — ছবি শুধু তোমার নিজের ডিভাইসগুলোতে।
+// ============================================================
+const V50=(function(){
+  const L=(bn,en)=>(typeof V38!=="undefined"&&V38.get&&V38.get()==="en")?en:bn;
+  const esc=s=>v17Esc(s), S={};
+  const $=id=>document.getElementById(id);
+  const picOf=()=>(typeof save.pic==="string"&&/^data:image\/jpeg;base64,/.test(save.pic))?save.pic:"";
+  function avatarHtml(cls){ const p=v17Profile(), pic=picOf(); if(pic) return `<img class="${cls}" src="${pic}" alt="">`; const a=p&&!p.guest?(V45AV[p.avatar|0]||"🚙"):"👤"; return `<span class="${cls} emo">${a}</span>`; }
+  S.render=function(){
+    const body=$("profileBody"); if(!body) return;
+    const p=v17Profile(), tier=(typeof V47!=="undefined"&&V47.tier)?V47.tier():["Bronze",0,"🥉"];
+    const done=Object.keys(save.completed||{}).length, name=p?p.name:L("অতিথি (লগইন নেই)","Not signed in");
+    body.innerHTML=`<div class="lbBox v50Head">
+        <div class="v50PicBox">${avatarHtml("v50Pic")}</div>
+        <div class="v50Info"><div class="v50Name">${esc(name)} ${p&&!p.guest?`<span class="v39Tag r">${L("নিবন্ধিত ✓","Registered ✓")}</span>`:(p?`<span class="v39Tag g">${L("গেস্ট","Guest")}</span>`:"")}</div>
+          <div class="v50Tier">${tier[2]} ${tier[0]} · RP ${Math.floor(save.raceRP||0)}</div>
+          <div class="v50Stats"><span>🪙 ${Math.floor(save.coins||0)}</span><span>⭐ ${done} ${L("লেভেল","levels")}</span><span>🏆 ${Math.floor(save.trophies||0)}</span><span>🏁 ${save.raceWins||0} ${L("রেস জয়","race wins")}</span><span>💰 ${Math.floor(save.earnedTotal||0)} ${L("মোট আয়","earned")}</span></div></div>
+        <div class="v50PicBtns"><button type="button" class="lbBtn blue" id="v50Up">📷 ${L("ছবি আপলোড","Upload photo")}</button>${picOf()?`<button type="button" class="lbBtn gray" id="v50Del">🗑 ${L("ছবি সরাও","Remove")}</button>`:""}<input type="file" id="v50File" accept="image/*" hidden></div>
+        <div class="lbNote" id="v50Msg"></div></div>
+      <div class="lbBox v39Prof"></div>`;
+    $("v50Up").onclick=()=>$("v50File").click();
+    if($("v50Del")) $("v50Del").onclick=()=>{ save.pic=""; persist(); S.render(); S.chip(); };
+    $("v50File").onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(f) S.upload(f); };
+    try{ V45.mount(); }catch(e){}
+  };
+  S.upload=function(file){
+    const msg=t=>{ const n=$("v50Msg"); if(n) n.textContent=t; };
+    if(!/^image\//.test(file.type)){ msg(L("এটা ছবি নয়।","That is not an image.")); return; }
+    if(file.size>15*1024*1024){ msg(L("ছবি খুব বড় (১৫ MB-র বেশি)।","Image too large (>15 MB).")); return; }
+    const fr=new FileReader();
+    fr.onerror=()=>msg(L("ছবি পড়া যায়নি।","Could not read the image."));
+    fr.onload=()=>{ const im=new Image(); im.onerror=()=>msg(L("এই ছবির ধরন সমর্থিত নয়।","Unsupported image."));
+      im.onload=()=>{ try{
+        const c=document.createElement("canvas"); c.width=c.height=128; const x=c.getContext("2d"), m=Math.min(im.width,im.height);
+        x.fillStyle="#fff"; x.fillRect(0,0,128,128); x.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,128,128);
+        save.pic=c.toDataURL("image/jpeg",.82); persist(); S.render(); S.chip(); const n=$("v50Msg"); if(n) n.textContent=L("ছবি বসানো হয়েছে ✓","Photo set ✓");
+      }catch(e){ msg(L("ছবি বসানো যায়নি।","Could not set the image.")); } };
+      im.src=fr.result; };
+    fr.readAsDataURL(file);
+  };
+  S.chip=function(){
+    const c=$("homeChip"); if(!c) return; const p=v17Profile(), pic=picOf();
+    const em=p&&!p.guest?(V45AV[p.avatar|0]||"🚙"):"👤";
+    c.querySelector(".hcPic").innerHTML=pic?`<img src="${pic}" alt="">`:em;
+    c.querySelector(".hcName").textContent=p?p.name:L("লগইন","Sign in");
+  };
+  // ---- ওয়্যারিং ----
+  const hb=hideScreens; hideScreens=function(){ hb.apply(this,arguments); const el=$("profileMenu"); if(el){ el.classList.add("hidden"); el.style.display="none"; el.style.visibility="hidden"; el.style.pointerEvents="none"; } };
+  const sb=showScreen; showScreen=function(id){ sb.apply(this,arguments); if(id==="profileMenu"){ $("hud").classList.add("hidden"); $("controls").classList.add("hidden"); } };
+  const open=()=>{ try{ resumeAudio(); tone(500,.06,.05); }catch(_){} showScreen("profileMenu"); S.render(); };
+  if($("profileBtn")) $("profileBtn").onclick=open; if($("homeChip")) $("homeChip").onclick=open;
+  if($("backProfileBtn")) $("backProfileBtn").onclick=()=>{ try{ tone(330,.06,.05); }catch(_){} goMain(); };
+  // লিডারবোর্ডে প্রোফাইল-বাক্সের বদলে প্রোফাইল পাতার লিংক
+  const vr=v17Render; v17Render=async function(){ await vr.apply(this,arguments); const b=document.querySelector("#leaderBody .v39Prof"); if(b){ b.classList.remove("v39Prof"); b.innerHTML=`<h3>👤 ${L("তোমার প্রোফাইল","Your profile")}</h3><div class="lbNote">${L("ছবি, নাম, লগইন/অ্যাকাউন্ট এখন আলাদা PROFILE পাতায়।","Photo, name and login/account now live on the PROFILE page.")}</div><div class="lbRow2"><button class="lbBtn blue" id="lbToProfile">${L("প্রোফাইল খোলো →","Open profile →")}</button></div>`; const t=$("lbToProfile"); if(t) t.onclick=open; } S.chip(); };
+  const gm=goMain; goMain=function(){ const r=gm.apply(this,arguments); try{ S.chip(); }catch(_){} return r; };
+  setTimeout(()=>{ try{ S.chip(); }catch(_){} },0); setInterval(()=>{ try{ const m=$("mainMenu"); if(m&&!m.classList.contains("hidden")) S.chip(); }catch(_){} },2000);
+  S.open=open; return S;
+})();
+
+
+// ============================================================
+// v51 — ব্যাক বাটনে স্পষ্ট লেখা ("← BACK"), পজ বাটনে লেখা
+// ============================================================
+(function v51Labels(){
+  const bn=(()=>{try{return (localStorage.getItem("hillRushLang")||"").toLowerCase().indexOf("bn")===0}catch(e){return false}})();
+  document.querySelectorAll(".backBtn").forEach(b=>{ b.textContent=bn?"← ফিরে যাও":"← BACK"; b.setAttribute("aria-label","Back to menu"); });
+  const p=document.getElementById("pauseBtn"); if(p){ p.setAttribute("aria-label","Pause"); }
 })();

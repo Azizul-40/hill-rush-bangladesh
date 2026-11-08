@@ -24,7 +24,7 @@ const dir=process.argv[2];let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;cons
   await new Promise(r=>srv.listen(0,r));const base='http://127.0.0.1:'+srv.address().port;
   const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
   const mkPage=async()=>{const c=await b.newContext({viewport:{width:1000,height:640}});const p=await c.newPage();p.__errs=[];p.on('pageerror',e=>p.__errs.push(String(e)));await p.goto(base+'/index.html?noshell=1');await p.waitForTimeout(500);await p.evaluate(()=>localStorage.setItem('hillrush_lang','bn'));return p;};
-  const openLb=async p=>{await p.evaluate(()=>{showScreen('leaderMenu');v17Render();});await p.waitForTimeout(500);};
+  const openLb=async p=>{await p.evaluate(()=>{V50.open();});await p.waitForTimeout(500);};
   // ফোন ১: রেজিস্টার
   const A=await mkPage();
   await A.evaluate(()=>{save.coins=777;coins=777;save.unlocked=5;save.completed={1:true,2:true,3:true,4:true};save.ownedVehicles=[0,1];save.ownedMaps=[0];save.best={1:30.5};persist();});
@@ -33,10 +33,10 @@ const dir=process.argv[2];let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;cons
   await A.fill('#v45_email','azizul@test.com');await A.click('#v45Send');await A.waitForTimeout(500);
   ok('কোড পাঠানোর পর কুলডাউন বাটন',(await A.textContent('#v45Send')).includes('(')||await A.isDisabled('#v45Send'));
   await A.fill('#v45_code','000000');await A.fill('#v45_name','Azizul');await A.fill('#v45_pin','4321');await A.click('#v45Reg');await A.waitForTimeout(700);
-  ok('ভুল কোডে ত্রুটি দেখায়',(await A.textContent('#leaderBody')).includes('কোড ভুল'));
+  ok('ভুল কোডে ত্রুটি দেখায়',(await A.textContent('#profileBody')).includes('কোড ভুল'));
   await A.fill('#v45_code',lastCode);await A.click('#v45Reg');await A.waitForTimeout(1200);
   const prof=await A.evaluate(()=>v17Profile());ok('রেজিস্টার হয়ে প্রোফাইল সেভ',prof&&!prof.guest&&prof.name==='Azizul',prof);
-  const tx=await A.textContent('#leaderBody');ok('রেজিস্টার হলে সিঙ্ক বার্তা/অবস্থা',(tx.includes('নিবন্ধিত')||tx.includes('Registered')),tx.slice(0,300));
+  const tx=await A.textContent('#profileBody');ok('রেজিস্টার হলে সিঙ্ক বার্তা/অবস্থা',(tx.includes('নিবন্ধিত')||tx.includes('Registered')),tx.slice(0,300));
   // অ্যাভাটার ও নাম বদল
   await A.click('.v45AvB[data-i="3"]');await A.waitForTimeout(500);
   ok('অ্যাভাটার বদল সেভ',(await A.evaluate(()=>v17Profile().avatar))===3);

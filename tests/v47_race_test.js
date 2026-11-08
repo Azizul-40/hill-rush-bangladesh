@@ -31,10 +31,19 @@ let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;console.log('PASS',n);}else{fa
   await p.screenshot({path:(process.argv[3]||'/tmp/v47_count.png').replace('.png','_res.png')});
   const sv=await p.evaluate(()=>({rp:save.raceRP,wins:save.raceWins,tro:save.trophies}));
   ok('RP, জয়, ট্রফি জমা',sv.rp===25&&sv.wins===1&&sv.tro>=5,sv);
-  // DNF
-  await p.click('#v47Again');await p.waitForTimeout(200);await p.click('#v47Go');await p.waitForTimeout(4200);
-  await p.evaluate(()=>{crash("test");});await p.waitForTimeout(1200);
-  const d=await p.evaluate(()=>V47.result);ok('ক্র্যাশে DNF, RP কমে (০-এর নিচে নয়)',d&&d.dnf&&d.place===d.total&&(await p.evaluate(()=>save.raceRP))>=0,d&&d.place);
+  // মরলে বাদ নয়: চেকপয়েন্ট/শুরু থেকে আবার চালু, সময় থামে না
+  await p.click('#v47Again');await p.waitForTimeout(200);await p.click('#v47Go');await p.waitForTimeout(4600);
+  await p.evaluate(()=>{crash("test");});await p.waitForTimeout(400);
+  ok('ক্র্যাশের পর রেস বাদ হয় না',await p.evaluate(()=>!V47.over&&V47.on));
+  await p.waitForTimeout(1500);
+  const rs=await p.evaluate(()=>({state,x:Math.round(truck.x),deaths:V47.deaths}));ok('১ সেকেন্ড পর আবার চালু (শুরু থেকে), মৃত্যু গোনা হয়',rs.state==='play'&&rs.x<=260&&rs.deaths===1,rs);
+  await p.evaluate(()=>{v15Checkpoint={x:2500,n:2};crash("test2");});await p.waitForTimeout(1600);
+  const rs2=await p.evaluate(()=>({state,x:Math.round(truck.x)}));ok('চেকপয়েন্ট থাকলে সেখান থেকে চালু',rs2.state==='play'&&Math.abs(rs2.x-2500)<30,rs2);
+  const lt=await p.evaluate(()=>({fin:finishX(),on:V47.longTrack}));ok('রেসের ট্র্যাক লম্বা',lt.on&&lt.fin>6000,lt);
+  const bd=await p.evaluate(()=>V47.board().length);ok('পজিশন তালিকায় সবাই (৬ জন)',bd===6,bd);
+  const vv=await p.evaluate(()=>V47.racers.every(r=>Number.isInteger(r.veh)&&r.col));ok('সব বটের গাড়ি/রং আছে',vv);
+  await p.evaluate(()=>{V47.finish(true);});await p.waitForTimeout(500);
+  const d=await p.evaluate(()=>V47.result);ok('বাদ (DNF) ফলাফল ঠিক আছে (শুধু বেরিয়ে গেলে)',d&&d.dnf&&d.place===d.total&&(await p.evaluate(()=>save.raceRP))>=0,d&&d.place);
   await p.click('#v47Menu');await p.waitForTimeout(300);
   ok('মেনুতে ফেরা, রেস বন্ধ',!(await p.evaluate(()=>V47.on)));
   ok('page error নেই',errs.length===0,errs);

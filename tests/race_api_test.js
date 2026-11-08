@@ -12,7 +12,8 @@ ok((await R({id:A.id,token:'bad'},'quick',{level:1})).s===401,'ভুল token �
 const q1=await R(A,'quick',{level:3}); ok(q1.j.ok&&q1.j.room.code.length===5&&q1.j.players.length===1&&q1.j.room.status==='wait'&&q1.j.room.host,'দ্রুত ম্যাচ: কেউ না থাকলে নতুন রুম');
 const code=q1.j.room.code;
 ok(!('pid' in q1.j.players[0]),'অন্যের id প্রকাশ হয় না');
-const q2=await R(B,'quick',{level:3}); ok(q2.j.room.code===code&&q2.j.players.length===2,'দ্বিতীয়জন একই রুমে ঢোকে');
+const q2=await R(B,'quick',{level:3,veh:7,col:'#22a447'}); ok(q2.j.players.find(x=>x.you).veh===7&&q2.j.players.find(x=>x.you).col==='#22a447'&&q2.j.players.find(x=>x.you).name.indexOf('\u0001')<0,'গাড়ি আর রং সংরক্ষিত, নামে কিছু মেশে না');
+const q2b=q2; ok(q2.j.room.code===code&&q2.j.players.length===2,'দ্বিতীয়জন একই রুমে ঢোকে');
 const qm=await R(C,'quick',{level:3,map:4}); ok(qm.j.room.code!==code&&qm.j.room.map===4,'ভিন্ন ম্যাপের জন্য আলাদা রুম');
 const q3=await R(C,'quick',{level:5}); ok(q3.j.room.code!==code,'ভিন্ন লেভেলের জন্য আলাদা রুম');
 let p=await R(A,'poll',{code,x:0}); ok(p.j.room.status==='wait'&&p.j.room.auto_in!==null,'২ জন হলে অটো-স্টার্ট কাউন্টডাউন শুরু');
