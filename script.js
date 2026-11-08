@@ -5934,8 +5934,8 @@ const V21=(function(){
         C.fillStyle=css(sh(b.soil,.25),.4); C.beginPath(); C.ellipse(X[ra+q]-1*s,y-1*s,3*s,1*s,0,0,6.3); C.fill(); }
       // ৩) খাদের পাড়: প্রাকৃতিক পাথুরে খাড়া কিনারা (খাদ খোলা থাকে, আগের মতো)
       const cliff=(side)=>{ const q=side<0?0:cnt-1, ex=side<0?xl:xr, ey=Y[ra+q]; const bot=floor+8, dir=-side;
-        const pts=[[ex,ey+2]]; for(let k=1;k<=8;k++){ const yy=ey+(bot-ey)*k/8, j=(hash(ex*.1+k*7.7)-.5)*7; pts.push([ex+dir*(k*1.6)+j*(side<0?1:-1)*.6+(side<0?j:-j)*.4,yy]); }
-        pts.push([ex+dir*22,bot]); pts.push([ex+dir*22,ey+8]);
+        const pts=[[ex,ey+2]]; for(let k=1;k<=8;k++){ const yy=ey+(bot-ey)*k/8, j=(hash(ex*.1+k*7.7)-.5)*16; pts.push([ex+dir*(k*k*.55+k*2.2)+j,yy]); } // v43: কিনারা এখন নিচের দিকে ভেতরে ঢুকে যায় (ঝুলন্ত পাথুরে কিনারা) ও এবড়োখেবড়ো—আগে সোজা খাড়া বাক্সের দেয়াল ছিল।
+        pts.push([ex+dir*70,bot]); pts.push([ex+dir*70,ey+8]);
         const g=C.createLinearGradient(0,ey,0,bot); g.addColorStop(0,css(sh(b.rock,side<0?.12:-.2))); g.addColorStop(1,css(sh(b.rock,-.55)));
         C.fillStyle=g; C.beginPath(); pts.forEach((p,k)=>k?C.lineTo(p[0],p[1]):C.moveTo(p[0],p[1])); C.closePath(); C.fill();
         { const pt=tex(m.theme==="ice"?"snow":"cliff",.6); if(pt){ C.save(); C.globalAlpha=.9; C.fillStyle=pt; C.fill(); C.restore(); } }
@@ -7281,3 +7281,52 @@ const V42=(function(){
   try{ MISSION_POOL.forEach(m=>{ m.reward=r10(m.reward*.6); }); }catch(e){}
   try{ ACHIEVEMENTS.forEach(a=>{ a.reward=r10(a.reward*.6); }); }catch(e){}
 })();
+
+// ============================================================
+// v43 — রাস্তা ও ঢাল স্বাভাবিক করা (Next Phase ১০)
+// সমস্যা: ৩০–৪০% জায়গায় ঢাল ৩৫° ছাড়িয়ে যেত (সর্বোচ্চ ৬০°-র বেশি), গাড়ি পিছলে যেত বা উঠতে পারত না; গ্যাপের ঠিক আগের র‍্যাম্প ও
+// পরের landing হঠাৎ খাড়া ছিল।
+// সমাধান: আগের terrainY-র ফলাফল ৪px ধাপে একটা "ঢাল-সীমা"র মধ্য দিয়ে পাঠানো হয়—উচ্চতা বাড়া/কমার হার কখনো V43.MAX_SLOPE-র বেশি হয় না।
+// সীমার মধ্যে থাকা জায়গা অপরিবর্তিত থাকে; খাড়া চূড়া/খাদ ধীরে ধীরে ঢালু হয়। ফলাফল cache করা, তাই আঁকার সময় আগের চেয়ে হালকা।
+// ============================================================
+const V43=(function(){
+  // দুই দিক থেকে (সামনে-পিছনে) ঢাল-সীমা চালিয়ে গড় নেওয়া হয়: তাহলে চূড়া/খাদ দুই পাশে সমানভাবে ছাঁটা পড়ে,
+  // এক পাশে লম্বা "ঢালু ল্যাগ" তৈরি হয় না (শুধু সামনের দিক থেকে চালালে গ্যাপের আগে লম্বা ঢালু নামা তৈরি হচ্ছিল)।
+  const S={MAX_SLOPE:0.58,STEP:4,BLOCK:1024,LOOK:320,key:-1,ys:null,n:0,F:0,raw:terrainY};
+  function keyNow(){ return (((currentLevel||1)*64+(save.selectedMap||0))*64+(save.selectedVehicle||0))*2+(endlessMode?1:0); }
+  function extend(upto){
+    const st=S.STEP, lim=S.MAX_SLOPE*st;
+    const need=Math.ceil(upto/st)+2;
+    if(!S.ys) S.ys=new Float32Array(8192);
+    S.building=true;
+    try{ while(S.n<need){
+      const a=S.n, b=a+S.BLOCK, e=b+S.LOOK, len=e-a;
+      const r=new Float32Array(len); for(let k=0;k<len;k++) r[k]=S.raw((a+k)*st);
+      // সামনের পাস (আগের ব্লকের শেষ মান থেকে চলতে থাকে)
+      const F=new Float32Array(len); F[0]=a===0?r[0]:S.F;
+      for(let k=1;k<len;k++){ const d=r[k]-F[k-1]; F[k]=F[k-1]+(d>lim?lim:d<-lim?-lim:d); }
+      // পিছনের পাস
+      const B=new Float32Array(len); B[len-1]=r[len-1];
+      for(let k=len-2;k>=0;k--){ const d=r[k]-B[k+1]; B[k]=B[k+1]+(d>lim?lim:d<-lim?-lim:d); }
+      if(b>S.ys.length){ const g=new Float32Array(Math.max(b+8,S.ys.length*2)); g.set(S.ys); S.ys=g; }
+      let prev=a===0?null:S.ys[a-1];
+      for(let k=0;k<S.BLOCK;k++){
+        let v=(F[k]+B[k])/2;
+        if(prev!==null){ const d=v-prev; v=prev+(d>lim?lim:d<-lim?-lim:d); }
+        S.ys[a+k]=v; prev=v;
+      }
+      S.F=F[S.BLOCK-1]; S.n=b;
+    } }finally{ S.building=false; }
+  }
+  terrainY=function(x){
+    if(x<0||S.building) return S.raw(x);
+    const k=keyNow();
+    if(k!==S.key){ S.key=k; S.n=0; }
+    const st=S.STEP, i=Math.floor(x/st);
+    if(i+2>=S.n) extend(x+st*64);
+    const t=x/st-i; return S.ys[i]*(1-t)+S.ys[i+1]*t;
+  };
+  S.reset=function(){ S.key=-1; S.n=0; };
+  return S;
+})();
+{ const _sl=startLevel; startLevel=function(){ V43.reset(); return _sl.apply(this,arguments); }; }

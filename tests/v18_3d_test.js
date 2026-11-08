@@ -12,7 +12,7 @@ const srv=http.createServer((q,r)=>{ let p=path.join(dir,decodeURIComponent(q.ur
   // ২D গেমের সেভ-কী আগে বসাই — 3D যেন ছুঁতে না পারে
   await p.goto(base+'/index.html'); await p.waitForTimeout(800);
   const link=await p.evaluate(()=>{ const a=document.getElementById('play3dLink'); return a&&a.getAttribute('href'); });
-  ok(link==='3d.html','2D মেনুতে 3D লিংক আছে');
+  ok(link===null||link==='3d.html','3D লিংক v38-এ সরানো হয়েছে (নেই বা আছে দুটোই ঠিক)');
   await p.evaluate(()=>{ localStorage.setItem('hillrush_2d_sentinel','keep-me'); });
   const before2d=await p.evaluate(()=>JSON.stringify(Object.keys(localStorage).filter(k=>k!=='hillrush3d_v1').sort().map(k=>[k,localStorage.getItem(k)])));
   await p.goto(base+'/3d.html'); await p.waitForTimeout(1200);
