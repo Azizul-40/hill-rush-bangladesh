@@ -13,8 +13,8 @@ const ok=(name,cond,extra='')=>{ if(cond){pass++;console.log('PASS',name,extra);
   await p.goto('file://'+dir+'/index.html');await p.waitForTimeout(400);
 
   // ---- ১) যানবাহন ----
-  const veh=await p.evaluate(()=>({n:vehiclesV22.length,kinds:vehiclesV22.filter(v=>v.kind).map(v=>v.kind)}));
-  ok('১২টা যানবাহন (৮ ট্রাক + ৪ বাংলাদেশি)',veh.n===12&&veh.kinds.join()==='cng,rickshaw,ebike,bus');
+  const veh=await p.evaluate(()=>({n:vehiclesV22.filter(v=>!v.rare).length,kinds:vehiclesV22.filter(v=>v.kind&&!v.rare).map(v=>v.kind)}));
+  ok('১২টা যানবাহন (৮ ট্রাক + ৪ বাংলাদেশি; রেয়ার আলাদা)',veh.n===12&&veh.kinds.join()==='cng,rickshaw,ebike,bus');
   const draw=await p.evaluate(()=>{const r=[];for(let v=8;v<12;v++){save.ownedVehicles.push(v);save.selectedVehicle=v;startLevel(1);try{for(let i=0;i<30;i++){updatePhysics(.016);}render();r.push(true);}catch(e){r.push(String(e));}}return r;});
   ok('প্রতিটা নতুন যানবাহন আঁকা/চালানো এক্সেপশন ছাড়া',draw.every(x=>x===true),JSON.stringify(draw));
   const buy=await p.evaluate(()=>{save.ownedVehicles=[0];save.selectedVehicle=0;coins=100;save.coins=100;renderGarage();const cards=[...document.querySelectorAll('#vehicleList .vehicleCard')];const bus=cards[11];bus.querySelector('button').click();return {coins,owned:save.ownedVehicles.includes(11)};});
@@ -23,7 +23,7 @@ const ok=(name,cond,extra='')=>{ if(cond){pass++;console.log('PASS',name,extra);
   ok('রিকশা কিনলে ঠিক দাম কাটে ও select হয়',buy2.coins===0&&buy2.owned&&buy2.sel===9,JSON.stringify(buy2));
 
   // ---- ২) ম্যাপ ----
-  const mp=await p.evaluate(()=>({n:maps.length,themes:maps.slice(8).map(m=>m.theme)}));
+  const mp=await p.evaluate(()=>({n:maps.filter(m=>!m.rare).length,themes:maps.filter(m=>!m.rare).slice(8).map(m=>m.theme)}));
   ok('১৩টা ম্যাপ (৮ + ৫ বাংলাদেশি)',mp.n===13&&mp.themes.join()==='sajek,bandarban,sylhet,khagrachhari,kaptai');
   const mres=await p.evaluate(()=>{const out=[];save.selectedVehicle=0;save.ownedMaps=[0,1,2,3,4,5,6,7,8,9,10,11,12];
     for(let m=8;m<13;m++){save.selectedMap=m;let err=null,w=null,adv=0;

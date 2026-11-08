@@ -3870,3 +3870,10 @@ body #mainMenu .developerPlaque .supervisorName{
 .v45AvB.on{border-color:#ffd34e;background:rgba(255,211,78,.28)}
 .v45Ok{background:rgba(47,191,74,.25) !important;color:#d8ffe0}
 .v45Tabs .lbBtn{font-size:13px}
+
+/* v46: রেয়ার আইটেম ও ট্রফি */
+.v46Trophy{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.45);color:#ffd34e;font-weight:800;padding:4px 12px;border-radius:14px;font-size:15px;z-index:3;pointer-events:none}
+.v46RareCard{outline:2px solid #ffd34e;box-shadow:0 0 14px rgba(255,211,78,.45)}
+.v46Locked{filter:grayscale(.6) brightness(.8)}
+.v46Rare{margin:2px 0;font-size:12px;font-weight:700;color:#ffd34e}
+.v41Map.locked .v41Lock{background:rgba(0,0,0,.65);color:#ffd34e}

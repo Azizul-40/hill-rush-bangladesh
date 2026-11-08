@@ -12,7 +12,7 @@ export async function onRequestGet({ request, env }) {
   const AV = pf ? ", COALESCE(pr.avatar,0) AS avatar" : "", JN = pf ? " LEFT JOIN profile pr ON pr.player_id=p.id" : "";
   if (type === "level") {
     const map = mapQ, level = Math.floor(Number(u.searchParams.get("level")));
-    if (!(map >= 0 && map <= 12 && level >= 1 && level <= 100)) return bad("ভুল map/level");
+    if (!(map >= 0 && map <= 20 && level >= 1 && level <= 100)) return bad("ভুল map/level");
     const r = await env.DB.prepare("SELECT p.id AS id, p.name AS name, p.guest AS guest" + AV + ", s.time AS time FROM scores s JOIN players p ON p.id=s.player_id" + JN + " WHERE s.map=? AND s.level=? ORDER BY s.time ASC, s.updated ASC LIMIT 20").bind(map, level).all();
     let mine = null;
     if (me) { const m = await env.DB.prepare("SELECT time FROM scores WHERE player_id=? AND map=? AND level=?").bind(me, map, level).first();
@@ -20,7 +20,7 @@ export async function onRequestGet({ request, env }) {
     return json({ ok: true, type, rows: strip(r.results, me), me: mine });
   }
   if (type === "endless") {
-    if (!(mapQ >= 0 && mapQ <= 12)) return bad("ভুল map");
+    if (!(mapQ >= 0 && mapQ <= 20)) return bad("ভুল map");
     const r = await env.DB.prepare("SELECT p.id AS id, p.name AS name, p.guest AS guest" + AV + ", x.dist AS dist FROM endless x JOIN players p ON p.id=x.player_id" + JN + " WHERE x.map=? ORDER BY x.dist DESC, x.updated ASC LIMIT 20").bind(mapQ).all();
     let mine = null;
     if (me) { const m = await env.DB.prepare("SELECT dist FROM endless WHERE player_id=? AND map=?").bind(me, mapQ).first();

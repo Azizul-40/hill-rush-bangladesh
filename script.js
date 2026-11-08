@@ -7131,11 +7131,12 @@ const V41=(function(){
   function mapPicker(){
     const cards=order().map(i=>{ const m=maps[i], owned=save.ownedMaps.includes(i), sel=save.selectedMap===i;
       return `<button type="button" class="v41Map${sel?" sel":""}${owned?"":" locked"}" data-i="${i}">
-        <span class="v41Thumb"><img src="models/maps/${i}.webp" alt="" loading="lazy">${owned?"":`<span class="v41Lock">🔒 ${m.price} 🪙</span>`}</span>
+        <span class="v41Thumb"><img src="models/maps/${i}.webp" alt="" loading="lazy">${owned?"":`<span class="v41Lock">${m.rare?"🏆 "+m.need:"🔒 "+m.price+" 🪙"}</span>`}</span>
         <b>${esc(m.name)}</b><small>${esc(m.desc||"")}</small></button>`; }).join("");
     open(L("CHOOSE A MAP","ম্যাপ বেছে নাও"),L("Then pick a level","তারপর লেভেল বাছবে"),`<div class="v41MapGrid">${cards}</div>`,null);
     ov.querySelectorAll(".v41Map").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; try{ resumeAudio(); }catch(_){}
       if(save.ownedMaps.includes(i)){ save.selectedMap=i; persist(); try{ selectSound(); }catch(_){} levelPicker(); return; }
+      if(maps[i].rare){ try{ showToast((typeof V46!=="undefined"?V46.needText(maps[i]):"Locked")); }catch(_){} return; }
       buyMap(i); }); }
   function buyMap(i){
     const m=maps[i];
@@ -7545,5 +7546,82 @@ const V45=(function(){
   // পেজ খোলার সময় ও ট্যাব লুকালে সিঙ্ক
   setTimeout(()=>{ const p=v17Profile(); if(p&&!p.guest) S.pull().catch(()=>{}); },1500);
   document.addEventListener("visibilitychange",()=>{ if(document.hidden&&S.dirty){ const p=v17Profile(); if(p&&!p.guest){ try{ fetch("/api/save",{method:"POST",keepalive:true,headers:{"content-type":"application/json"},body:JSON.stringify({id:p.id,token:p.token,op:"put",data:JSON.stringify(pick()),ts:save.localTs||Date.now()})}); S.dirty=false; }catch(e){} } } });
+  return S;
+})();
+
+// ============================================================
+// v46 — দুর্লভ (Rare) পুরস্কার ও ট্রফি (Next Phase ৮)
+// • ট্রফি 🏆: লেভেল প্রথমবার শেষ করলে +১, ৩ তারা পেলে +১ (প্রতি লেভেলে একবার), টাইমড লেভেল শেষ করলে +১ (একবার), রেসে জিতলে বেশি।
+// • রেয়ার গাড়ি (PHANTOM X, GOLD EMPEROR, RACING BIKE) ও রেয়ার ম্যাপ (AURORA PEAK, ROYAL DUNES): কয়েনে কেনা যায় না। গ্যারেজ/ম্যাপ তালিকায়
+//   তালা দেওয়া অবস্থায় আগেই দেখা যায়, সাথে লেখা থাকে কত ট্রফি লাগবে; ট্রফি পূরণ হলে নিজে থেকে আনলক ও বার্তা।
+// সীমাবদ্ধতা: RACING BIKE এখন "EASY BIKE"-এর ৩D মডেল নতুন রঙে ব্যবহার করে; আলাদা নতুন বাইক মডেল জোগাড় করে দিলে বদলে দেব।
+// ============================================================
+const V46=(function(){
+  const S={};
+  const L=(bn,en)=>(typeof V38!=="undefined"&&V38.get&&V38.get()==="en")?en:bn;
+  const RV=[
+    {name:"PHANTOM X",color:"#161a26",accent:"#7df9ff",price:0,speed:1.22,grip:1.18,suspension:1.2,boost:1.2,desc:"Rare black skin with neon trim.",rare:true,need:30},
+    {name:"GOLD EMPEROR",color:"#f2bf10",accent:"#fff6c2",price:0,speed:1.3,grip:1.2,suspension:1.25,boost:1.3,desc:"Rare gold-plated monster.",rare:true,need:60},
+    {name:"RACING BIKE",kind:"ebike",color:"#e6212a",accent:"#15151a",price:0,speed:1.28,grip:1.1,suspension:1.12,boost:1.32,desc:"Rare race-tuned bike.",rare:true,need:100}
+  ];
+  const RM=[
+    {name:"AURORA PEAK",desc:"Rare: glowing aurora over frozen peaks.",price:0,sky1:"#0b1d4a",sky2:"#7ef0c9",grass:"#bff7ff",dirt:"#9fc3d8",water:"#5ad6ff",theme:"ice",rare:true,need:40},
+    {name:"ROYAL DUNES",desc:"Rare: golden dunes at sunset.",price:0,sky1:"#ff8a3c",sky2:"#fff0b0",grass:"#f0cf6a",dirt:"#d29a3a",water:"#35a9c2",theme:"desert",rare:true,need:80}
+  ];
+  RV.forEach(v=>{ if(!vehiclesV22.some(x=>x.name===v.name)) vehiclesV22.push(v); });
+  RM.forEach(m=>{ if(!maps.some(x=>x.name===m.name)) maps.push(m); });
+  for(let i=0;i<maps.length;i++){ if(!V15_MAP_ORDER.includes(i)) V15_MAP_ORDER.push(i); }
+  const vIdx=v=>vehiclesV22.findIndex(x=>x.name===v.name), mIdx=m=>maps.findIndex(x=>x.name===m.name);
+  S.trophies=()=>Math.floor(save.trophies||0);
+  S.needText=it=>L("🏆 "+it.need+" ট্রফি লাগবে (এখন: "+S.trophies()+")","🏆 Needs "+it.need+" trophies (you have "+S.trophies()+")");
+  S.check=function(){
+    let got=[];
+    RV.forEach(v=>{ const i=vIdx(v); if(i>=0&&S.trophies()>=v.need&&!save.ownedVehicles.includes(i)){ save.ownedVehicles.push(i); got.push(v.name); } });
+    RM.forEach(m=>{ const i=mIdx(m); if(i>=0&&S.trophies()>=m.need&&!save.ownedMaps.includes(i)){ save.ownedMaps.push(i); got.push(m.name); } });
+    if(got.length){ persist(); try{ purchaseSound(); }catch(_){} try{ showToast("🏆 "+L("আনলক হয়েছে: ","Unlocked: ")+got.join(", ")); }catch(_){} }
+    return got;
+  };
+  S.add=function(n,why){ if(!(n>0)) return; save.trophies=S.trophies()+n; persist(); S.check(); try{ spawnFloatText&&state==="play"&&spawnFloatText(truck.x,truck.y-140,"🏆 +"+n,"#ffd34e"); }catch(_){} };
+  // লেভেল শেষে ট্রফি
+  const cl=completeLevel;
+  completeLevel=function(){
+    const wasPlay=state==="play", lvl=currentLevel, first=!(save.completed&&save.completed[lvl]);
+    cl.apply(this,arguments);
+    if(!wasPlay||state!=="complete"||endlessMode) return;
+    save.trophyLog=save.trophyLog||{};
+    const lg=save.trophyLog[lvl]=save.trophyLog[lvl]||{};
+    let n=0;
+    if(first&&!lg.done){ lg.done=1; n++; }
+    const st=(document.getElementById("resultStars")||{}).textContent||"";
+    if(st==="★★★"&&!lg.s3){ lg.s3=1; n++; }
+    if(typeof V44!=="undefined"&&V44.timed&&!lg.tm){ lg.tm=1; n++; }
+    if(n){ S.add(n); const rt=document.getElementById("rewardText"); if(rt) rt.textContent+=" · 🏆 +"+n; }
+  };
+  // গ্যারেজে তালা
+  const gb=renderGarage;
+  renderGarage=function(){
+    gb.apply(this,arguments);
+    const list=document.getElementById("vehicleList"); if(!list) return;
+    [...list.children].forEach((card,i)=>{ const v=vehiclesV22[i]; if(!v||!v.rare) return;
+      const own=save.ownedVehicles.includes(i), btn=card.querySelector("button"), tag=document.createElement("p"); tag.className="v46Rare";
+      card.classList.add("v46RareCard");
+      if(!own){ card.classList.add("v46Locked"); tag.textContent=S.needText(v); if(btn){ btn.textContent="🔒 🏆 "+v.need; btn.disabled=true; btn.onclick=e=>{ e.stopPropagation(); showToast(S.needText(v)); }; } }
+      else tag.textContent="💎 RARE";
+      card.insertBefore(tag,btn||null); });
+  };
+  const mb=renderMaps;
+  renderMaps=function(){
+    mb.apply(this,arguments);
+    const g=document.getElementById("mapGrid"); if(!g) return;
+    [...g.children].forEach(c=>{ const h=c.querySelector("h3"); if(!h) return; const t=h.textContent.replace(" 🇧🇩","").trim(); const i=maps.findIndex(m=>m.name===t); const m=maps[i]; if(!m||!m.rare) return;
+      const own=save.ownedMaps.includes(i); c.classList.add("v46RareCard");
+      const lock=c.querySelector(".mapLock"); if(lock) lock.textContent="🏆 "+m.need;
+      const bd=c.querySelector(".mapBadge"); if(bd&&!own) bd.textContent=L("তালা: ট্রফি লাগবে","LOCKED: trophies");
+      if(!own){ c.classList.add("v46Locked"); c.addEventListener("click",e=>{ e.stopImmediatePropagation(); e.preventDefault(); showToast(S.needText(m)); },true); } });
+  };
+  // হোমে ট্রফি দেখানো
+  S.badge=function(){ let b=document.getElementById("v46Trophy"); const host=document.querySelector("#mainMenu .coinBox,#mainMenu .menuCoins,#mainMenu"); if(!host) return; if(!b){ b=document.createElement("div"); b.id="v46Trophy"; b.className="v46Trophy"; host.appendChild(b); } b.textContent="🏆 "+S.trophies(); };
+  const gm=goMain; goMain=function(){ const r=gm.apply(this,arguments); try{ S.badge(); S.check(); }catch(_){} return r; };
+  S.check(); setTimeout(()=>{ try{ S.badge(); }catch(_){} },300);
   return S;
 })();
