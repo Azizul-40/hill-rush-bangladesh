@@ -7699,13 +7699,9 @@ const V47=(function(){
     S.lvl=Math.max(1,Math.min(save.unlocked||1,S.lvl)); const t=S.tier();
     const chips=(arr,cur,key)=>arr.map(v=>`<button type="button" class="v47Chip${v[0]===cur?" on":""}" data-k="${key}" data-v="${v[0]}">${v[1]}</button>`).join("");
     const o=popup(L("রেস","RACE"),`${t[2]} ${t[0]} · RP ${rp()} · 🏆 ${Math.floor(save.trophies||0)} · ${L("জয়","Wins")}: ${save.raceWins||0}`,
-      `<div class="v47Row"><b>${L("কতজন","Racers")}</b><div>${chips([2,3,4,5,6,7,8].map(n=>[n,n]),S.n,"n")}</div></div>
-       <div class="v47Row"><b>${L("লেভেল","Level")}</b><div><button type="button" class="v47Chip" data-k="lvl" data-v="-1">−</button><span class="v47Lv">${S.lvl}</span><button type="button" class="v47Chip" data-k="lvl" data-v="1">+</button> <small>${maps[save.selectedMap||0].name}</small></div></div>
-       <div class="v47Row"><b>${L("বটের কঠিনতা","Bot level")}</b><div>${chips([[0.9,L("সহজ","Easy")],[1,L("মাঝারি","Normal")],[1.1,L("কঠিন","Hard")]],S.diff,"diff")}</div></div>
-       <p class="v47Note">${L("সবাই একই রাস্তায় দৌড়ায়, গাড়ির ওপর নাম থাকে। গ্যাপে পড়লে বা উল্টে গেলে তুমি রেস থেকে বাদ। ১ম হলে সবচেয়ে বেশি ট্রফি 🏆।","Everyone races the same road with names on the cars. Fall in a gap or roll over and you are out. 1st place earns the most trophies 🏆.")}</p>
-       <div class="v41Btns"><button type="button" class="actionBtn primary" id="v47Go">🏁 ${L("রেস শুরু","START RACE")}</button></div>`);
+      `<div class="v47Row"><b>${L("লেভেল","Level")}</b><div><button type="button" class="v47Chip" data-k="lvl" data-v="-1">−</button><span class="v47Lv">${S.lvl}</span><button type="button" class="v47Chip" data-k="lvl" data-v="1">+</button> <small>${maps[save.selectedMap||0].name}</small></div></div>
+       <p class="v47Note">${L("সবাই একই রাস্তায় দৌড়ায়, গাড়ির ওপর নাম থাকে। গ্যাপে পড়লে বা উল্টে গেলে তুমি রেস থেকে বাদ। ১ম হলে সবচেয়ে বেশি ট্রফি 🏆।","Everyone races the same road with names on the cars. Fall in a gap or roll over and you are out. 1st place earns the most trophies 🏆.")}</p>`);
     o.querySelectorAll(".v47Chip").forEach(b=>b.onclick=()=>{ const k=b.dataset.k,v=+b.dataset.v; if(k==="n") S.n=v; else if(k==="diff") S.diff=v; else S.lvl=Math.max(1,Math.min(save.unlocked||1,S.lvl+v)); S.setup(); });
-    o.querySelector("#v47Go").onclick=()=>{ closePop(); S.start(); };
   };
   // ---- রেস শুরু ----
   S.start=function(){
@@ -7722,7 +7718,7 @@ const V47=(function(){
   const vNow=(r,t)=>r.base*(1+.09*Math.sin(t*.6+r.ph)+.05*Math.sin(t*1.7+r.ph*2));
   S.pos=function(){ const px=truck.x; let p=1; for(const r of S.racers){ if(S.myFin>0){ if(r.fin>0&&r.fin<S.myFin) p++; } else if(r.fin>0||(r.fin!==-1&&r.x>px)) p++; } return p; };
   S.board=function(){
-    const rows=S.racers.map(r=>({name:r.name,x:r.x,fin:r.fin,col:r.col||r.color,you:false}));
+    const rows=S.racers.map(r=>({name:r.name,x:r.x,fin:r.fin,col:r.col||r.color,you:false,ref:r}));
     rows.push({name:L("তুমি","YOU"),x:truck.x,fin:S.myFin||0,col:"#ffd34e",you:true});
     const key=r=>r.fin>0?[0,r.fin]:(r.fin===-1?[2,0]:[1,-r.x]);
     rows.sort((a,b)=>{ const A=key(a),B=key(b); return A[0]-B[0]||A[1]-B[1]; }); return rows;
@@ -7817,6 +7813,7 @@ const V47=(function(){
     if(!S.on||(state!=="play"&&state!=="pause"&&state!=="crash"&&state!=="complete")) return;
     ctx.save();
     for(const r of S.racers) drawBot(r);
+    document.body.classList.add("v47Racing");
     // "YOU" লেবেল
     const tx=truck.x-camera.x, ty=truck.y; ctx.font="bold 15px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="bottom";
     ctx.fillStyle="rgba(255,211,78,.92)"; if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(tx-24,ty-118,48,20,8); ctx.fill(); } else ctx.fillRect(tx-24,ty-118,48,20); ctx.fillStyle="#222"; ctx.fillText("YOU",tx,ty-101);
@@ -7824,17 +7821,33 @@ const V47=(function(){
     const pos=S.pos(), tot=S.racers.length+1, rows=S.board();
     if(S.phase==="go"&&S.lastPos&&pos<S.lastPos){ try{ spawnFloatText(truck.x,truck.y-130,"⬆ "+L("ওভারটেক! ","OVERTAKE! ")+pos+"/"+tot,"#4cff9a"); tone(880,.06,.06); }catch(_){} }
     if(S.phase==="go") S.lastPos=pos;
-    const rh=20, bx0=12, by0=74, bw0=Math.min(176,Math.max(130,W*.2));
-    ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.fillStyle="rgba(10,25,45,.72)"; if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(bx0,by0,bw0,rows.length*rh+8,10); ctx.fill(); } else ctx.fillRect(bx0,by0,bw0,rows.length*rh+8);
-    ctx.font="bold 13px system-ui,sans-serif";
-    rows.forEach((r,k)=>{ const yy=by0+4+k*rh+rh/2; if(r.you){ ctx.fillStyle="rgba(255,211,78,.28)"; ctx.fillRect(bx0+3,yy-rh/2,bw0-6,rh); }
-      ctx.fillStyle=r.you?"#ffd34e":"#fff"; ctx.fillText((k===0?"👑":(k+1)+"."),bx0+7,yy); ctx.fillStyle=r.col; ctx.beginPath(); ctx.arc(bx0+36,yy,5,0,6.3); ctx.fill();
-      ctx.fillStyle=r.fin===-1?"#9aa":(r.you?"#ffd34e":"#fff"); const nm=(r.name.length>10?r.name.slice(0,9)+"…":r.name); ctx.fillText(nm+(r.fin>0?" 🏁":""),bx0+46,yy); });
-    // প্রগ্রেস বার (সবার বিন্দুসহ)
-    const bw=Math.min(420,W-300),bx=W/2-bw/2,by=70; ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(bx,by+10,bw,6); const fx=finishX();
-    for(const r of S.racers){ const p=Math.max(0,Math.min(1,(r.x-250)/(fx-250))); ctx.fillStyle=r.color; ctx.beginPath(); ctx.arc(bx+bw*p,by+13,6,0,6.3); ctx.fill(); ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke(); }
-    const pp=Math.max(0,Math.min(1,(truck.x-250)/(fx-250))); ctx.fillStyle="#ffd34e"; ctx.beginPath(); ctx.arc(bx+bw*pp,by+13,9,0,6.3); ctx.fill(); ctx.strokeStyle="#222"; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle="#fff"; ctx.fillText("🏁",bx+bw+6,by+13);
+    const by0=128, rh=Math.max(17,Math.min(26,Math.floor(((typeof H!=="undefined"?H:600)-by0-120)/rows.length))), bx0=12, bw0=Math.min(210,Math.max(160,W*.22));
+    const ord=n=>n+(n===1?"st":n===2?"nd":n===3?"rd":"th"); const medal=["#ffd34e","#dfe6ee","#e0955a"];
+    const rr=(x,y,w,h,r)=>{ ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h); };
+    // বড় পজিশন ব্যাজ: "3rd / 6"
+    ctx.save(); ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillStyle="#ffd34e"; rr(bx0,by0-52,bw0,46,12); ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle="#fff"; ctx.stroke();
+    ctx.fillStyle="#2a1a00"; ctx.font="900 34px system-ui,sans-serif"; ctx.fillText(ord(pos),bx0+10,by0-28);
+    ctx.font="bold 18px system-ui,sans-serif"; ctx.fillText("/ "+tot,bx0+bw0-62,by0-27);
+    // স্ট্যান্ডিং তালিকা (উজ্জ্বল ব্যাকগ্রাউন্ড, রাতেও পড়া যায়)
+    ctx.fillStyle="rgba(8,18,40,.88)"; rr(bx0,by0,bw0,rows.length*rh+10,12); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle="rgba(255,255,255,.7)"; ctx.stroke();
+    ctx.font="bold 16px system-ui,sans-serif";
+    rows.forEach((r,k)=>{ const yy=by0+5+k*rh+rh/2;
+      if(r.you){ ctx.fillStyle="#ffd34e"; rr(bx0+4,yy-rh/2+1,bw0-8,rh-2,8); ctx.fill(); }
+      ctx.fillStyle=r.you?"#2a1a00":(medal[k]||"#fff"); ctx.font="900 17px system-ui,sans-serif"; ctx.fillText(String(k+1),bx0+11,yy);
+      ctx.fillStyle=r.col; ctx.beginPath(); ctx.arc(bx0+40,yy,7,0,6.3); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle=r.you?"#2a1a00":"#fff"; ctx.stroke();
+      ctx.font=(r.you?"900 ":"bold ")+"16px system-ui,sans-serif"; ctx.fillStyle=r.fin===-1?"#8a99a8":(r.you?"#2a1a00":"#fff"); const nm=(r.name.length>9?r.name.slice(0,8)+"…":r.name); ctx.fillText(nm+(r.fin>0?" 🏁":""),bx0+54,yy); });
+    ctx.restore();
+    // প্রগ্রেস বার: মোটা, উজ্জ্বল; প্রতিটা বিন্দুর ভেতরে তার বর্তমান নম্বর, নিজেরটা বড় "YOU"
+    const bw=Math.min(460,W-460),bx=W/2-bw/2,by=64,fx=finishX(); ctx.save();
+    ctx.fillStyle="rgba(255,255,255,.35)"; rr(bx-6,by+6,bw+12,20,10); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle="rgba(255,255,255,.9)"; ctx.stroke();
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    const rankOf=ref=>{ const i=rows.findIndex(q=>q.ref===ref); return i<0?0:i+1; };
+    for(const r of S.racers){ const p=Math.max(0,Math.min(1,(r.x-250)/(fx-250))); const cx=bx+bw*p; ctx.fillStyle=r.col||r.color; ctx.beginPath(); ctx.arc(cx,by+16,11,0,6.3); ctx.fill(); ctx.lineWidth=2.5; ctx.strokeStyle="#fff"; ctx.stroke(); ctx.fillStyle="#fff"; ctx.font="900 12px system-ui,sans-serif"; ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.7)"; const t=String(rankOf(r)); ctx.strokeText(t,cx,by+17); ctx.fillText(t,cx,by+17); }
+    const pp=Math.max(0,Math.min(1,(truck.x-250)/(fx-250))), mx=bx+bw*pp; ctx.fillStyle="#ffd34e"; ctx.beginPath(); ctx.arc(mx,by+16,15,0,6.3); ctx.fill(); ctx.lineWidth=3.5; ctx.strokeStyle="#2a1a00"; ctx.stroke();
+    ctx.fillStyle="#2a1a00"; ctx.font="900 16px system-ui,sans-serif"; ctx.fillText(String(pos),mx,by+17);
+    ctx.fillStyle="#ffd34e"; rr(mx-18,by+34,36,16,6); ctx.fill(); ctx.fillStyle="#2a1a00"; ctx.font="900 11px system-ui,sans-serif"; ctx.fillText("YOU",mx,by+42);
+    ctx.font="22px system-ui,sans-serif"; ctx.fillStyle="#fff"; ctx.fillText("🏁",bx+bw+20,by+16); ctx.restore();
     // কাউন্টডাউন
     if(S.phase==="count"||S.goFlash>0){ const txt=S.phase==="count"?String(Math.max(1,Math.ceil(S.cd-.4))):"GO!"; ctx.textAlign="center"; ctx.textBaseline="middle"; const sc=S.phase==="count"?1:1+(1-S.goFlash)*.3; ctx.font="bold "+Math.round(120*sc)+"px system-ui,sans-serif"; ctx.lineWidth=10; ctx.strokeStyle="rgba(0,0,0,.6)"; ctx.fillStyle=S.phase==="count"?"#fff":"#4cff9a"; ctx.globalAlpha=S.phase==="count"?1:Math.max(0,S.goFlash); ctx.strokeText(txt,W/2,H*.4); ctx.fillText(txt,W/2,H*.4); }
     ctx.restore();
@@ -7874,18 +7887,18 @@ const V47=(function(){
   }
   const myCar=()=>({veh:save.selectedVehicle|0,col:(save.custom&&/^#[0-9a-fA-F]{6}$/.test(save.custom.color||""))?save.custom.color:""});
   async function api(op,extra){ const p=await profile(); return v17Api("/api/race",{method:"POST",body:JSON.stringify(Object.assign({id:p.id,token:p.token,op},myCar(),extra||{}))}); }
-  const errText=e=>e&&e.message==="server-off"?L("অনলাইন সার্ভার চালু নেই — বটের সাথে খেলো।","Online server is off — race the bots."):(e&&e.message)||"error";
+  const errText=e=>e&&e.message==="server-off"?L("অনলাইন সার্ভার চালু নেই, একটু পরে চেষ্টা করো।","Online server is off. Try again later."):(e&&e.message)||"error";
   // ---- সেটআপে অনলাইন অংশ ----
   const setup0=S.setup;
   S.setup=function(){
     O.stop(); setup0.apply(S,arguments);
-    const body=document.querySelector("#v47Pop .v41Body"), go=document.getElementById("v47Go"); if(!body||!go) return;
+    const body=document.querySelector("#v47Pop .v41Body"); if(!body) return;
     const box=document.createElement("div"); box.className="v47Online";
-    box.innerHTML=`<b>🌐 ${L("অনলাইন — সত্যিকারের খেলোয়াড়","Online — real players")}</b>
+    box.innerHTML=`<b>🌐 ${L("অনলাইন রেস — শুধু সত্যিকারের খেলোয়াড়","Online race — real players only")}</b>
       <div class="v47OnRow"><button type="button" class="actionBtn" id="v48Quick">⚡ ${L("দ্রুত ম্যাচ","Quick match")}</button><button type="button" class="actionBtn" id="v48Create">➕ ${L("রুম বানাও","Create room")}</button></div>
       <div class="v47OnRow"><input id="v48Code" maxlength="5" placeholder="${L("রুম কোড","ROOM CODE")}" autocapitalize="characters" style="text-transform:uppercase"><button type="button" class="actionBtn" id="v48Join">${L("যোগ দাও","Join")}</button></div>
       <p class="v47Note" id="v48Err">${esc(O.msg)}</p>`;
-    go.parentNode.parentNode.insertBefore(box,go.parentNode);
+    body.appendChild(box);
     const run=async f=>{ O.msg=""; try{ await f(); }catch(e){ O.msg=errText(e); const n=document.getElementById("v48Err"); if(n) n.textContent=O.msg; } };
     const lv=()=>S.lvl, mp=()=>save.selectedMap||0;
     document.getElementById("v48Quick").onclick=()=>run(async()=>{ const j=await api("quick",{level:lv(),map:mp()}); O.enter(j); });
@@ -7901,19 +7914,18 @@ const V47=(function(){
   O.render=function(){
     const j=O.view; if(!j) return; const o=shell(), r=j.room, me=j.players.find(x=>x.you);
     const sig=JSON.stringify([r.code,r.host,r.maxp,j.players.map(p=>[p.name,p.host,p.gone])]);
-    let st0=""; if(j.players.length<2) st0=L("অন্য খেলোয়াড়ের জন্য অপেক্ষা করছি…","Waiting for another player…"); else if(r.pub&&r.auto_in!=null) st0=L("রেস শুরু হবে ","Race starts in ")+r.auto_in+L(" সেকেন্ডে"," s"); else st0=r.host?L("তৈরি হলে শুরু করো","Start when ready"):L("হোস্ট শুরু করবে…","Waiting for host…");
+    let st0=""; if(j.players.length<2) st0=L("🔍 আসল খেলোয়াড় খুঁজছি… কেউ এলে রেস শুরু হবে (কেউ না এলে শুরু হবে না)","🔍 Searching for real players… the race starts when someone joins (it will not start alone)"); else if(r.pub&&r.auto_in!=null) st0=L("রেস শুরু হবে ","Race starts in ")+r.auto_in+L(" সেকেন্ডে"," s"); else st0=r.host?L("তৈরি হলে শুরু করো","Start when ready"):L("হোস্ট শুরু করবে…","Waiting for host…");
     if(O.sig===sig&&!o.classList.contains("hidden")){ const n=document.getElementById("v48St"); if(n) n.textContent=st0; return; } // বাটন বদলায়নি — আবার আঁকলে ট্যাপ নষ্ট হয়
     O.sig=sig;
     o.querySelector(".v41Title").textContent=(r.pub?L("দ্রুত ম্যাচ","Quick match"):L("রুম","Room"))+" · "+r.code;
     o.querySelector(".v41Sub").textContent=L("লেভেল ","Level ")+r.level+" · "+(maps[r.map]?maps[r.map].name:"")+" · "+j.players.length+"/"+r.maxp;
     const list=j.players.map(p=>`<div class="v48P${p.you?" me":""}${p.gone?" gone":""}"><i class="v47Dot" style="background:${COLORS[j.players.indexOf(p)%8]}"></i>${esc(p.name)}${p.host?" 👑":""}${p.you?" ("+L("তুমি","you")+")":""}</div>`).join("");
-    let st=""; if(j.players.length<2) st=L("অন্য খেলোয়াড়ের জন্য অপেক্ষা করছি…","Waiting for another player…"); else if(r.pub&&r.auto_in!=null) st=L("রেস শুরু হবে ","Race starts in ")+r.auto_in+L(" সেকেন্ডে"," s"); else st=r.host?L("তৈরি হলে শুরু করো","Start when ready"):L("হোস্ট শুরু করবে…","Waiting for host…");
+    let st=""; if(j.players.length<2) st=L("🔍 আসল খেলোয়াড় খুঁজছি… কেউ এলে রেস শুরু হবে (কেউ না এলে শুরু হবে না)","🔍 Searching for real players… the race starts when someone joins (it will not start alone)"); else if(r.pub&&r.auto_in!=null) st=L("রেস শুরু হবে ","Race starts in ")+r.auto_in+L(" সেকেন্ডে"," s"); else st=r.host?L("তৈরি হলে শুরু করো","Start when ready"):L("হোস্ট শুরু করবে…","Waiting for host…");
     o.querySelector(".v41Body").innerHTML=`${r.pub?"":`<p class="v47Note">${L("বন্ধুকে এই কোড দাও: ","Share this code: ")}<b class="v48Code">${r.code}</b></p>`}<div class="v48List">${list}</div><p class="v47Note" id="v48St">${st}</p><p class="v47Note" id="v48Err2"></p>
-      <div class="v41Btns">${r.host&&j.players.length>=2?`<button type="button" class="actionBtn primary" id="v48Start">▶ ${L("এখনই শুরু","Start now")}</button>`:""}${j.players.length<2?`<button type="button" class="actionBtn" id="v48Bots">🤖 ${L("বটের সাথে খেলো","Play vs bots")}</button>`:""}<button type="button" class="actionBtn" id="v48Leave">${L("বেরিয়ে যাও","Leave")}</button></div>`;
+      <div class="v41Btns">${r.host&&j.players.length>=2?`<button type="button" class="actionBtn primary" id="v48Start">▶ ${L("এখনই শুরু","Start now")}</button>`:""}<button type="button" class="actionBtn" id="v48Leave">${L("বেরিয়ে যাও","Leave")}</button></div>`;
     o.classList.remove("hidden");
     const q=id=>document.getElementById(id);
     if(q("v48Start")) q("v48Start").onclick=async()=>{ try{ O.view=await api("start",{code:O.code}); O.check(); }catch(e){ q("v48Err2").textContent=errText(e); } };
-    if(q("v48Bots")) q("v48Bots").onclick=()=>{ const lvl=r.level; O.leave(false); S.lvl=lvl; S.start(); };
     q("v48Leave").onclick=()=>O.leave(true);
   };
   O.pollLobby=async function(){
@@ -8072,3 +8084,6 @@ const V50=(function(){
 
 // v52: হোম চিপ menuStage-এর (transform-সহ) বাইরে সরানো — নইলে স্ক্রিনের ওপরে বেরিয়ে অদৃশ্য থাকত
 (function v52Chip(){ const c=document.getElementById("homeChip"), m=document.getElementById("mainMenu"); if(c&&m&&c.parentElement!==m) m.appendChild(c); })();
+
+// v52: রেস শেষ/বন্ধ হলে "v47Racing" ক্লাস সরানো (ক্র্যাশ পপআপ আবার স্বাভাবিক)
+setInterval(()=>{ try{ if(!(V47.on&&!V47.over)) document.body.classList.remove("v47Racing"); }catch(e){} },250);

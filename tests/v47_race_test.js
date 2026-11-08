@@ -8,9 +8,10 @@ let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;console.log('PASS',n);}else{fa
   ok('RACE বাটন আছে',await p.isVisible('#raceBtn'));
   await p.click('#raceBtn');await p.waitForTimeout(300);
   ok('সেটআপ পপআপ খোলে',await p.isVisible('#v47Pop'));
-  await p.click('.v47Chip[data-k="n"][data-v="6"]');await p.waitForTimeout(150);
+  ok('সেটআপে বট/START বাটন নেই',!(await p.$('#v47Go'))&&!(await p.$('.v47Chip[data-k="n"]')));
+  await p.evaluate(()=>{V47.n=6;});await p.waitForTimeout(150);
   ok('জনসংখ্যা ৬ বাছা হয়',(await p.evaluate(()=>V47.n))===6);
-  await p.click('#v47Go');await p.waitForTimeout(300);
+  await p.evaluate(()=>{document.getElementById('v47Pop').classList.add('hidden');V47.start();});await p.waitForTimeout(300);
   const r=await p.evaluate(()=>({on:V47.on,phase:V47.phase,bots:V47.racers.length,state}));
   ok('রেস শুরু: ৫ বট, কাউন্টডাউন',r.on&&r.bots===5&&r.phase==='count'&&r.state==='play',r);
   // কাউন্টডাউনে গাড়ি নড়ে না
@@ -32,7 +33,7 @@ let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;console.log('PASS',n);}else{fa
   const sv=await p.evaluate(()=>({rp:save.raceRP,wins:save.raceWins,tro:save.trophies}));
   ok('RP, জয়, ট্রফি জমা',sv.rp===25&&sv.wins===1&&sv.tro>=5,sv);
   // মরলে বাদ নয়: চেকপয়েন্ট/শুরু থেকে আবার চালু, সময় থামে না
-  await p.click('#v47Again');await p.waitForTimeout(200);await p.click('#v47Go');await p.waitForTimeout(4600);
+  await p.click('#v47Again');await p.waitForTimeout(200);await p.evaluate(()=>{document.getElementById('v47Pop').classList.add('hidden');V47.start();});await p.waitForTimeout(4600);
   await p.evaluate(()=>{crash("test");});await p.waitForTimeout(400);
   ok('ক্র্যাশের পর রেস বাদ হয় না',await p.evaluate(()=>!V47.over&&V47.on));
   await p.waitForTimeout(1500);

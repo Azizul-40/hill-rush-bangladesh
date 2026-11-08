@@ -3941,3 +3941,11 @@ body #mainMenu .developerPlaque .supervisorName{
 .pauseHud::after{content:"PAUSE";display:inline-block;font-size:17px;font-weight:900;color:#fff;margin:0;letter-spacing:.5px}
 #hud #pauseBtn.pauseHud,#pauseBtn.hudIcon.pauseHud{width:128px !important;min-width:128px !important;height:54px !important;min-height:54px !important;flex-direction:row !important;border-radius:27px !important;padding:0 14px !important}
 #pauseMenuBtn{background:linear-gradient(180deg,#ffd34e,#f0a100) !important;color:#3a2400 !important;font-weight:900 !important;border:2px solid #fff !important}
+
+/* v52: গ্যারেজে আপগ্রেড প্যানেল রেয়ার গাড়ির কার্ড ঢেকে দিচ্ছিল — লেআউট এখন স্বাভাবিক উচ্চতায় বাড়ে */
+#garageMenu .garageLayout{max-height:none !important;height:auto !important;overflow:visible !important}
+#garageMenu .vehicleList{max-height:none !important;overflow:visible !important;height:auto !important}
+#garageMenu .upgradePanel{margin-top:16px !important;margin-bottom:30px !important;clear:both}
+#garageMenu .vehicleCard .v15Sprite.vehicleMini{margin-left:0 !important;transform:translateX(-50%) !important;transform-origin:center !important;left:50% !important;top:2px !important;height:64px !important;width:auto !important;max-width:90%}
+/* v52: রেসে মরলে ক্র্যাশ পপআপ নয়, সরাসরি রিস্পন */
+body.v47Racing #crashMenu{display:none !important}

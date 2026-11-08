@@ -30,7 +30,7 @@ const dir=process.argv[2],shots=process.argv[3]||'/tmp';let pass=0,fail=0;const 
   await A.click('#v48Create');await A.waitForTimeout(900);
   const code=await A.evaluate(()=>V47.O.code);ok('রুম বানানো, ৫ অক্ষরের কোড',/^[A-Z]{5}$/.test(code),code);
   ok('লবি দেখায়',await A.isVisible('#v48Pop .v48List'));
-  ok('একা থাকলে "বটের সাথে খেলো" বাটন',await A.isVisible('#v48Bots'));
+  {const tt=await A.textContent('#v48St');ok('একা থাকলে বটের বাটন নেই, "খুঁজছি" বার্তা',!(await A.$('#v48Bots'))&&/খুঁজছি|Searching/.test(tt),tt);}
   ok('একা থাকলে শুরু বাটন নেই',!(await A.isVisible('#v48Start')));
   // B: কোড দিয়ে যোগ
   await B.evaluate(()=>{save.selectedVehicle=3;save.custom={color:'#e53935',plate:''};});
@@ -80,10 +80,10 @@ const dir=process.argv[2],shots=process.argv[3]||'/tmp';let pass=0,fail=0;const 
   ok('২ জন হলে নিজে থেকেই কাউন্টডাউন শুরু',(await C.evaluate(()=>V47.on&&V47.online))&&(await D.evaluate(()=>V47.on&&V47.online)));
   // বটের ফলব্যাক: একা বসে থাকা
   const E=await mkPage();await E.click('#raceBtn');await E.waitForTimeout(300);await E.click('#v48Quick');await E.waitForTimeout(1200);
-  await E.click('#v48Bots');await E.waitForTimeout(500);
-  ok('একা হলে "বটের সাথে খেলো" চালু করে অফলাইন রেস',(await E.evaluate(()=>V47.on&&!V47.online&&V47.racers.length>=1)));
+  await E.waitForTimeout(11500);
+  ok('একা থাকলে রেস শুরু হয় না (বট আসে না)',!(await E.evaluate(()=>V47.on))&&await E.isVisible('#v48Pop'));
   // ত্রুটি: সার্ভার/ভুল কোড
-  const F=await mkPage();await F.click('#raceBtn');await F.waitForTimeout(300);await F.fill('#v48Code','ZZZZZ');await F.click('#v48Join');await F.waitForTimeout(1500);
+  const F=await mkPage();await F.click('#raceBtn');await F.waitForTimeout(300);await F.fill('#v48Code','ZZZZZ');await F.click('#v48Join');await F.waitForTimeout(3000);
   ok('ভুল কোডে বার্তা দেখায়',(await F.textContent('#v48Err')).includes('রুম নেই'),await F.textContent('#v48Err'));
   for(const [n,P] of Object.entries({A,B,C,D,E,F}))ok('page error নেই '+n,P.__errs.length===0,P.__errs);
   console.log(`\n${pass} পাস, ${fail} ফেল`);await b.close();srv.close();process.exit(fail?1:0);
