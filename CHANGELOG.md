@@ -6,6 +6,13 @@
 
 ---
 
+## v48 — Online race (real players)
+- RACE → Online: Quick match (auto-match same level+map, public room auto-starts 10 s after 2+ players), Create room (code), Join by code. Lobby with player list, host Start, 'play vs bots' fallback.
+- Server: functions/api/race.js (D1 polling ~4×/s, no Durable Objects). New tables: db/v48_race_tables.sql (race_rooms, race_players) — must be run in D1.
+- Remote cars drawn with real names, interpolated. Rewards same as bot race.
+- Limits: 0.2–0.5 s lag, no collisions, each uses own vehicle, client-reported time, tested only with two local browsers + fake D1.
+- Tests: tests/race_api_test.js (24), tests/v48_online_race_test.js (26).
+
 ## v47 — Race mode (offline vs bots)
 - RACE button: 2–8 racers, bot difficulty, countdown, names on cars, YOU label, position + progress bar, results table, trophies (+5/+3/+2/+1), coins, race points & rank tiers. DNF on crash.
 - Live multiplayer NOT built: see docs/RACING_ONLINE_PLAN.md.
