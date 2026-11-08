@@ -7190,7 +7190,7 @@ const V41=(function(){
 const V41M=(function(){
   const KEY="hillRushMusic"; let on=true; try{ on=localStorage.getItem(KEY)!=="0"; }catch(e){}
   let g=null, noiseBuf=null, timer=null, next=0, step=0, playing=false;
-  const BPM=160, S16=60/BPM/4;
+  let BPM=160, S16=60/BPM/4; let trackIdx=1; try{ const t=localStorage.getItem('hillRushTrack'); trackIdx=t===null?0:Math.max(0,Math.min(2,+t||0)); }catch(e){}
   const CH=[[110,220,261.63,329.63],[87.31,174.61,220,261.63],[130.81,261.63,329.63,392],[98,196,246.94,293.66]]; // Am F C G (বেস, তারপর কর্ডের সুর)
   function nodes(){ if(!audio||!master) return false; if(!g){ g=audio.createGain(); g.gain.value=0; g.connect(master);
       noiseBuf=audio.createBuffer(1,audio.sampleRate*.5,audio.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; } return true; }
@@ -7201,7 +7201,7 @@ const V41M=(function(){
   function synth(t,f,type,peak,dec,cut){ const o=audio.createOscillator(), fl=audio.createBiquadFilter(), a=audio.createGain(); o.type=type; o.frequency.value=f; fl.type="lowpass"; fl.frequency.value=cut; env(a,t,peak,dec); o.connect(fl); fl.connect(a); a.connect(g); o.start(t); o.stop(t+dec+.03); }
   // v51: নতুন "ক্রেজি" লুপ — ১৬০ BPM, ফোর-অন-দ্য-ফ্লোর কিক, অফবিট হাই-হ্যাট, ছুটন্ত বেস, লিড হুক, ৪ বারের শেষে স্নেয়ার ফিল, ৮ বারে সাইরেন-রাইজার
   const LEAD=[[0,3,5,7,5,3,0,3],[7,10,12,10,7,5,3,5]]; // পেন্টাটনিক (সেমিটোন, ১৬-স্টেপের প্রতি ২ স্টেপে একটা নোট)
-  function sched(t,s){ const barN=Math.floor(s/16), bar=barN%4, b=s%16, c=CH[bar], phrase=Math.floor(s/64)%2, eight=barN%8;
+  function schedRace(t,s){ const barN=Math.floor(s/16), bar=barN%4, b=s%16, c=CH[bar], phrase=Math.floor(s/64)%2, eight=barN%8;
     if(b%4===0) kick(t); if(phrase&&(b===14)) kick(t);
     if(b===4||b===12) snare(t);
     if(b%4===2) noise(t,8500,.16,.07); else if(b%2===0) noise(t,7500,.05,.03);
@@ -7217,16 +7217,39 @@ const V41M=(function(){
     // ৮ বারের শেষ বারে সাইরেন রাইজার
     if(eight===7&&b%2===0){ synth(t,330*Math.pow(2,(b/16)*1.5),"sawtooth",.06,S16*1.8,4200); noise(t,3000+b*300,.05+b*.006,.09); }
     if(eight===0&&b===0){ kick(t); noise(t,900,.3,.5); } }
-  function tick(){ if(!playing||!audio) return; const ahead=audio.currentTime+.25; while(next<ahead){ sched(next,step); step++; next+=S16; } }
+  // v52: ৩টা গান — 0 CRAZY (১৫০ BPM EDM), 1 RACING (১৬০ BPM), 2 CHILL (৯২ BPM)
+  const MIN=[0,3,7,10,12,15], MAJ=[0,2,4,7,9,12];
+  const SEQ=[2,-1,3,-1,4,3,2,-1, 1,-1,2,3,4,-1,5,3], SEQ2=[4,-1,4,3,-1,2,3,-1, 5,-1,4,-1,3,2,1,-1];
+  function pluck(t,f,peak,dec,cut){ const o=audio.createOscillator(), o2=audio.createOscillator(), fl=audio.createBiquadFilter(), a=audio.createGain(); o.type="sawtooth"; o2.type="sawtooth"; o.frequency.value=f; o2.frequency.value=f*1.007;
+    fl.type="lowpass"; fl.frequency.setValueAtTime(cut,t); fl.frequency.exponentialRampToValueAtTime(400,t+dec); env(a,t,peak,dec); o.connect(fl); o2.connect(fl); fl.connect(a); a.connect(g); o.start(t); o2.start(t); o.stop(t+dec+.03); o2.stop(t+dec+.03); }
+  function schedCrazy(t,s){ const barN=Math.floor(s/16), bar=barN%4, b=s%16, c=CH[bar], eight=barN%8, hi=Math.floor(s/64)%2, off=bar===0?MIN:MAJ;
+    if(b%4===0) kick(t);
+    if(b===4||b===12) snare(t);
+    if(b%4===2) noise(t,8000,.2,.11); if(b%2===1) noise(t,9000,.04,.025);
+    if(b%4===2) synth(t,c[0],"sawtooth",.3,S16*3,520); if(b%4===0) synth(t,c[0]/2,"sine",.25,S16*1.5,300);
+    if(b===0||b===3||b===6||b===10||b===13){ [c[1],c[2],c[3]].forEach(f=>pluck(t,f*2,.045,S16*1.6,3800)); }
+    const q=(hi?SEQ2:SEQ)[b]; if(q>=0) pluck(t,c[0]*4*Math.pow(2,off[q]/12),hi?.11:.08,S16*2.2,5200);
+    if(bar===3&&b>=12) snare(t);
+    if(eight===7&&b%2===0){ synth(t,330*Math.pow(2,(b/16)*1.8),"sawtooth",.07,S16*1.8,4600); noise(t,3000+b*350,.05+b*.007,.09); }
+    if(eight===0&&b===0){ noise(t,900,.35,.6); } }
+  function schedChill(t,s){ const barN=Math.floor(s/16), bar=barN%4, b=s%16, c=CH[bar];
+    if(b===0||b===10) kick(t); if(b===8) snare(t); if(b%2===0) noise(t,9000,.035,.04);
+    if(b%8===0) synth(t,c[0],"triangle",.28,S16*7,500);
+    if(b===0) [c[1],c[2],c[3]].forEach(f=>synth(t,f*2,"triangle",.05,S16*15,1800));
+    if(b===6||b===11||b===14) synth(t,c[2]*(b===14?4:2),"sine",.08,S16*3,3000); }
+  const TRACKS=[{bpm:150,fn:schedCrazy},{bpm:160,fn:schedRace},{bpm:92,fn:schedChill}];
+  let SCH=TRACKS[trackIdx].fn; BPM=TRACKS[trackIdx].bpm; S16=60/BPM/4;
+  function setTrack(i){ trackIdx=Math.max(0,Math.min(2,i|0)); SCH=TRACKS[trackIdx].fn; BPM=TRACKS[trackIdx].bpm; S16=60/BPM/4; try{ localStorage.setItem('hillRushTrack',String(trackIdx)); }catch(e){} if(playing){ step=0; if(audio) next=audio.currentTime+.08; } }
+  function tick(){ if(!playing||!audio) return; const ahead=audio.currentTime+.25; while(next<ahead){ SCH(next,step); step++; next+=S16; } }
   function start(){ if(playing||!on||!nodes()) return; playing=true; next=audio.currentTime+.08; step=0; g.gain.cancelScheduledValues(audio.currentTime); g.gain.setTargetAtTime(.32,audio.currentTime,.4); clearInterval(timer); timer=setInterval(tick,90); tick(); }
   function stop(){ if(!playing) return; playing=false; clearInterval(timer); if(g&&audio) g.gain.setTargetAtTime(0,audio.currentTime,.25); }
   const wanted=()=>on&&state==="menu"&&!document.hidden;
   setInterval(()=>{ try{ if(wanted()&&audio&&audio.state==="running") start(); else if(!wanted()) stop(); }catch(e){} },300);
   // প্রথম ছোঁয়া/ক্লিক/কী-তে অডিও চালু (ব্রাউজারের অটোপ্লে নিয়ম)
   const kick0=()=>{ try{ resumeAudio(); }catch(e){} };
-  ["pointerdown","keydown","touchstart"].forEach(ev=>addEventListener(ev,kick0,{passive:true}));
+  ["pointerdown","mousedown","click","keydown","touchstart","touchend"].forEach(ev=>addEventListener(ev,kick0,{passive:true,capture:true}));
   function set(v){ on=!!v; try{ localStorage.setItem(KEY,on?"1":"0"); }catch(e){} if(!on) stop(); }
-  return {set,get:()=>on,start,stop,isPlaying:()=>playing};
+  return {set,get:()=>on,start,stop,isPlaying:()=>playing,setTrack,getTrack:()=>trackIdx};
 })();
 
 // v41.1: নতুন ব্রাউজারে সেভ করা ভলিউম না থাকলে Number(null)=0 হয়ে পুরো গেম নিঃশব্দ থাকত — এখন ডিফল্ট ৫৫%
@@ -7238,7 +7261,8 @@ try{ if(localStorage.getItem("hillRushVolume")===null){ userVolume=55; applyAudi
   box.innerHTML='<div class="settingsRow"><span>🔊 VOLUME</span><strong id="hsVolVal">55%</strong></div>'+
     '<input id="hsVol" class="volumeSlider" type="range" min="0" max="100" value="55">'+
     '<label class="muteRow"><input id="hsMute" type="checkbox"> <span>🔇 MUTE SOUND</span></label>'+
-    '<label class="muteRow"><input id="hsMusic" type="checkbox"> <span>🎵 MENU MUSIC</span></label>';
+    '<label class="muteRow"><input id="hsMusic" type="checkbox"> <span>🎵 MENU MUSIC</span></label>'+
+    '<div class="settingsRow"><span>🎶 SONG</span><select id="hsTrack" style="padding:6px 8px;border-radius:8px;font-weight:800"><option value="0">🔥 CRAZY</option><option value="1">🏎️ RACING</option><option value="2">😌 CHILL</option></select></div>';
   const lr=card.querySelector(".langRow"); if(lr&&lr.nextSibling) card.insertBefore(box,lr.nextSibling); else card.appendChild(box);
   const $=id=>document.getElementById(id);
   function sync(){ $("hsVol").value=Math.round(userVolume); $("hsVolVal").textContent=Math.round(userVolume)+"%"; $("hsMute").checked=!!userMuted; $("hsMusic").checked=V41M.get();
@@ -7247,6 +7271,7 @@ try{ if(localStorage.getItem("hillRushVolume")===null){ userVolume=55; applyAudi
     if(cm){ cm.textContent=userMuted?"🔇":"🔊"; cm.classList.toggle("muted",!!userMuted); } }
   $("hsVol").oninput=e=>{ userVolume=Number(e.target.value); try{ localStorage.setItem("hillRushVolume",String(userVolume)); }catch(_){} if(userVolume>0&&userMuted){ userMuted=false; try{ localStorage.setItem("hillRushMuted","0"); }catch(_){} } applyAudioVolume(); sync(); };
   $("hsMute").onchange=e=>{ userMuted=e.target.checked; try{ localStorage.setItem("hillRushMuted",userMuted?"1":"0"); }catch(_){} applyAudioVolume(); sync(); };
+  if($("hsTrack")){ $("hsTrack").value=String(V41M.getTrack()); $("hsTrack").onchange=e=>{ try{ resumeAudio(); }catch(_){} V41M.setTrack(+e.target.value); }; }
   $("hsMusic").onchange=e=>{ try{ resumeAudio(); }catch(_){} V41M.set(e.target.checked); sync(); };
   const hb=$("homeSettingsBtn"); if(hb) hb.addEventListener("click",sync);
   sync();
@@ -7986,14 +8011,16 @@ const V50=(function(){
     const body=$("profileBody"); if(!body) return;
     const p=v17Profile(), tier=(typeof V47!=="undefined"&&V47.tier)?V47.tier():["Bronze",0,"🥉"];
     const done=Object.keys(save.completed||{}).length, name=p?p.name:L("অতিথি (লগইন নেই)","Not signed in");
-    body.innerHTML=`<div class="lbBox v50Head">
-        <div class="v50PicBox">${avatarHtml("v50Pic")}</div>
+    const tile=(ic,v,l)=>`<div class="v52Tile"><i>${ic}</i><b>${v}</b><small>${l}</small></div>`;
+    body.innerHTML=`<div class="lbBox v50Head v52Hero">
+        <div class="v50PicBox v52Ring">${avatarHtml("v50Pic")}<button type="button" class="v52Cam" id="v50Up" aria-label="upload">📷</button></div>
         <div class="v50Info"><div class="v50Name">${esc(name)} ${p&&!p.guest?`<span class="v39Tag r">${L("নিবন্ধিত ✓","Registered ✓")}</span>`:(p?`<span class="v39Tag g">${L("গেস্ট","Guest")}</span>`:"")}</div>
-          <div class="v50Tier">${tier[2]} ${tier[0]} · RP ${Math.floor(save.raceRP||0)}</div>
-          <div class="v50Stats"><span>🪙 ${Math.floor(save.coins||0)}</span><span>⭐ ${done} ${L("লেভেল","levels")}</span><span>🏆 ${Math.floor(save.trophies||0)}</span><span>🏁 ${save.raceWins||0} ${L("রেস জয়","race wins")}</span><span>💰 ${Math.floor(save.earnedTotal||0)} ${L("মোট আয়","earned")}</span></div></div>
-        <div class="v50PicBtns"><button type="button" class="lbBtn blue" id="v50Up">📷 ${L("ছবি আপলোড","Upload photo")}</button>${picOf()?`<button type="button" class="lbBtn gray" id="v50Del">🗑 ${L("ছবি সরাও","Remove")}</button>`:""}<input type="file" id="v50File" accept="image/*" hidden></div>
-        <div class="lbNote" id="v50Msg"></div></div>
+          <div class="v52Badge">${tier[2]} ${tier[0]} · RP ${Math.floor(save.raceRP||0)}</div>
+          <div class="v50PicBtns"><button type="button" class="lbBtn blue" id="v50Up2">📷 ${L("ছবি বদলাও","Change photo")}</button>${picOf()?`<button type="button" class="lbBtn gray" id="v50Del">🗑 ${L("ছবি সরাও","Remove")}</button>`:""}<input type="file" id="v50File" accept="image/*" hidden></div>
+          <div class="lbNote" id="v50Msg"></div></div></div>
+      <div class="v52Tiles">${tile("🪙",Math.floor(save.coins||0),L("কয়েন","Coins"))}${tile("⭐",done,L("লেভেল পার","Levels done"))}${tile("🏆",Math.floor(save.trophies||0),L("ট্রফি","Trophies"))}${tile("🏁",save.raceWins||0,L("রেস জয়","Race wins"))}${tile("💰",Math.floor(save.earnedTotal||0),L("মোট আয়","Total earned"))}${tile(tier[2],Math.floor(save.raceRP||0),L("রেস পয়েন্ট","Race points"))}</div>
       <div class="lbBox v39Prof"></div>`;
+    if($("v50Up2")) $("v50Up2").onclick=()=>$("v50File").click();
     $("v50Up").onclick=()=>$("v50File").click();
     if($("v50Del")) $("v50Del").onclick=()=>{ save.pic=""; persist(); S.render(); S.chip(); };
     $("v50File").onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(f) S.upload(f); };
@@ -8027,7 +8054,7 @@ const V50=(function(){
   if($("profileBtn")) $("profileBtn").onclick=open; if($("homeChip")) $("homeChip").onclick=open;
   if($("backProfileBtn")) $("backProfileBtn").onclick=()=>{ try{ tone(330,.06,.05); }catch(_){} goMain(); };
   // লিডারবোর্ডে প্রোফাইল-বাক্সের বদলে প্রোফাইল পাতার লিংক
-  const vr=v17Render; v17Render=async function(){ await vr.apply(this,arguments); const b=document.querySelector("#leaderBody .v39Prof"); if(b){ b.classList.remove("v39Prof"); b.innerHTML=`<h3>👤 ${L("তোমার প্রোফাইল","Your profile")}</h3><div class="lbNote">${L("ছবি, নাম, লগইন/অ্যাকাউন্ট এখন আলাদা PROFILE পাতায়।","Photo, name and login/account now live on the PROFILE page.")}</div><div class="lbRow2"><button class="lbBtn blue" id="lbToProfile">${L("প্রোফাইল খোলো →","Open profile →")}</button></div>`; const t=$("lbToProfile"); if(t) t.onclick=open; } S.chip(); };
+  const vr=v17Render; v17Render=async function(){ await vr.apply(this,arguments); const b=document.querySelector("#leaderBody .v39Prof"); if(b){ b.classList.remove("v39Prof"); b.classList.add("v52Strip"); { const pp=v17Profile(); const pic=picOf(); const av=pic?`<img src="${pic}" alt="">`:`<span>${pp&&!pp.guest?(V45AV[pp.avatar|0]||"🚙"):"👤"}</span>`; b.innerHTML=`<div class="v52Av">${av}</div><div class="v52Who"><b>${esc(pp?pp.name:L("অতিথি","Guest"))}</b><small>🪙 ${Math.floor(save.earnedTotal||0)} ${L("মোট আয়","earned")}</small></div><button class="lbBtn blue" id="lbToProfile">👤 ${L("প্রোফাইল","Profile")} ›</button>`; } const t=$("lbToProfile"); if(t) t.onclick=open; } S.chip(); };
   const gm=goMain; goMain=function(){ const r=gm.apply(this,arguments); try{ S.chip(); }catch(_){} return r; };
   setTimeout(()=>{ try{ S.chip(); }catch(_){} },0); setInterval(()=>{ try{ const m=$("mainMenu"); if(m&&!m.classList.contains("hidden")) S.chip(); }catch(_){} },2000);
   S.open=open; return S;
