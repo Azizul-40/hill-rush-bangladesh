@@ -3803,7 +3803,7 @@ function checkCrash(){
   // বড় পাহাড়ের কারণে বাতাসে (jump-এ) truck স্বাভাবিকভাবেই অনেকটা ঘুরে যেতে পারে—সেটা crash না, তাই airborne threshold লেনিয়েন্ট রাখা হয়েছে;
   // আসল crash হবে যখন truck মাটিতে নেমে (onGround) উল্টে থাকা অবস্থায় body দিয়ে ধাক্কা খায়।
   if(truck.x>500&&!truck.onGround&&Math.abs(a)>2.75&&truck.y>H*.5){crash("The truck rolled over!");return true;}
-  if(truck.onGround&&Math.abs(a)>1.85&&Math.abs(truck.vx)>90){crash("The truck rolled over!");return true;}
+  if(truck.onGround&&Math.abs(a)>(typeof V44!=="undefined"?V44.roll():1.85)&&Math.abs(truck.vx)>90){crash("The truck rolled over!");return true;}
   return false;
 }
 
@@ -7330,3 +7330,77 @@ const V43=(function(){
   return S;
 })();
 { const _sl=startLevel; startLevel=function(){ V43.reset(); return _sl.apply(this,arguments); }; }
+
+
+// ============================================================
+// v44 — সময়-সীমা (৪), চেকপয়েন্টে বোনাস সময় ও টাইম ক্যাপসুল (৫), কঠিনতা ধাপে ধাপে বাড়ানো (১৩)
+// • টাইমড লেভেল: ৩, ৬, ৯ … (প্রতি তৃতীয় লেভেল)। সময় = রুটের দৈর্ঘ্য/২৩০ + ১৫ সেকেন্ড। ফুরোলে গেম ওভার।
+// • চেকপয়েন্ট পার করলে +১০ থেকে +১৫ সেকেন্ড (কঠিন লেভেলে বেশি)। রাস্তায় "টাইম ক্যাপসুল" নিলে +৪ সেকেন্ড।
+// • বাকি সময় থাকলে লেভেল শেষে বাড়তি কয়েন, আর তারা (★) বাকি সময়ের ওপর ভিত্তি করে।
+// • কঠিনতা: লেভেল বাড়লে ফুয়েল খরচ (+৫০% পর্যন্ত) বাড়ে, আর উল্টে যাওয়ার সহনসীমা কমে (১০৬° থেকে ৮৩°)।
+// ============================================================
+const V44=(function(){
+  const S={left:0,limit:0,timed:false,capsules:[],lastCp:0,fuelBase:null};
+  const isTimed=l=>!endlessMode&&l>=3&&l%3===0;
+  const lvD=()=>Math.min(1,((currentLevel||1)-1)/99);
+  S.roll=()=>1.85-lvD()*0.4;
+  S.fmt=t=>{t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+":"+String(t%60).padStart(2,"0");};
+  S.cpBonus=()=>Math.round(10+lvD()*5);
+  function setup(){
+    S.timed=isTimed(currentLevel);S.lastCp=0;S.capsules=[];
+    if(S.timed){
+      S.limit=Math.round(finishX()/230+15);S.left=S.limit;
+      for(let x=1500;x<finishX()-700;x+=1700){ let xx=x; for(let k=0;k<30&&spanHasGap(xx-60,xx+60);k++) xx+=30; S.capsules.push({x:xx,taken:false}); }
+    }
+    // ফুয়েল খরচ লেভেল অনুযায়ী
+    if(!S.fuelBase) S.fuelBase={g:FUEL_CONFIG.drainGas,d:FUEL_CONFIG.drainDrive,i:FUEL_CONFIG.drainIdle};
+    const m=1+lvD()*0.5; FUEL_CONFIG.drainGas=S.fuelBase.g*m;FUEL_CONFIG.drainDrive=S.fuelBase.d*m;FUEL_CONFIG.drainIdle=S.fuelBase.i*m;
+  }
+  const sl=startLevel; startLevel=function(){ const r=sl.apply(this,arguments); setup(); return r; };
+  const se=startEndless; startEndless=function(){ const r=se.apply(this,arguments); S.timed=false; S.capsules=[]; return r; };
+  const up=updatePhysics;
+  updatePhysics=function(dt){
+    up.apply(this,arguments);
+    if(state!=="play"||!S.timed) return;
+    S.left-=dt;
+    // চেকপয়েন্ট বোনাস
+    const n=(typeof v15Checkpoint!=="undefined"&&v15Checkpoint)?v15Checkpoint.n:0;
+    if(n>S.lastCp){ S.lastCp=n; const b=S.cpBonus(); S.left+=b; spawnFloatText(truck.x,truck.y-120,"⏱ +"+b+"s","#4cff9a"); tone(880,.1,.08); }
+    // টাইম ক্যাপসুল
+    for(const c of S.capsules){ if(!c.taken&&Math.abs(truck.x-c.x)<60&&Math.abs(truck.y-(terrainY(c.x)-70))<90){ c.taken=true; S.left+=4; spawnFloatText(c.x,terrainY(c.x)-110,"⏱ +4s","#7fe0ff"); coinSound(); } }
+    if(S.left<=0){ S.left=0; const bn=(typeof V38!=="undefined"&&V38.get&&V38.get()==="bn"); crash(bn?"সময় শেষ!":"Time's up!"); }
+  };
+  const rd=render;
+  render=function(){
+    rd.apply(this,arguments);
+    if(!S.timed||(state!=="play"&&state!=="pause"&&state!=="paused")) return;
+    const low=S.left<=10, blink=low&&Math.floor(performance.now()/300)%2===0;
+    ctx.save();
+    // ক্যাপসুল (রাস্তায়)
+    for(const c of S.capsules){ if(c.taken) continue; const sx=c.x-camera.x; if(sx<-40||sx>W+40) continue; const y=terrainY(c.x)-70+Math.sin(performance.now()*.004+c.x)*4;
+      ctx.fillStyle="rgba(120,220,255,.25)";ctx.beginPath();ctx.arc(sx,y,24,0,6.3);ctx.fill();
+      ctx.fillStyle="#fff";ctx.strokeStyle="#1b8fc2";ctx.lineWidth=3;ctx.beginPath();ctx.arc(sx,y,16,0,6.3);ctx.fill();ctx.stroke();
+      ctx.strokeStyle="#1b8fc2";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(sx,y);ctx.lineTo(sx,y-10);ctx.moveTo(sx,y);ctx.lineTo(sx+7,y+3);ctx.stroke(); }
+    // টাইমার (পর্দার ওপরে মাঝখানে)
+    const bw=118,bh=30,bx=W/2-bw/2,by=70;
+    ctx.fillStyle=low?(blink?"rgba(230,40,40,.95)":"rgba(120,10,10,.9)"):"rgba(10,25,45,.78)";
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,15):ctx.rect(bx,by,bw,bh);ctx.fill();
+    ctx.strokeStyle=low?"#ffb0b0":"rgba(255,255,255,.55)";ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle="#fff";ctx.font="bold 18px system-ui,sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText("⏱ "+S.fmt(S.left),W/2,by+bh/2+1);
+    ctx.restore();
+  };
+  // চেকপয়েন্ট থেকে ফিরলে সময় অন্তত ১৫ সেকেন্ড, নইলে সময় শেষের ক্র্যাশ থেকে ফিরেই আবার ক্র্যাশ হতো।
+  const rs=v15Respawn; v15Respawn=function(){ rs.apply(this,arguments); if(S.timed&&S.left<15) S.left=15; };
+  const cl=completeLevel;
+  completeLevel=function(){
+    const wasPlay=state==="play", left=S.left, timed=S.timed;
+    cl.apply(this,arguments);
+    if(!wasPlay||!timed||state!=="complete") return;
+    const extra=Math.floor(left/2); const frac=left/Math.max(1,S.limit);
+    if(extra>0){ coins+=extra; save.coins=coins; persist(); updateCoinsUI&&updateCoinsUI(); }
+    const rt=document.getElementById("rewardText"); if(rt&&extra>0) rt.textContent+=" + ⏱ "+extra;
+    const st=document.getElementById("resultStars"); if(st) st.textContent=frac>=.45?"★★★":frac>=.2?"★★☆":"★☆☆";
+  };
+  return S;
+})();
