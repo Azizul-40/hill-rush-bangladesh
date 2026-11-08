@@ -6,6 +6,11 @@
 
 ---
 
+## v47 — Race mode (offline vs bots)
+- RACE button: 2–8 racers, bot difficulty, countdown, names on cars, YOU label, position + progress bar, results table, trophies (+5/+3/+2/+1), coins, race points & rank tiers. DNF on crash.
+- Live multiplayer NOT built: see docs/RACING_ONLINE_PLAN.md.
+- Test: tests/v47_race_test.js (14 pass).
+
 ## v46 — রেয়ার পুরস্কার ও ট্রফি (Next Phase ৮)
 - ট্রফি 🏆: লেভেল প্রথমবার শেষ +১, ৩ তারা পেলে +১, টাইমড লেভেল শেষ +১ (প্রতি লেভেলে একবার করে)।
 - রেয়ার গাড়ি: PHANTOM X (৩০ 🏆), GOLD EMPEROR (৬০ 🏆), RACING BIKE (১০০ 🏆, এখন EASY BIKE-এর ৩D মডেল নতুন রঙে)। রেয়ার ম্যাপ: AURORA PEAK (৪০ 🏆), ROYAL DUNES (৮০ 🏆)।

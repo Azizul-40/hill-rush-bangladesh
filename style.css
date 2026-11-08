@@ -3877,3 +3877,12 @@ body #mainMenu .developerPlaque .supervisorName{
 .v46Locked{filter:grayscale(.6) brightness(.8)}
 .v46Rare{margin:2px 0;font-size:12px;font-weight:700;color:#ffd34e}
 .v41Map.locked .v41Lock{background:rgba(0,0,0,.65);color:#ffd34e}
+
+/* v47: রেস মোড */
+.v47Row{display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap}.v47Row>b{min-width:92px;text-align:left}
+.v47Chip{min-width:38px;padding:7px 11px;margin:2px;border-radius:10px;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.v47Chip.on{background:#2fbf4a;border-color:#a8ffb8}
+.v47Lv{display:inline-block;min-width:34px;font-weight:900;font-size:18px;text-align:center}
+.v47Note{margin:8px 0;font-size:13px;opacity:.92}
+.v47Dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;border:1.5px solid #fff;vertical-align:middle}
+.v47Tab{width:100%}.v47Tab tr.me{background:rgba(255,211,78,.25)}
