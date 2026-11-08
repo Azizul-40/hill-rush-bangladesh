@@ -15,10 +15,10 @@ let pass=0,fail=0;const ok=(n,c,x)=>{c?pass++:fail++;console.log((c?'PASS':'FAIL
   });
   ok('বাসে প্রতিটা গ্যাপ ~১.৩ গুণ',r.g0.every((w,i)=>Math.abs(r.g1[i]-Math.round(w*1.3))<=1),r);
   ok('CNG-তে গ্যাপ অপরিবর্তিত',JSON.stringify(r.g0)===JSON.stringify(r.g2),r);
-  ok('কয়েনের মান ১২, প্যাক ২০০',r.cv===12&&r.cp===200,r);
+  ok('কয়েনের মান ৪, প্যাক ১০০ (v42 ব্যালেন্স)',r.cv===4&&r.cp===100,r);
   // কয়েন তুললে ঠিক COIN_VALUE বাড়ে
   const dc=await pg.evaluate(()=>{save.selectedVehicle=0;startLevel(1);levelCoins.forEach((q,i)=>{if(i>0)q.taken=true;});const c=levelCoins[0];truck.x=c.x;truck.y=c.y+30;truck.airTime=0;truck.airRotation=0;checkAchievements();const b=coins;collectCoins();return coins-b;});
-  ok('একটা কয়েনে +১২',dc===12,dc);
+  ok('একটা কয়েনে +৪',dc===4,dc);
   // ক্যানভাস: viewport বদলে resize ইভেন্ট ছাড়াই (শুধু render চালিয়ে) মাপ ঠিক হয়
   await pg.setViewportSize({width:1500,height:800});await pg.waitForTimeout(200);
   const s1=await pg.evaluate(()=>({iw:innerWidth,cw:canvas.clientWidth,bw:canvas.width,W,dpr:Math.min(devicePixelRatio,2)}));

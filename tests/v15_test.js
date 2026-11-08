@@ -19,8 +19,8 @@ const ok=(name,cond,extra='')=>{ if(cond){pass++;console.log('PASS',name,extra);
   ok('প্রতিটা নতুন যানবাহন আঁকা/চালানো এক্সেপশন ছাড়া',draw.every(x=>x===true),JSON.stringify(draw));
   const buy=await p.evaluate(()=>{save.ownedVehicles=[0];save.selectedVehicle=0;coins=100;save.coins=100;renderGarage();const cards=[...document.querySelectorAll('#vehicleList .vehicleCard')];const bus=cards[11];bus.querySelector('button').click();return {coins,owned:save.ownedVehicles.includes(11)};});
   ok('টাকা কম থাকলে কেনা যায় না, কয়েন নেগেটিভ হয় না',buy.coins===100&&!buy.owned);
-  const buy2=await p.evaluate(()=>{coins=800;save.coins=800;renderGarage();document.querySelectorAll('#vehicleList .vehicleCard')[9].querySelector('button').click();return {coins,owned:save.ownedVehicles.includes(9),sel:save.selectedVehicle};});
-  ok('রিকশা (৮০০) কিনলে ঠিক ৮০০ কাটে ও select হয়',buy2.coins===0&&buy2.owned&&buy2.sel===9,JSON.stringify(buy2));
+  const buy2=await p.evaluate(()=>{const pr=vehiclesV22[9].price;coins=pr;save.coins=pr;renderGarage();document.querySelectorAll('#vehicleList .vehicleCard')[9].querySelector('button').click();return {coins,owned:save.ownedVehicles.includes(9),sel:save.selectedVehicle,pr};});
+  ok('রিকশা কিনলে ঠিক দাম কাটে ও select হয়',buy2.coins===0&&buy2.owned&&buy2.sel===9,JSON.stringify(buy2));
 
   // ---- ২) ম্যাপ ----
   const mp=await p.evaluate(()=>({n:maps.length,themes:maps.slice(8).map(m=>m.theme)}));

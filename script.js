@@ -233,7 +233,7 @@ function upgradeCost(type,level){
   // Base cost। 
   const base = {engine:50,tires:50,suspension:60,boost:75}[type];
   // Exponential price। 
-  return Math.round(base*Math.pow(1.55,level-1));
+  return Math.round(base*1.6*Math.pow(1.55,level-1));
 }
 
 // Current vehicle upgrade object। 
@@ -928,7 +928,7 @@ function drawGauge(cx,cy,r,value,label,color){
 }
 function drawGaugeCluster(){
   if(state!=="play")return;
-  const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],maxSpeed=430+v.speed*260+currentUpgrades().engine*18;
+  const v=vehiclesV22[save.selectedVehicle]||vehiclesV22[0],maxSpeed=(430+v.speed*260+currentUpgrades().engine*18)*V42_SPEED_K;
   const rpmVal=Math.min(1,Math.abs(truck.vx)/Math.max(1,maxSpeed));
   // BOOST gauge এখন সাজানো নয়—আসল boostEnergy (Nitro ট্যাংক) দেখায়, বাটন চাপলে কমবে, ছেড়ে দিলে আবার ভরবে।
   const boostVal=Math.max(0,Math.min(1,(truck.boostEnergy||0)/100));
@@ -1736,7 +1736,7 @@ function renderStore(){
     daily.disabled=true;
     daily.style.opacity=".55";
   }else{
-    daily.textContent="CLAIM +100";
+    daily.textContent="CLAIM +50";
     daily.disabled=false;
     daily.style.opacity="1";
   }
@@ -2801,7 +2801,7 @@ document.getElementById("dailyBtn").onclick=()=>{
   if(save.dailyClaimed) return;
 
   // Claim। 
-  coins+=100;
+  coins+=50;
   // Save। 
   save.coins=coins;
   // Mark claimed। 
@@ -3157,9 +3157,9 @@ coins=Math.max(0,Math.floor(Number(save.coins)||250));
 save.coins=coins;
 
 // ---------- DAILY LIMIT RESET (Daily Bonus + Coin Pack প্রতিদিন নতুন করে claim করা যাবে) ----------
-const COIN_PACK_DAILY_LIMIT=4;
+const COIN_PACK_DAILY_LIMIT=3;
 // v16 ব্যালান্স: কয়েনের মান ২৫→১২, ফ্রি প্যাক ৫০০→২০০ (আগে কয়েন এত বেশি ছিল যে ৫-৬ লেভেলেই বাস কেনা হয়ে যেত)।
-const COIN_VALUE=12,COIN_PACK_AMOUNT=200; // দিনে সর্বোচ্চ ৪ বার Coin Pack কেনা যাবে।
+const COIN_VALUE=4,COIN_PACK_AMOUNT=100; // দিনে সর্বোচ্চ ৪ বার Coin Pack কেনা যাবে।
 const todayKey=new Date().toDateString();
 if(save.dayKey!==todayKey){
   save.dayKey=todayKey;
@@ -3394,6 +3394,8 @@ function getGaps(){
       i++;
     }
   }
+  // v42: গাড়ি ধীর হওয়ায় গ্যাপের প্রস্থ কমানো (সর্বনিম্ন ৯৬px, চাকার দূরত্ব ৯২px-এর চেয়ে বেশি, তাই পড়ে যাওয়ার ঝুঁকি থাকছে)।
+  result=result.map(g=>[g[0],Math.max(typeof V42_GAPMIN==='number'?V42_GAPMIN:96,g[1]*(typeof V42_GAPW==='number'?V42_GAPW:1))]);
   _gapsCache={key,gaps:result};
   return result;
 }
@@ -3415,7 +3417,8 @@ function terrainY(x){
   // আর সেই কারণেই gap পার হওয়া যাচ্ছিল না। এখন gap শুরুর ঠিক আগে জমি সবসময় উপরের দিকে উঠবে, যাতে truck সবসময়
   // solid ground থেকে ভালো height নিয়ে gap-টা পার হতে পারে, level/map যাই হোক না কেন।
   {
-    const rampLen=170,rampLift=95;
+    // v42: ঢাল এখন লম্বা (৩৮০px) ও ধীরে ধীরে খাড়া হয়—আগে ১৭০px-এ হঠাৎ ৯৫px উঠত (অস্বাভাবিক র‍্যাম্প)।
+    const rampLen=V42_RAMP[0],rampLift=V42_RAMP[1];
     const gaps=getGaps();
     for(let i=0;i<gaps.length;i++){
       const gStart=gaps[i][0];
@@ -3883,7 +3886,7 @@ function completeLevel(){
   // এই level "সম্পন্ন" হিসেবে মার্ক হবে, আর পরের level unlock হবে (শেষ level না হলে)
   save.completed[currentLevel]=true;if(currentLevel<TOTAL_LEVELS)save.unlocked=Math.max(save.unlocked,currentLevel+1);
   // level যত বড় আর map যত পরের দিকের (কঠিন), reward তত বেশি
-  const reward=75+Math.floor(currentLevel*3)+(save.selectedMap||0)*10;coins+=reward;save.coins=coins;persist();
+  const reward=40+Math.floor(currentLevel*2)+(save.selectedMap||0)*6;coins+=reward;save.coins=coins;persist();
   // সময়ের ওপর ভিত্তি করে ৩/২/১ তারা (star rating) দেখানো হচ্ছে
   document.getElementById("resultTime").textContent=formatTime(elapsed);document.getElementById("rewardText").textContent=`+${reward} coins`;document.getElementById("resultStars").textContent=elapsed<42?"★★★":elapsed<70?"★★☆":"★☆☆";
   purchaseSound();showScreen("completeMenu");
@@ -4546,7 +4549,7 @@ function completeLevel(){
   save.completed[currentLevel]=true;if(currentLevel<TOTAL_LEVELS) save.unlocked=Math.max(save.unlocked,currentLevel+1);
   // শেষ করার পর রিফ্রেশ দিলে পরের level থেকে চালু হবে।
   save.lastLevel=Math.min(currentLevel+1,save.unlocked,TOTAL_LEVELS);
-  const reward=75+Math.floor(currentLevel*3)+(save.selectedMap||0)*10;coins+=reward;save.coins=coins;
+  const reward=40+Math.floor(currentLevel*2)+(save.selectedMap||0)*6;coins+=reward;save.coins=coins;
   // --- V30: দৈনিক মিশন কাউন্টার + ghost best-run save + achievement check ---
   ensureV30Save();
   save.daily.levelsToday=(save.daily.levelsToday||0)+1;
@@ -4577,6 +4580,12 @@ function crash(reason){
   showScreen("crashMenu");
 }
 
+// v42: সব গাড়ির সর্বোচ্চ গতি ও গ্যাসের জোর একই অনুপাতে কমানো (বুস্টও সেই অনুপাতে কমে, কারণ সেটা maxSpeed-এর গুণিতক)।
+var V42_SPEED_K=0.78;
+// v42: গতি কমায় লাফের দূরত্বও কমে যেত; তাই মাধ্যাকর্ষণ সামান্য কমানো (আগে ১৮৫০), যাতে গ্যাপ পার হওয়া সম্ভব থাকে।
+var V42_GRAV=1550;
+var V42_RAMP=[170,95];
+var V42_GAPW=0.75,V42_GAPMIN=96;
 // মূল physics loop—বায়োম/আবহাওয়া/condition grip, ghost রেকর্ডিং, combo, distance ট্র্যাকিং সব হুক করা হয়েছে।
 function updatePhysics(dt){
   // ভাসমান bonus টেক্সট সবসময় update হবে (pause/menu থাকলেও সমস্যা নেই, নিজে থেকেই life শেষ হলে বন্ধ হয়ে যায়)।
@@ -4592,7 +4601,7 @@ function updatePhysics(dt){
   const enginePower=(1+(up.engine-1)*.10)*conditionFactor;
   // Grip: vehicle base × tire upgrade × biome grip × আবহাওয়া grip × condition।
   const grip=v.grip*(1+(up.tires-1)*.055)*themeGripMul(m.theme)*weatherGripMul()*conditionFactor;
-  const suspension=v.suspension*(1+(up.suspension-1)*.07),boost=v.boost*(1+(up.boost-1)*.08),maxSpeed=430+v.speed*260+up.engine*18;
+  const suspension=v.suspension*(1+(up.suspension-1)*.07),boost=v.boost*(1+(up.boost-1)*.08),maxSpeed=(430+v.speed*260+up.engine*18)*V42_SPEED_K;
 
   // --- BOOST/NITRO ---
   const isBoosting=keys.boost&&truck.boostEnergy>0;
@@ -4613,14 +4622,14 @@ function updatePhysics(dt){
   const fuelPower=truck.fuel<=0?FUEL_CONFIG.minPowerAtEmpty:(truck.fuel<FUEL_CONFIG.lowThreshold?(FUEL_CONFIG.minPowerAtEmpty+(1-FUEL_CONFIG.minPowerAtEmpty)*(truck.fuel/FUEL_CONFIG.lowThreshold)):1);
 
   // --- GAS/DRIVE/REVERSE/BRAKE ---
-  if(keys.right||keys.gas) truck.vx+=(keys.gas?900:690)*enginePower*fuelPower*v.speed*boost*boostMul*dt;
+  if(keys.right||keys.gas) truck.vx+=(keys.gas?900:690)*V42_SPEED_K*enginePower*fuelPower*v.speed*boost*boostMul*dt;
   if(keys.left) truck.vx-=520*enginePower*dt;
   if(keys.brake) truck.vx*=Math.pow(.035,dt);
   truck.vx*=Math.pow(.92,dt);
   truck.vx=Math.max(-260,Math.min(maxSpeed*boostSpeedMul*fuelPower,truck.vx));
 
   // --- GRAVITY ---
-  truck.vy+=1850/Math.max(.7,suspension)*dt;
+  truck.vy+=V42_GRAV/Math.max(.7,suspension)*dt;
 
   // --- আবহাওয়ার সাইড-ফোর্স: বাতাসে/বালির ঝড়ে airborne অবস্থায় হালকা পিছনে ধাক্কা (challenge) ---
   if(!truck.onGround) truck.vx+=weatherSideForce()*dt;
@@ -7229,4 +7238,46 @@ try{ if(localStorage.getItem("hillRushVolume")===null){ userVolume=55; applyAudi
   $("hsMusic").onchange=e=>{ try{ resumeAudio(); }catch(_){} V41M.set(e.target.checked); sync(); };
   const hb=$("homeSettingsBtn"); if(hb) hb.addEventListener("click",sync);
   sync();
+})();
+
+// ============================================================
+// v42 — (১) গ্যাপে পড়লে সব গাড়ি ডেড, কোনো গাড়িই গ্যাপ থেকে উঠে আসতে পারবে না
+//       (৩) কয়েন ব্যালেন্স: গাড়ি/ম্যাপের দাম বাড়ানো, মিশন-অ্যাচিভমেন্টের পুরস্কার কমানো
+// (গতি কমানো ২ নম্বর: V42_SPEED_K ওপরে, মূল physics-এ। কয়েন/পুরস্কারের সংখ্যা ওপরের COIN_VALUE ও completeLevel-এ।)
+// আগের সমস্যা: গাড়ি গ্যাপের দূরের কিনারার কাছে ১০০px+ নিচে নেমেও, দুই চাকা আবার শক্ত জমি পেলেই "ground snap"-এ
+// এক ফ্রেমে ওপরে উঠে আসত। এখন গ্যাপের ভেতরে (দুই কিনারার আরেকটু বাইরে পর্যন্ত) গাড়ির কেন্দ্র কিনারার রেখার ৬০px নিচে
+// গেলেই সঙ্গে সঙ্গে ক্র্যাশ—snap হওয়ার সুযোগ আসার আগেই।
+// ============================================================
+const V42=(function(){
+  const S={depth:110};
+  function deepInGap(){
+    if(typeof getGaps!=="function"||typeof isGap!=="function") return false;
+    const hb=(truck.wheelBase||92)/2+14, G=getGaps();
+    for(let i=0;i<G.length;i++){
+      const a=G[i][0], b=a+G[i][1];
+      if(truck.x>a-hb&&truck.x<b+hb&&isGap(a+(b-a)/2)){
+        const edge=Math.max(terrainY(a),terrainY(b));
+        if(truck.y>edge+S.depth) return true;
+      }
+    }
+    return false;
+  }
+  const base=updatePhysics;
+  updatePhysics=function(dt){
+    if(state==="play"&&deepInGap()){ crash("You fell into the gap!"); return; }
+    base.apply(this,arguments);
+    if(state!=="play") return;
+    if(deepInGap()) crash("You fell into the gap!");
+  };
+  return {deepInGap,S};
+})();
+
+// কয়েন ব্যালেন্স—দাম/পুরস্কার একবারই বদলানো হয় (page load-এ)।
+(function(){
+  const r50=x=>Math.max(0,Math.round(x/50)*50);
+  const r10=x=>Math.max(10,Math.round(x/10)*10);
+  try{ vehiclesV22.forEach(v=>{ if(v.price>0) v.price=r50(v.price*1.6); }); }catch(e){}
+  try{ maps.forEach(m=>{ if(m.price>0) m.price=r50(m.price*1.6); }); }catch(e){}
+  try{ MISSION_POOL.forEach(m=>{ m.reward=r10(m.reward*.6); }); }catch(e){}
+  try{ ACHIEVEMENTS.forEach(a=>{ a.reward=r10(a.reward*.6); }); }catch(e){}
 })();
