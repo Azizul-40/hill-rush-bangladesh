@@ -30,7 +30,7 @@ export async function onRequestPost({ request, env }) {
   }
   // v45: মোট আয় করা কয়েন (খরচ করলে কমে না) — লিডারবোর্ডে এটাই দেখানো হয়
   const earned = int(b.earned, 0, 1000000000);
-  if (earned !== null) await env.DB.prepare("INSERT INTO profile (player_id,earned) VALUES (?,?) ON CONFLICT(player_id) DO UPDATE SET earned=MAX(earned,excluded.earned)").bind(p.id, earned).run();
+  if (earned !== null) { try { await env.DB.prepare("INSERT INTO profile (player_id,earned) VALUES (?,?) ON CONFLICT(player_id) DO UPDATE SET earned=MAX(earned,excluded.earned)").bind(p.id, earned).run(); } catch (e) { /* profile টেবিল এখনো নেই */ } }
   await env.DB.prepare("INSERT INTO progress (player_id,unlocked,completed,coins,updated) VALUES (?,?,?,?,?) ON CONFLICT(player_id) DO UPDATE SET unlocked=MAX(unlocked,excluded.unlocked), completed=MAX(completed,excluded.completed), coins=MAX(coins,excluded.coins), updated=excluded.updated").bind(p.id, unlocked, completed, coins, now).run();
   return json(out);
 }
