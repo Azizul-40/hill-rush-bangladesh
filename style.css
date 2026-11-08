@@ -3895,7 +3895,7 @@ body #mainMenu .developerPlaque .supervisorName{
 .v48Code{font-size:26px;letter-spacing:6px;color:#ffd34e}
 
 /* v50: প্রোফাইল পাতা + হোম চিপ */
-.homeChip{position:absolute;left:12px;top:12px;z-index:30;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:2px solid rgba(255,255,255,.55);background:linear-gradient(180deg,rgba(18,60,92,.9),rgba(6,28,48,.92));color:#fff;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4);max-width:190px}
+.homeChip{position:fixed;left:12px;top:12px;z-index:60;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:2px solid rgba(255,255,255,.55);background:linear-gradient(180deg,rgba(18,60,92,.9),rgba(6,28,48,.92));color:#fff;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4);max-width:190px}
 .homeChip .hcPic{width:34px;height:34px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#17415f;font-size:20px;flex:none}
 .homeChip .hcPic img{width:100%;height:100%;object-fit:cover}
 .homeChip .hcName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

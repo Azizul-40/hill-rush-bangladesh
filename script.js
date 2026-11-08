@@ -8042,3 +8042,6 @@ const V50=(function(){
   document.querySelectorAll(".backBtn").forEach(b=>{ b.textContent=bn?"← ফিরে যাও":"← BACK"; b.setAttribute("aria-label","Back to menu"); });
   const p=document.getElementById("pauseBtn"); if(p){ p.setAttribute("aria-label","Pause"); }
 })();
+
+// v52: হোম চিপ menuStage-এর (transform-সহ) বাইরে সরানো — নইলে স্ক্রিনের ওপরে বেরিয়ে অদৃশ্য থাকত
+(function v52Chip(){ const c=document.getElementById("homeChip"), m=document.getElementById("mainMenu"); if(c&&m&&c.parentElement!==m) m.appendChild(c); })();
