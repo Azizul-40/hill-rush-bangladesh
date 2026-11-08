@@ -1,5 +1,5 @@
 import { json, bad, readJson, needDB, authPlayer } from "./_lib.js";
-// POST /api/submit { id, token, unlocked, completed, coins, map?, level?, time?, endless?:{map,dist} }
+// POST /api/submit { id, token, unlocked, completed, coins, earned?, map?, level?, time?, endless?:{map,dist} }
 // উত্তরে র‍্যাংক: level → { rank, total }, endless → { endlessRank, endlessTotal }
 // যাচাই শুধু সীমা-ভিত্তিক; ক্লায়েন্ট জাল করা স্কোর পুরোপুরি আটকানো যায় না (সৎ সীমাবদ্ধতা)।
 const int = (v, a, b) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= a && n <= b ? n : null; };
@@ -28,6 +28,9 @@ export async function onRequestPost({ request, env }) {
     const t = await env.DB.prepare("SELECT COUNT(*) AS n FROM endless WHERE map=?").bind(map).first();
     out.endlessRank = (r.n || 0) + 1; out.endlessTotal = t.n || 1; out.endlessBest = mine.dist;
   }
+  // v45: মোট আয় করা কয়েন (খরচ করলে কমে না) — লিডারবোর্ডে এটাই দেখানো হয়
+  const earned = int(b.earned, 0, 1000000000);
+  if (earned !== null) await env.DB.prepare("INSERT INTO profile (player_id,earned) VALUES (?,?) ON CONFLICT(player_id) DO UPDATE SET earned=MAX(earned,excluded.earned)").bind(p.id, earned).run();
   await env.DB.prepare("INSERT INTO progress (player_id,unlocked,completed,coins,updated) VALUES (?,?,?,?,?) ON CONFLICT(player_id) DO UPDATE SET unlocked=MAX(unlocked,excluded.unlocked), completed=MAX(completed,excluded.completed), coins=MAX(coins,excluded.coins), updated=excluded.updated").bind(p.id, unlocked, completed, coins, now).run();
   return json(out);
 }

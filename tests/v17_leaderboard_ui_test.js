@@ -22,7 +22,7 @@ let pass=0,fail=0; const ok=(c,m)=>{ if(c){pass++;console.log('PASS',m);} else {
     if(!withApi){
       const t=await p.evaluate(()=>document.getElementById('leaderBody').innerText); ok(/সংযুক্ত নয়/.test(t),'সার্ভার না থাকলে পরিষ্কার বার্তা + লোকাল তালিকা');
     } else {
-      await p.click('#lbGuest'); await p.waitForTimeout(500);
+      await p.click('#v45Guest'); await p.waitForTimeout(500);
       const prof=await p.evaluate(()=>JSON.parse(localStorage.getItem('hillrush_profile_v1')||'null')); ok(prof&&prof.guest&&/^Guest-/.test(prof.name),'গেস্ট প্রোফাইল তৈরি ও সেভ');
       await p.evaluate(()=>{ startLevel(1); state='play'; levelStart=performance.now()-30000; completeLevel(); }); await p.waitForTimeout(800);
       await p.evaluate(()=>{ goMain(); }); await p.click('#leaderBtn'); await p.waitForTimeout(600);
@@ -32,22 +32,7 @@ let pass=0,fail=0; const ok=(c,m)=>{ if(c){pass++;console.log('PASS',m);} else {
       // v39: লেভেল শেষের পর্দায় র‍্যাংক
       await p.evaluate(()=>{ goMain(); startLevel(2); state='play'; levelStart=performance.now()-20000; completeLevel(); }); await p.waitForTimeout(900);
       ok(/র‍্যাংক: #1/.test(await p.evaluate(()=>(document.querySelector('#completeMenu .v39Rank')||{}).textContent||'')),'লেভেল শেষে অনলাইন র‍্যাংক দেখায়');
-      // গেস্ট → নিবন্ধিত
-      await p.evaluate(()=>{ goMain(); }); await p.click('#leaderBtn'); await p.waitForTimeout(500);
-      await p.fill('#lbName','Azizul'); await p.fill('#lbPin','2468'); await p.click('#lbUpgrade'); await p.waitForTimeout(700);
-      const prof2=await p.evaluate(()=>JSON.parse(localStorage.getItem('hillrush_profile_v1')||'null')); ok(prof2&&!prof2.guest&&prof2.name==='Azizul'&&prof2.id===prof.id,'গেস্ট থেকে নাম + PIN দিয়ে নিবন্ধিত (একই প্রোফাইল)');
-      // অন্য ডিভাইসের মতো: প্রোফাইল মুছে লগইন
-      p.once('dialog',d=>d.accept()); await p.click('#lbLogout'); await p.waitForTimeout(300);
-      await p.click('.v39Auth button[data-a="login"]'); await p.waitForTimeout(200);
-      await p.fill('#lbName','azizul'); await p.fill('#lbPin','2468'); await p.click('#lbLogin'); await p.waitForTimeout(700);
-      const prof3=await p.evaluate(()=>JSON.parse(localStorage.getItem('hillrush_profile_v1')||'null')); ok(prof3&&prof3.id===prof.id&&prof3.token!==prof.token,'নাম + PIN দিয়ে লগইন করলে একই প্রোফাইল ফেরত');
-      // একই নামে নতুন রেজিস্টার আটকায়
-      p.once('dialog',d=>d.accept()); await p.click('#lbLogout'); await p.waitForTimeout(300);
-      await p.click('.v39Auth button[data-a="reg"]'); await p.waitForTimeout(200);
-      await p.fill('#lbName','AZIZUL'); await p.fill('#lbPin','1357'); await p.click('#lbReg'); await p.waitForTimeout(600);
-      ok(/আগেই/.test(await p.evaluate(()=>document.getElementById('leaderBody').innerText)),'একই নাম দ্বিতীয়বার আটকায়');
-      // এন্ডলেস ট্যাব
-      await p.click('.v39Auth button[data-a="login"]'); await p.fill('#lbName','Azizul'); await p.fill('#lbPin','2468'); await p.click('#lbLogin'); await p.waitForTimeout(600);
+      // রেজিস্টার/লগইন/রিসেট/সিঙ্ক এখন tests/v45_account_ui_test.js-এ পরীক্ষা হয়
       await p.evaluate(()=>{ goMain(); startEndless(); truck.x=250+6000; endEndlessRun('test'); }); await p.waitForTimeout(900);
       ok(/এন্ডলেস র‍্যাংক: #1/.test(await p.evaluate(()=>(document.querySelector('#endlessMenu .v39Rank')||{}).textContent||'')),'এন্ডলেস শেষে র‍্যাংক');
       await p.evaluate(()=>goMain()); await p.click('#leaderBtn'); await p.waitForTimeout(400); await p.click('#lbTabE'); await p.waitForTimeout(600);

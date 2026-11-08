@@ -44,3 +44,25 @@ CREATE TABLE IF NOT EXISTS progress (
   updated INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_progress_board ON progress (completed DESC, unlocked DESC, coins DESC);
+
+-- v45: ইমেইলে ভেরিফিকেশন কোড, প্রোফাইল (ছবি, মোট আয় করা কয়েন), ক্লাউড সেভ
+CREATE TABLE IF NOT EXISTS email_codes (
+  email TEXT NOT NULL,
+  purpose TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  expires INTEGER NOT NULL,
+  tries INTEGER NOT NULL DEFAULT 0,
+  last_sent INTEGER NOT NULL,
+  PRIMARY KEY (email, purpose)
+);
+CREATE TABLE IF NOT EXISTS profile (
+  player_id TEXT PRIMARY KEY,
+  avatar INTEGER NOT NULL DEFAULT 0,
+  verified INTEGER NOT NULL DEFAULT 0,
+  earned INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS cloudsave (
+  player_id TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  updated INTEGER NOT NULL
+);

@@ -3862,3 +3862,11 @@ body #mainMenu .developerPlaque .supervisorName{
 .homeSetCard .hsSound .volumeSlider{width:100%;}
 .homeSetCard .hsSound .muteRow{display:flex;align-items:center;gap:8px;cursor:pointer;}
 @media (max-height:520px){ .homeSetCard .hsSound{gap:4px;margin-top:6px;padding-top:6px;} .homeSetCard .hsSound .muteRow{font-size:12px;} }
+
+/* v45: অ্যাকাউন্ট ও অ্যাভাটার */
+.v45Av{font-size:30px;line-height:1}
+.v45Avs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.v45AvB{width:38px;height:38px;border-radius:10px;border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);font-size:21px;cursor:pointer;padding:0}
+.v45AvB.on{border-color:#ffd34e;background:rgba(255,211,78,.28)}
+.v45Ok{background:rgba(47,191,74,.25) !important;color:#d8ffe0}
+.v45Tabs .lbBtn{font-size:13px}

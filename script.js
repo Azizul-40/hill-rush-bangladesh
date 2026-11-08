@@ -5721,7 +5721,7 @@ async function v17Load(){
     let q="type=overall"; if(v17Tab==="level"){ const m=document.getElementById("lbMap"), l=document.getElementById("lbLevel"); q=`type=level&map=${m?m.value:(save.selectedMap||0)}&level=${l?l.value:(currentLevel||1)}`; }
     const j=await v17Api("/api/leaderboard?"+q);
     if(!j.rows.length){ list.innerHTML=`<div class="lbNote">এখনো কেউ স্কোর দেয়নি। প্রথম হও!</div>`; return; }
-    const head=v17Tab==="level"?"<tr><th>#</th><th>নাম</th><th>সময়</th></tr>":"<tr><th>#</th><th>নাম</th><th>শেষ করা</th><th>আনলকড</th><th>কয়েন</th></tr>";
+    const head=v17Tab==="level"?"<tr><th>#</th><th>নাম</th><th>সময়</th></tr>":"<tr><th>#</th><th>নাম</th><th>শেষ করা</th><th>আনলকড</th><th>মোট আয় 🪙</th></tr>";
     const rows=j.rows.map((r,i)=>{ const mine=me&&r.name===me.name; const nm=v17Esc(r.name)+(r.guest?" <small>(গেস্ট)</small>":"");
       return v17Tab==="level"?`<tr class="${mine?"me":""}"><td>${i+1}</td><td>${nm}</td><td>${v17Fmt(r.time)}</td></tr>`:`<tr class="${mine?"me":""}"><td>${i+1}</td><td>${nm}</td><td>${r.completed}</td><td>${r.unlocked}</td><td>${r.coins}</td></tr>`; }).join("");
     list.innerHTML=`<table class="lbTable">${head}${rows}</table>`;
@@ -6841,7 +6841,7 @@ const V38=(function(){
     ["প্রোফাইল","Profile"],["নিবন্ধিত ✓","Registered ✓"],["(নিবন্ধিত)","(registered)"],["(গেস্ট)","(guest)"],["গেস্ট হিসেবে খেলো","Play as guest"],["গেস্ট","Guest"],["রেজিস্টার","Register"],["লগইন","Log in"],["নিবন্ধিত হও","Register"],
     ["এই ডিভাইস থেকে বের হও","Log out on this device"],["সামগ্রিক","Overall"],["এন্ডলেস","Endless"],["দেখাও","Show"],["শেষ করা","Done"],["আনলকড","Unlocked"],["কয়েন","Coins"],["নাম","Name"],["সময়","Time"],["দূরত্ব","Distance"],
     ["গাড়ি","Vehicles"],["নম্বর প্লেট","Number plate"],["+ফুয়েল","+Fuel"],["+বুস্ট","+Boost"],["⛽ FUEL কম!","⛽ LOW FUEL!"],["বুস্ট ঠান্ডা হচ্ছে…","Boost cooling down…"],["পুরো রুট শেষ করেছ! 🎉","You finished the whole route! 🎉"],["চেকপয়েন্ট ব্যবহার করায় এই দৌড় অনলাইন তালিকায় যায়নি","This run used a checkpoint, so it isn't on the online board"],["checkpoint ব্যবহার — সময় রেকর্ডে গণ্য নয়","checkpoint used — time not counted"],["ভুল স্কোর","Invalid score"],["নাম-PIN ছাড়াই খেলো, স্কোর তালিকায়","Play without a name or PIN; your scores show as"],["নামে যাবে (শুধু এই ডিভাইসে)।","(this device only)."],["সমস্যা হয়েছে","Something went wrong"],["লেভেল","Level"],
-    ["এই ডিভাইস থেকে প্রোফাইল সরাবে?","Remove the profile from this device?"],["গেস্ট প্রোফাইল আর ফেরত আনা যাবে না।","A guest profile can't be recovered."],["নাম আর PIN দিয়ে আবার লগইন করা যাবে।","You can log in again with your name and PIN."],["ম্যাপ","Maps"],["মিটার","m"],["কিমি","km"],["নতুন সেরা রেকর্ড!","New best!"],["সেরা:","Best:"]];
+    ["এই ডিভাইস থেকে প্রোফাইল সরাবে?","Remove the profile from this device?"],["মোট আয় 🪙","Total earned 🪙"],["গেস্ট প্রোফাইল আর ফেরত আনা যাবে না।","A guest profile can't be recovered."],["নাম আর PIN দিয়ে আবার লগইন করা যাবে।","You can log in again with your name and PIN."],["ম্যাপ","Maps"],["মিটার","m"],["কিমি","km"],["নতুন সেরা রেকর্ড!","New best!"],["সেরা:","Best:"]];
   PH.forEach(x=>x[0]=x[0].replace(/\u200d/g,"")); PH.sort((x,y)=>y[0].length-x[0].length);
   const BD="০১২৩৪৫৬৭৮৯";
   function phraseEN(t){ if(!/[\u0980-\u09FF]/.test(t)) return null; let o=t.replace(/\u200d/g,""); for(const [b,e] of PH) if(o.includes(b)) o=o.split(b).join(e); o=o.replace(/[০-৯]/g,d=>BD.indexOf(d)); return o!==t?o:null; }
@@ -6972,8 +6972,8 @@ v17Load=async function(){
     const mine=j.me?`<div class="v39Me">🏅 তোমার র‍্যাংক: <b>#${j.me.rank}</b> / ${j.me.total}${j.me.time?" · "+v17Fmt(j.me.time):""}${j.me.dist?" · "+j.me.dist+" মিটার":""}</div>`:(me?`<div class="lbNote">এই তালিকায় তোমার এখনো কোনো স্কোর নেই।</div>`:"");
     if(!j.rows.length){ list.innerHTML=mine+`<div class="lbNote">এখনো কেউ স্কোর দেয়নি। প্রথম হও!</div>`; return; }
     const medal=i=>i===0?"🥇":i===1?"🥈":i===2?"🥉":String(i+1);
-    const head=V39.tab==="level"?"<tr><th>#</th><th>নাম</th><th>সময়</th></tr>":V39.tab==="endless"?"<tr><th>#</th><th>নাম</th><th>দূরত্ব</th></tr>":"<tr><th>#</th><th>নাম</th><th>শেষ করা</th><th>আনলকড</th><th>কয়েন</th></tr>";
-    const rows=j.rows.map((r,i)=>{ const nm=esc(r.name)+(r.guest?" <small>(গেস্ট)</small>":""), cls=r.mine?"me":"";
+    const head=V39.tab==="level"?"<tr><th>#</th><th>নাম</th><th>সময়</th></tr>":V39.tab==="endless"?"<tr><th>#</th><th>নাম</th><th>দূরত্ব</th></tr>":"<tr><th>#</th><th>নাম</th><th>শেষ করা</th><th>আনলকড</th><th>মোট আয় 🪙</th></tr>";
+    const rows=j.rows.map((r,i)=>{ const nm=(V45AV[r.avatar|0]||"")+" "+esc(r.name)+(r.guest?" <small>(গেস্ট)</small>":""), cls=r.mine?"me":"";
       return V39.tab==="level"?`<tr class="${cls}"><td>${medal(i)}</td><td>${nm}</td><td>${v17Fmt(r.time)}</td></tr>`:V39.tab==="endless"?`<tr class="${cls}"><td>${medal(i)}</td><td>${nm}</td><td>${r.dist} মিটার</td></tr>`:`<tr class="${cls}"><td>${medal(i)}</td><td>${nm}</td><td>${r.completed}</td><td>${r.unlocked}</td><td>${r.coins}</td></tr>`; }).join("");
     list.innerHTML=mine+`<table class="lbTable">${head}${rows}</table>`;
   }catch(e){
@@ -7402,5 +7402,148 @@ const V44=(function(){
     const rt=document.getElementById("rewardText"); if(rt&&extra>0) rt.textContent+=" + ⏱ "+extra;
     const st=document.getElementById("resultStars"); if(st) st.textContent=frac>=.45?"★★★":frac>=.2?"★★☆":"★☆☆";
   };
+  return S;
+})();
+
+// ============================================================
+// v45 — অ্যাকাউন্ট: ইমেইলে কোড যাচাই করে রেজিস্টার, ইমেইল/নাম + PIN দিয়ে লগইন, PIN ভুলে গেলে ইমেইলে রিসেট,
+//       নাম বদল, অ্যাভাটার, ক্লাউড সেভ (সব ব্রাউজারে একই কয়েন/আনলক/গাড়ি/সময়), লিডারবোর্ডে মোট আয় করা কয়েন
+// সার্ভার: functions/api/{email-code,register,login,reset,profile,save,submit,leaderboard}.js। ইমেইল পাঠাতে BREVO_API_KEY বা RESEND_API_KEY লাগে (docs/ACCOUNTS_SETUP.md)।
+// ============================================================
+var V45AV=["🚙","🏎️","🚜","🚌","🛺","🏍️","🦁","🐯","🦅","🐉","⭐","🔥","🏔️","🌴","🐘","🦈","👑","🚀"];
+const V45=(function(){
+  const S={auth:"guest",f:{email:"",code:"",name:"",pin:"",login:"",newpin:""},msg:"",ok:"",cool:0,busy:false,lastSync:0,timer:null,ts:0};
+  const L=(bn,en)=>(typeof V38!=="undefined"&&V38.get&&V38.get()==="en")?en:bn;
+  const SAVE_FIELDS=["coins","unlocked","completed","best","collected","ownedVehicles","ownedMaps","upgrades","selectedVehicle","selectedMap","endlessBest","lastLevel","vehicleCondition","custom","achClaimed","lifetime","earnedTotal"];
+  // ---- মোট আয় করা কয়েন ----
+  let lastCoins=null;
+  function trackEarn(){
+    const c=Math.floor(coins||0);
+    if(lastCoins===null){ lastCoins=c; if(save.earnedTotal===undefined) save.earnedTotal=c; return; }
+    if(c>lastCoins){ save.earnedTotal=(save.earnedTotal||0)+(c-lastCoins); }
+    lastCoins=c;
+  }
+  const ucu=updateCoinsUI; updateCoinsUI=function(){ trackEarn(); return ucu.apply(this,arguments); };
+  const pers=persist; persist=function(){ trackEarn(); save.localTs=Date.now(); const r=pers.apply(this,arguments); S.schedule(); return r; };
+  trackEarn();
+  // ---- সেভ ক্লাউডে পাঠানো/আনা ও মেলানো ----
+  const isPristine=()=>(save.unlocked||1)<=1&&!Object.keys(save.completed||{}).length&&(save.ownedVehicles||[0]).length<=1&&(save.ownedMaps||[0]).length<=1&&Math.floor(save.coins||0)===250;
+  function pick(){ const o={}; SAVE_FIELDS.forEach(k=>{ if(save[k]!==undefined) o[k]=save[k]; }); return o; }
+  const uni=(a,b)=>Array.from(new Set([...(a||[]),...(b||[])]));
+  function priceOf(list,i){ try{ return (list[i]&&list[i].price)||0; }catch(e){ return 0; } }
+  // মেলানোর নিয়ম: বড় মানটা (লেভেল, আনলক, ★), সেরা সময় = কম, মালিকানা = দুই পাশের মিলিত। কয়েন = সবচেয়ে নতুন সেভের মান,
+  // তবে অন্য পাশে কেনা জিনিসের দাম তা থেকে বাদ যায় (নইলে এক ডিভাইসে কিনে অন্যটার পুরনো কয়েন দিয়ে একই জিনিস "ফ্রি" হতো)।
+  function merge(loc,cl,locTs,clTs){
+    const newer=locTs>=clTs?loc:cl, older=newer===loc?cl:loc, m={};
+    m.unlocked=Math.max(loc.unlocked||1,cl.unlocked||1); m.lastLevel=Math.max(loc.lastLevel||1,cl.lastLevel||1);
+    m.completed=Object.assign({},cl.completed,loc.completed);
+    m.best={}; for(const k of uni(Object.keys(loc.best||{}),Object.keys(cl.best||{}))){ const a=(loc.best||{})[k],b=(cl.best||{})[k]; m.best[k]=a&&b?Math.min(a,b):(a||b); }
+    m.endlessBest={}; for(const k of uni(Object.keys(loc.endlessBest||{}),Object.keys(cl.endlessBest||{}))){ m.endlessBest[k]=Math.max((loc.endlessBest||{})[k]||0,(cl.endlessBest||{})[k]||0); }
+    m.collected={}; for(const k of uni(Object.keys(loc.collected||{}),Object.keys(cl.collected||{}))){ m.collected[k]=uni((loc.collected||{})[k],(cl.collected||{})[k]); }
+    m.ownedVehicles=uni(loc.ownedVehicles,cl.ownedVehicles); m.ownedMaps=uni(loc.ownedMaps,cl.ownedMaps); m.achClaimed=uni(loc.achClaimed,cl.achClaimed);
+    m.upgrades={}; for(const v of uni(Object.keys(loc.upgrades||{}),Object.keys(cl.upgrades||{}))){ m.upgrades[v]={}; for(const t of ["engine","tires","suspension","boost"]){ m.upgrades[v][t]=Math.max(((loc.upgrades||{})[v]||{})[t]||1,((cl.upgrades||{})[v]||{})[t]||1); } }
+    m.lifetime={}; for(const k of uni(Object.keys(loc.lifetime||{}),Object.keys(cl.lifetime||{}))){ m.lifetime[k]=Math.max((loc.lifetime||{})[k]||0,(cl.lifetime||{})[k]||0); }
+    m.earnedTotal=Math.max(loc.earnedTotal||0,cl.earnedTotal||0);
+    m.vehicleCondition=Object.assign({},older.vehicleCondition,newer.vehicleCondition); m.custom=newer.custom||older.custom;
+    // কয়েন
+    let c=Math.floor(newer.coins||0);
+    for(const i of m.ownedVehicles) if(!(newer.ownedVehicles||[]).includes(i)) c-=priceOf(vehiclesV22,i);
+    for(const i of m.ownedMaps) if(!(newer.ownedMaps||[]).includes(i)) c-=priceOf(maps,i);
+    for(const v of Object.keys(m.upgrades)) for(const t of ["engine","tires","suspension","boost"]){ const have=((newer.upgrades||{})[v]||{})[t]||1; for(let l=have;l<m.upgrades[v][t];l++) c-=upgradeCost(t,l); }
+    m.coins=Math.max(0,c);
+    const sv=newer.selectedVehicle, sm=newer.selectedMap; m.selectedVehicle=m.ownedVehicles.includes(sv)?sv:0; m.selectedMap=m.ownedMaps.includes(sm)?sm:0;
+    return m;
+  }
+  function apply(m){ Object.assign(save,m); coins=save.coins=Math.floor(m.coins); lastCoins=coins; try{ if(typeof updateCoinsUI==="function") updateCoinsUI(); }catch(e){} }
+  const api=(op,extra)=>{ const p=v17Profile(); return v17Api("/api/save",{method:"POST",body:JSON.stringify(Object.assign({id:p.id,token:p.token,op},extra||{}))}); };
+  S.pull=async function(){ // সার্ভারের সেভ আনা, মেলানো, ফেরত পাঠানো
+    const p=v17Profile(); if(!p||p.guest) return false;
+    const r=await api("get"); let merged;
+    if(r.data){ const cl=JSON.parse(r.data); merged=isPristine()?cl:merge(pick(),cl,save.localTs||0,r.updated||0); }
+    else merged=pick();
+    if(r.data){ apply(merged); persist(); }
+    await S.push(true); S.lastSync=Date.now(); return true;
+  };
+  S.push=async function(force){
+    const p=v17Profile(); if(!p||p.guest) return;
+    const ts=save.localTs||Date.now();
+    await api("put",{data:JSON.stringify(pick()),ts});
+    S.lastSync=Date.now(); S.dirty=false;
+  };
+  S.schedule=function(){
+    const p=v17Profile(); if(!p) return; S.dirty=true;
+    if(S.timer) return; S.timer=setTimeout(async()=>{ S.timer=null; try{ if(p.guest){ await v17Api("/api/submit",{method:"POST",body:JSON.stringify(v39SubmitBody({}))}); } else { await S.push(); await v17Api("/api/submit",{method:"POST",body:JSON.stringify(v39SubmitBody({}))}); } }catch(e){} },4000);
+  };
+  // ---- লিডারবোর্ডে মোট আয় পাঠানো ----
+  const sb=v39SubmitBody; v39SubmitBody=function(x){ const b=sb(x); if(b) b.earned=Math.floor(save.earnedTotal||0); return b; };
+  // ---- UI ----
+  const esc=s=>v17Esc(s);
+  const cooldownTick=()=>{ const b=document.getElementById("v45Send"); if(!b) return; const left=Math.ceil((S.cool-Date.now())/1000); if(left>0){ b.disabled=true; b.textContent=L("আবার পাঠাও ("+left+")","Resend ("+left+")"); setTimeout(cooldownTick,500); } else { b.disabled=false; b.textContent=L("কোড পাঠাও","Send code"); } };
+  const input=(id,ph,type,max,mode)=>`<input id="${id}" placeholder="${esc(ph)}" ${type?`type="${type}"`:""} ${max?`maxlength="${max}"`:""} ${mode?`inputmode="${mode}"`:""} value="${esc(S.f[id.replace("v45_","")]||"")}" autocomplete="off">`;
+  function formHtml(kind){
+    if(kind==="reg") return `<div class="lbNote">${L("১) ইমেইল দিয়ে কোড পাঠাও  ২) ইমেইলে আসা ৬ সংখ্যার কোড বসাও  ৩) নাম আর PIN ঠিক করো। PIN মনে রেখো, ভুলে গেলে ইমেইলে রিসেট করা যায়।","1) Send a code to your email  2) Enter the 6-digit code  3) Pick a name and a PIN. If you forget the PIN you can reset it by email.")}</div>
+      <div class="lbRow2">${input("v45_email",L("ইমেইল","Email"),"email",80)}<button class="lbBtn blue" id="v45Send">${L("কোড পাঠাও","Send code")}</button></div>
+      <div class="lbRow2">${input("v45_code",L("৬ সংখ্যার কোড","6-digit code"),"text",6,"numeric")}${input("v45_name",L("নাম (সবাই দেখবে)","Display name"),"text",20)}${input("v45_pin",L("PIN (৪–৮ সংখ্যা)","PIN (4–8 digits)"),"password",8,"numeric")}<button class="lbBtn" id="v45Reg">${L("অ্যাকাউন্ট খোলো","Create account")}</button></div>`;
+    if(kind==="login") return `<div class="lbNote">${L("ইমেইল (বা নাম) আর PIN দিয়ে লগইন করলে এই ফোনেও তোমার কয়েন, আনলক, গাড়ি আর সেরা সময় চলে আসবে।","Log in with your email (or name) and PIN — your coins, unlocks, vehicles and best times come along.")}</div>
+      <div class="lbRow2">${input("v45_login",L("ইমেইল বা নাম","Email or name"),"text",80)}${input("v45_pin",L("PIN","PIN"),"password",8,"numeric")}<button class="lbBtn blue" id="v45Login">${L("লগইন","Log in")}</button></div>
+      <div class="lbRow2"><button class="lbBtn gray" id="v45Forgot">${L("PIN ভুলে গেছি","Forgot PIN")}</button></div>`;
+    return `<div class="lbNote">${L("অ্যাকাউন্টের ইমেইল দাও, কোড পাঠানো হবে। কোড বসিয়ে নতুন PIN ঠিক করো। (অন্য ডিভাইস থেকে লগ-আউট হয়ে যাবে।)","Enter your account email, we send a code. Enter it and choose a new PIN. (Other devices will be logged out.)")}</div>
+      <div class="lbRow2">${input("v45_email",L("ইমেইল","Email"),"email",80)}<button class="lbBtn blue" id="v45SendR">${L("কোড পাঠাও","Send code")}</button></div>
+      <div class="lbRow2">${input("v45_code",L("৬ সংখ্যার কোড","6-digit code"),"text",6,"numeric")}${input("v45_newpin",L("নতুন PIN","New PIN"),"password",8,"numeric")}<button class="lbBtn" id="v45Reset">${L("PIN বদলাও","Set new PIN")}</button><button class="lbBtn gray" id="v45Back">${L("ফিরে যাও","Back")}</button></div>`;
+  }
+  S.mount=function(){
+    const box=document.querySelector("#leaderBody .v39Prof"); if(!box) return;
+    const p=v17Profile(); let h=`<h3>👤 ${L("প্রোফাইল","Profile")}</h3>`;
+    if(p&&!p.guest){
+      const av=V45AV[p.avatar|0]||"🚙", t=S.lastSync?new Date(S.lastSync).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):"—";
+      h+=`<div class="lbRow2"><span class="v45Av">${av}</span><b class="v39Name">${esc(p.name)}</b> <span class="v39Tag r">${L("নিবন্ধিত ✓","Registered ✓")}</span><button class="lbBtn gray" id="lbLogout">${L("এই ডিভাইস থেকে বের হও","Log out")}</button></div>
+        <div class="lbNote">${L("ছবি বাছো:","Pick a picture:")}</div><div class="v45Avs">${V45AV.map((a,i)=>`<button class="v45AvB${(p.avatar|0)===i?" on":""}" data-i="${i}">${a}</button>`).join("")}</div>
+        <div class="lbRow2"><input id="v45_rename" placeholder="${esc(L("নতুন নাম","New name"))}" maxlength="20"><button class="lbBtn blue" id="v45Rename">${L("নাম বদলাও","Change name")}</button></div>
+        <div class="lbNote">☁ ${L("ক্লাউড সেভ চালু — সব ডিভাইসে একই সেভ। শেষ সিঙ্ক: ","Cloud save on — same progress on every device. Last sync: ")}<b>${t}</b> <button class="lbBtn gray" id="v45Sync" style="padding:4px 10px">${L("এখনই সিঙ্ক","Sync now")}</button></div>`;
+    } else {
+      const guest=p&&p.guest, a=S.auth==="guest"&&guest?"reg":S.auth;
+      if(guest) h+=`<div class="lbRow2"><b class="v39Name">${esc(p.name)}</b> <span class="v39Tag g">${L("গেস্ট","Guest")}</span><button class="lbBtn gray" id="lbLogout">${L("বের হও","Log out")}</button></div><div class="lbNote">${L("গেস্ট প্রোফাইল শুধু এই ডিভাইসে থাকে। ইমেইল দিয়ে অ্যাকাউন্ট খুললে সব ডিভাইসে একই সেভ পাবে, এখনকার স্কোর থেকে যাবে।","A guest profile only lives on this device. Create an account with your email to get the same save everywhere; your scores are kept.")}</div>`;
+      h+=`<div class="lbTabs v45Tabs">${guest?"":`<button class="lbBtn${a==="guest"?" on":""}" data-a="guest">👤 ${L("গেস্ট","Guest")}</button>`}<button class="lbBtn${a==="reg"?" on":""}" data-a="reg">📝 ${L("রেজিস্টার","Register")}</button><button class="lbBtn${a==="login"||a==="forgot"?" on":""}" data-a="login">🔑 ${L("লগইন","Log in")}</button></div>`;
+      if(a==="guest") h+=`<div class="lbNote">${L("ইমেইল ছাড়াই খেলো, তালিকায় \"Guest-১২৩৪\" নামে যাবে (শুধু এই ডিভাইসে)।","Play without an email; you appear as \"Guest-1234\" (this device only).")}</div><div class="lbRow2"><button class="lbBtn blue" id="v45Guest">👤 ${L("গেস্ট হিসেবে খেলো","Play as guest")}</button></div>`;
+      else h+=formHtml(a);
+    }
+    if(S.msg) h+=`<div class="lbNote lbErr">${esc(S.msg)}</div>`; if(S.ok) h+=`<div class="lbNote v45Ok">${esc(S.ok)}</div>`;
+    box.innerHTML=h; bind(box); cooldownTick();
+  };
+  const rerender=()=>{ if(typeof v17Render==="function") v17Render(); };
+  const errT=e=>(typeof v39Err==="function"?v39Err(e):(e&&e.message)||"error");
+  const done=async(j,guest,msgOk)=>{
+    v17SetProfile({id:j.id,token:j.token,name:j.name,guest:!!guest,avatar:j.avatar|0}); S.msg=""; S.ok=msgOk||"";
+    try{ if(!guest) await S.pull(); await v39Sync(); }catch(e){ S.msg=errT(e); }
+    rerender();
+  };
+  const run=async fn=>{ if(S.busy) return; S.busy=true; try{ await fn(); }catch(e){ S.msg=errT(e); S.ok=""; rerender(); } finally{ S.busy=false; } };
+  const post=(path,body)=>v17Api(path,{method:"POST",body:JSON.stringify(body)});
+  function bind(box){
+    const g=id=>document.getElementById(id);
+    box.querySelectorAll("input").forEach(i=>{ i.oninput=()=>{ const k=i.id.replace("v45_",""); if(k in S.f) S.f[k]=i.value.trim(); }; });
+    box.querySelectorAll(".v45Tabs button").forEach(b=>b.onclick=()=>{ S.auth=b.dataset.a; S.msg=""; S.ok=""; rerender(); });
+    const sendCode=purpose=>run(async()=>{ S.msg="";S.ok=""; await post("/api/email-code",{email:S.f.email,purpose}); S.cool=Date.now()+45000; S.ok=L("কোড পাঠানো হয়েছে — ইমেইল (স্প্যামও) দেখো।","Code sent — check your email (and spam)."); rerender(); });
+    if(g("v45Send")) g("v45Send").onclick=()=>sendCode("register");
+    if(g("v45SendR")) g("v45SendR").onclick=()=>sendCode("reset");
+    if(g("v45Guest")) g("v45Guest").onclick=()=>run(async()=>done(await post("/api/register",{guest:true}),true));
+    if(g("v45Reg")) g("v45Reg").onclick=()=>run(async()=>{ const p=v17Profile(); const body={name:S.f.name,pin:S.f.pin,email:S.f.email,code:S.f.code}; if(p&&p.guest){ body.id=p.id; body.token=p.token; } const j=await post("/api/register",body); S.f.code="";S.f.pin=""; await done(j,false,L("অ্যাকাউন্ট খোলা হয়েছে ✓","Account created ✓")); });
+    if(g("v45Login")) g("v45Login").onclick=()=>run(async()=>{ const j=await post("/api/login",{login:S.f.login,pin:S.f.pin}); S.f.pin=""; await done(j,false,L("লগইন সফল ✓ সেভ সিঙ্ক হয়েছে","Logged in ✓ progress synced")); });
+    if(g("v45Forgot")) g("v45Forgot").onclick=()=>{ S.auth="forgot"; S.msg=""; S.ok=""; rerender(); };
+    if(g("v45Back")) g("v45Back").onclick=()=>{ S.auth="login"; S.msg=""; S.ok=""; rerender(); };
+    if(g("v45Reset")) g("v45Reset").onclick=()=>run(async()=>{ const j=await post("/api/reset",{email:S.f.email,code:S.f.code,pin:S.f.newpin}); S.f.code="";S.f.newpin=""; S.auth="login"; await done(j,false,L("নতুন PIN ঠিক হয়েছে ✓","New PIN set ✓")); });
+    box.querySelectorAll(".v45AvB").forEach(b=>b.onclick=()=>run(async()=>{ const p=v17Profile(); const j=await post("/api/profile",{id:p.id,token:p.token,avatar:+b.dataset.i}); p.avatar=j.avatar; v17SetProfile(p); S.ok=""; rerender(); }));
+    if(g("v45Rename")) g("v45Rename").onclick=()=>run(async()=>{ const p=v17Profile(); const j=await post("/api/profile",{id:p.id,token:p.token,name:g("v45_rename").value}); p.name=j.name; v17SetProfile(p); S.ok=L("নাম বদলানো হয়েছে ✓","Name changed ✓"); S.msg=""; rerender(); });
+    if(g("v45Sync")) g("v45Sync").onclick=()=>run(async()=>{ await S.pull(); S.ok=L("সিঙ্ক হয়েছে ✓","Synced ✓"); rerender(); });
+    if(g("lbLogout")) g("lbLogout").onclick=()=>{ if(!confirm(L("এই ডিভাইস থেকে বের হবে? নিবন্ধিত অ্যাকাউন্টে আবার লগইন করা যাবে।","Log out on this device? You can log in again with your account."))) return; v17SetProfile(null); S.msg="";S.ok=""; rerender(); };
+  }
+  const vr=v17Render; v17Render=async function(){ await vr.apply(this,arguments); S.mount(); };
+  // লিডারবোর্ড খুললে সর্বশেষ কয়েন/সেভ পাঠানো
+  const vl=v17Load; v17Load=async function(){ try{ const p=v17Profile(); if(p){ trackEarn(); v17Api("/api/submit",{method:"POST",body:JSON.stringify(v39SubmitBody({}))}).catch(()=>{}); } }catch(e){} return vl.apply(this,arguments); };
+  // ছবি তালিকায়
+  S.ts=Date.now();
+  // পেজ খোলার সময় ও ট্যাব লুকালে সিঙ্ক
+  setTimeout(()=>{ const p=v17Profile(); if(p&&!p.guest) S.pull().catch(()=>{}); },1500);
+  document.addEventListener("visibilitychange",()=>{ if(document.hidden&&S.dirty){ const p=v17Profile(); if(p&&!p.guest){ try{ fetch("/api/save",{method:"POST",keepalive:true,headers:{"content-type":"application/json"},body:JSON.stringify({id:p.id,token:p.token,op:"put",data:JSON.stringify(pick()),ts:save.localTs||Date.now()})}); S.dirty=false; }catch(e){} } } });
   return S;
 })();
