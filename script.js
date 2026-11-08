@@ -8087,3 +8087,10 @@ const V50=(function(){
 
 // v52: রেস শেষ/বন্ধ হলে "v47Racing" ক্লাস সরানো (ক্র্যাশ পপআপ আবার স্বাভাবিক)
 setInterval(()=>{ try{ if(!(V47.on&&!V47.over)) document.body.classList.remove("v47Racing"); }catch(e){} },250);
+
+// v52: রেয়ার গাড়ির কার্ডে "RARE" রিবন + RACING BIKE-এ আলাদা লাল-রেসিং লুক (আলাদা ৩D বাইক মডেল নেই — রং/গ্লো দিয়ে আলাদা করা)
+(function v52Rare(){
+  const list=document.getElementById("vehicleList"); if(!list) return;
+  const mark=()=>{ list.querySelectorAll(".vehicleCard").forEach(c=>{ const h=c.querySelector("h3"); const n=h?h.textContent.trim():""; if(/^(PHANTOM X|GOLD EMPEROR|RACING BIKE)$/.test(n)){ c.classList.add("v52Rare"); if(n==="RACING BIKE") c.classList.add("v52RaceBike"); } }); };
+  new MutationObserver(mark).observe(list,{childList:true}); mark();
+})();
