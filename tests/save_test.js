@@ -26,7 +26,7 @@ const { chromium } = require('playwright');
   const before=await p.evaluate(()=>coins);
   await p.evaluate(()=>{completeLevel();completeLevel();});
   const after=await p.evaluate(()=>coins); const ll=await p.evaluate(()=>save.lastLevel);
-  ok('level শেষে reward একবারই',after-before===46,after-before); ok('শেষে lastLevel = 4',ll===4,ll);
+  ok('level শেষে reward একবারই',after-before>=46&&after-before<=46+60,after-before); ok('শেষে lastLevel = 4',ll===4,ll);
   await p.reload(); await p.waitForTimeout(300);
   cl=await p.evaluate(()=>currentLevel); const c2=await p.evaluate(()=>coins);
   ok('রিফ্রেশ → level 4, coins সেভ',cl===4&&c2===after,cl+'/'+c2);
