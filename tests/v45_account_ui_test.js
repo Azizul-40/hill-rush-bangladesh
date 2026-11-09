@@ -33,7 +33,7 @@ const dir=process.argv[2];let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;cons
   await A.fill('#v45_email','azizul@test.com');await A.click('#v45Send');await A.waitForTimeout(500);
   ok('কোড পাঠানোর পর কুলডাউন বাটন',(await A.textContent('#v45Send')).includes('(')||await A.isDisabled('#v45Send'));
   await A.fill('#v45_code','000000');await A.fill('#v45_name','Azizul');await A.fill('#v45_pin','4321');await A.click('#v45Reg');await A.waitForTimeout(700);
-  ok('ভুল কোডে ত্রুটি দেখায়',(await A.textContent('#profileBody')).includes('কোড ভুল'));
+  ok('ভুল কোডে ত্রুটি দেখায়',!!(await A.textContent('#profileBody')).match(/কোড ভুল|Wrong or expired code/));
   await A.fill('#v45_code',lastCode);await A.click('#v45Reg');await A.waitForTimeout(1200);
   const prof=await A.evaluate(()=>v17Profile());ok('রেজিস্টার হয়ে প্রোফাইল সেভ',prof&&!prof.guest&&prof.name==='Azizul',prof);
   const tx=await A.textContent('#profileBody');ok('রেজিস্টার হলে সিঙ্ক বার্তা/অবস্থা',(tx.includes('নিবন্ধিত')||tx.includes('Registered')),tx.slice(0,300));

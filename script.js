@@ -6777,6 +6777,50 @@ const V38=(function(){
   const KEY="hillrush_lang";
   // [English, বাংলা] — দুই দিকেই খোঁজা হয়। বড় হাতের ইংরেজি মেনু-লেখা, বর্ণনা, বার্তা।
   const P=[
+    ["Driver: \"indian man in pattern shirt\" — Pixel_Monster, CC BY 4.0","চালক: \"indian man in pattern shirt\" — Pixel_Monster, CC BY 4.0"],
+    ["Trees: \"bamboo tree\" — tojamerlin; \"Coconut Tree\", \"Platano Tree\" — gelmi.com.br; \"Oak tree\" — massive-graphisme; \"Tree GN\" — TechArtBGN; \"Tree\" — Epic_Tree_Store; \"Stylized Tree\" — yonimantz; \"Tree\" — farhad.Guli (all CC BY 4.0); \"Monstera Tree\" — sligocreatures (CC BY-NC 4.0); Banana trees: \"Banana Tree (Low Poly)\" — EmiyaSyahriel, \"Banana Tree\" — DJMiddi (CC BY 4.0)","গাছ: \"bamboo tree\" — tojamerlin; \"Coconut Tree\", \"Platano Tree\" — gelmi.com.br; \"Oak tree\" — massive-graphisme; \"Tree GN\" — TechArtBGN; \"Tree\" — Epic_Tree_Store; \"Stylized Tree\" — yonimantz; \"Tree\" — farhad.Guli (সব CC BY 4.0); \"Monstera Tree\" — sligocreatures (CC BY-NC 4.0); কলাগাছ: \"Banana Tree (Low Poly)\" — EmiyaSyahriel, \"Banana Tree\" — DJMiddi (CC BY 4.0)"],
+    ["Ground / road / gap textures: \"[UPDATE] Dirt Road Through Forest\" — 99.Miles; \"Sand Dunes\" — Helindu; \"American Road Snow in Winter\" — jimbogies (all CC BY 4.0)","মাটি/রাস্তা/খাদের টেক্সচার: \"[UPDATE] Dirt Road Through Forest\" — 99.Miles; \"Sand Dunes\" — Helindu; \"American Road Snow in Winter\" — jimbogies (সব CC BY 4.0)"],
+    ["Animals: \"Wolf\", \"Rabbit\" (Realistic 3D Model Demo Free) — WildMesh 3D (CC BY-NC 4.0); \"Common Myna\" — iRahulRajput (CC BY 4.0); \"Birds\" — Zacxophone (Sketchfab Standard)","প্রাণী: \"Wolf\", \"Rabbit\" (Realistic 3D Model Demo Free) — WildMesh 3D (CC BY-NC 4.0); \"Common Myna\" — iRahulRajput (CC BY 4.0); \"Birds\" — Zacxophone (Sketchfab Standard)"],
+    ["All models are from Sketchfab/Gumroad; optimised and recoloured for the game.","সব মডেল Sketchfab/Gumroad থেকে; গেমের জন্য হালকা করা ও রং বদলানো হয়েছে।"],
+    ["PIN must be 4–8 digits","PIN ৪ থেকে ৮টা সংখ্যা হতে হবে"],
+    ["Unknown action","অজানা কাজ"],
+    ["Not allowed","অনুমতি নেই"],
+    ["Too many wrong attempts — try again later","অনেকবার ভুল হয়েছে — কিছুক্ষণ পরে চেষ্টা করো"],
+    ["Enter your email (or name) and PIN correctly","ইমেইল (বা নাম) আর PIN ঠিকমতো দাও"],
+    ["Invalid email","ইমেইল ঠিক নয়"],
+    ["Email is required","ইমেইল দিতে হবে"],
+    ["Could not send email — try again shortly","ইমেইল পাঠানো যায়নি — একটু পরে আবার চেষ্টা করো"],
+    ["Email service is not connected yet","ইমেইল সেবা এখনো সংযুক্ত নয় (অ্যাডমিনকে BREVO_API_KEY বা RESEND_API_KEY দিতে হবে)"],
+    ["Email/name or PIN does not match","ইমেইল/নাম বা PIN মিলছে না"],
+    ["This email is already registered — log in","এই ইমেইল আগেই নিবন্ধিত — লগইন করো"],
+    ["This email is already registered","এই ইমেইল আগেই নিবন্ধিত"],
+    ["No room with this code","এই কোডে কোনো রুম নেই"],
+    ["This name is taken — choose another or log in","এই নাম আগেই নেওয়া — অন্য নাম দাও, বা লগইন করো"],
+    ["This name is taken","এই নাম আগেই নেওয়া"],
+    ["This name is not allowed","এই নাম নেওয়া যাবে না"],
+    ["Wait a bit — a new code can be sent after 45 seconds","একটু অপেক্ষা করো — নতুন কোড ৪৫ সেকেন্ড পরে পাঠানো যাবে"],
+    ["At least 2 players are needed","কমপক্ষে ২ জন লাগবে"],
+    ["Wrong or expired code — get a new one","কোড ভুল বা মেয়াদ শেষ — নতুন কোড নাও"],
+    ["Cloud save is for registered accounts only","ক্লাউড সেভ শুধু নিবন্ধিত অ্যাকাউন্টে"],
+    ["Guest names cannot be changed — register first","গেস্টের নাম বদলানো যায় না — আগে নিবন্ধিত হও"],
+    ["You are not in this room","তুমি এই রুমে নেই"],
+    ["Name must be at least 2 characters","নাম অন্তত ২ অক্ষর"],
+    ["Name is required (at least 2 characters)","নাম দিতে হবে (অন্তত ২ অক্ষর)"],
+    ["Invalid request","ভুল অনুরোধ"],
+    ["Invalid picture","ভুল ছবি"],
+    ["Invalid distance","ভুল দূরত্ব"],
+    ["Invalid value","ভুল মান"],
+    ["Invalid level","ভুল লেভেল"],
+    ["Invalid time","ভুল সময়"],
+    ["Invalid save","ভুল সেভ"],
+    ["Invalid score","ভুল স্কোর"],
+    ["Room code must be 5 characters","রুম কোড ৫ অক্ষরের"],
+    ["Room is full","রুম ভর্তি"],
+    ["The race has already started","রেস শুরু হয়ে গেছে"],
+    ["Race service is not ready","রেস সার্ভিস প্রস্তুত নয় (db/v48_race_tables.sql চালাও)"],
+    ["Only the host can start","শুধু হোস্ট শুরু করতে পারে"],
+    ["Save is too large","সেভ খুব বড়"],
+    ["Database is not connected","ডাটাবেস সংযুক্ত নয়"],
     ["PLAY","খেলো"],["LEVELS","লেভেল"],["MAPS","ম্যাপ"],["GARAGE","গ্যারেজ"],["STORE","দোকান"],["MISSIONS","মিশন"],["RACE","রেস"],["ENDLESS","এন্ডলেস"],["RECORDS","রেকর্ড"],["LEADERBOARD","লিডারবোর্ড"],
     ["MENU","মেনু"],["MAIN MENU","প্রধান মেনু"],["LEVEL SELECT","লেভেল বাছাই"],["MAP GARAGE","ম্যাপ গ্যারেজ"],["SETTINGS","সেটিংস"],["VOLUME","শব্দ"],["MUTE SOUND","শব্দ বন্ধ"],
     ["PAUSED","থামানো আছে"],["RESUME","চালিয়ে যাও"],["CRASH!","দুর্ঘটনা!"],["RETRY","আবার চেষ্টা"],["LEVEL COMPLETE","লেভেল শেষ!"],["NEXT LEVEL","পরের লেভেল"],
@@ -6849,7 +6893,7 @@ const V38=(function(){
     for(const p of PAT){ const re=to==="bn"?p[0]:p[2], rep=to==="bn"?p[1]:p[3]; if(re.test(core)) return core.replace(re,rep); }
     if(to==="en") return phraseEN(core); return null; }
   function doNode(n){
-    if(n.nodeType!==3) return; const par=n.parentNode; if(!par||par.closest&&par.closest("[data-noi18n],script,style,textarea,#creditsMenu .modelCredits")) return;
+    if(n.nodeType!==3) return; const par=n.parentNode; if(!par||par.closest&&par.closest("[data-noi18n],script,style,textarea")) return;
     const cur=n.data; if(!cur||!cur.trim()) return;
     let o=orig.get(n); if(!o||(o.shown!==cur)){ o={src:cur}; }   // গেম নিজে লেখা বদলালে নতুনটাই মূল
     let out=o.src; const full=o.src.trim(), tf=tr(full,lang);
