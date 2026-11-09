@@ -76,7 +76,7 @@ function setup(root){
 
 // opts: {color:"#rrggbb", spin, rs, fs, wb(পিক্সেলে কাঙ্ক্ষিত হুইলবেস), rc:[x,y] (২D-তে পেছনের চাকার কেন্দ্র)}
 T.render = function(opts){
-  if(!T.ready) return null;
+  if(!T.ready || (renderer && renderer.getContext().isContextLost())) return null;
   if(opts.color && opts.color !== curColor){ curColor = opts.color; const col = new THREE.Color(opts.color); paints.forEach(m => m.color.copy(col)); }
   // ২D পিক্সেল → ৩D একক
   const f = opts.wb / Math.hypot(map.pf[0]-map.pr[0], map.pf[1]-map.pr[1]);   // ক্যানভাস px → ২D px
@@ -251,6 +251,7 @@ function setupVeh(rec, cfg, root){
 }
 // opts: {color, base(মূল রং), spin, rs, fs, gy (গাড়ির কেন্দ্র থেকে মাটির দূরত্ব, পিক্সেলে)}
 T.renderVeh = function(kind, opts){
+  if(renderer && renderer.getContext().isContextLost()) return null;
   const rec = loadVeh(kind); if(!rec || !rec.ready) return null;
   if(opts.color !== rec.color){ rec.color = opts.color;
     const on = !!(opts.color && opts.base && opts.color.toLowerCase() !== opts.base.toLowerCase());
