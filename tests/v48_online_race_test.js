@@ -84,7 +84,7 @@ const dir=process.argv[2],shots=process.argv[3]||'/tmp';let pass=0,fail=0;const 
   ok('একা থাকলে রেস শুরু হয় না (বট আসে না)',!(await E.evaluate(()=>V47.on))&&await E.isVisible('#v48Pop'));
   // ত্রুটি: সার্ভার/ভুল কোড
   const F=await mkPage();await F.click('#raceBtn');await F.waitForTimeout(300);await F.fill('#v48Code','ZZZZZ');await F.click('#v48Join');await F.waitForTimeout(3000);
-  ok('ভুল কোডে বার্তা দেখায়',(await F.textContent('#v48Err')).includes('রুম নেই'),await F.textContent('#v48Err'));
+  ok('ভুল কোডে বার্তা দেখায়',!!(await F.textContent('#v48Err')).match(/রুম নেই|No room with this code/),await F.textContent('#v48Err'));
   for(const [n,P] of Object.entries({A,B,C,D,E,F}))ok('page error নেই '+n,P.__errs.length===0,P.__errs);
   console.log(`\n${pass} পাস, ${fail} ফেল`);await b.close();srv.close();process.exit(fail?1:0);
 })();
