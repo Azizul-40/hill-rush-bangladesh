@@ -7593,6 +7593,8 @@ const V45=(function(){
       if(a==="guest") h+=`<div class="lbNote">${L("ইমেইল ছাড়াই খেলো, তালিকায় \"Guest-১২৩৪\" নামে যাবে (শুধু এই ডিভাইসে)।","Play without an email; you appear as \"Guest-1234\" (this device only).")}</div><div class="lbRow2"><button class="lbBtn blue" id="v45Guest">👤 ${L("গেস্ট হিসেবে খেলো","Play as guest")}</button></div>`;
       else h+=formHtml(a);
     }
+    if(!(p&&!p.guest)) h+=`<div class="lbRow2"><button class="lbBtn gray" id="v52Wipe">🧹 ${L("এই ডিভাইসের সেভ মুছে নতুন করে শুরু","Erase this device's save and start fresh")}</button></div>`;
+    h+=`<div class="lbNote" style="opacity:.6;font-size:11px">build v52-logout</div>`;
     if(S.msg) h+=`<div class="lbNote lbErr">${esc(S.msg)}</div>`; if(S.ok) h+=`<div class="lbNote v45Ok">${esc(S.ok)}</div>`;
     box.innerHTML=h; bind(box); cooldownTick();
   };
@@ -7621,6 +7623,7 @@ const V45=(function(){
     box.querySelectorAll(".v45AvB").forEach(b=>b.onclick=()=>run(async()=>{ const p=v17Profile(); const j=await post("/api/profile",{id:p.id,token:p.token,avatar:+b.dataset.i}); p.avatar=j.avatar; v17SetProfile(p); S.ok=""; rerender(); }));
     if(g("v45Rename")) g("v45Rename").onclick=()=>run(async()=>{ const p=v17Profile(); const j=await post("/api/profile",{id:p.id,token:p.token,name:g("v45_rename").value}); p.name=j.name; v17SetProfile(p); S.ok=L("নাম বদলানো হয়েছে ✓","Name changed ✓"); S.msg=""; rerender(); });
     if(g("v45Sync")) g("v45Sync").onclick=()=>run(async()=>{ await S.pull(); S.ok=L("সিঙ্ক হয়েছে ✓","Synced ✓"); rerender(); });
+    if(g("v52Wipe")) g("v52Wipe").onclick=()=>{ if(!confirm(L("এই ডিভাইসের কয়েন, আনলক, গাড়ি, রেকর্ড সব মুছে যাবে। অ্যাকাউন্টে লগইন করা না থাকলে ফেরত পাবে না। মুছবে?","This erases coins, unlocks, vehicles and records on this device. Without a logged-in account you cannot get them back. Erase?"))) return; persist=function(){}; try{ localStorage.removeItem(SAVE_KEY); }catch(e){} v17SetProfile(null); location.reload(); };
     if(g("lbLogout")) g("lbLogout").onclick=async()=>{ const p=v17Profile(); const reg=p&&!p.guest;
       if(!confirm(reg?L("বের হলে এই ডিভাইস থেকে কয়েন, আনলক, গাড়ি, রেকর্ড সব মুছে যাবে (ক্লাউডে সেভ করা থাকবে)। আবার লগইন করলে ফিরে পাবে। বের হবে?","Logging out clears coins, unlocks, vehicles and records from this device (they stay saved in the cloud). Log in again to get them back. Log out?"):L("গেস্ট হিসেবে বের হলে এই ডিভাইসের সব অগ্রগতি মুছে যাবে, আর ফেরত পাওয়া যাবে না। বের হবে?","Logging out as a guest erases all progress on this device and it cannot be recovered. Log out?"))) return;
       if(reg){ try{ try{ trackEarn(); }catch(_){} await Promise.race([S.push(true),new Promise((_,rj)=>setTimeout(()=>rj(new Error("timeout")),6000))]); }catch(e){ if(!confirm(L("ক্লাউডে সেভ পাঠানো যায়নি! এখন বের হলে সাম্প্রতিক অগ্রগতি হারাতে পারো। তবুও বের হবে?","Could not save to the cloud! Logging out now may lose recent progress. Log out anyway?"))) return; } }
