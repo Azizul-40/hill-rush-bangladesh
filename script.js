@@ -6777,6 +6777,8 @@ const V38=(function(){
   const KEY="hillrush_lang";
   // [English, বাংলা] — দুই দিকেই খোঁজা হয়। বড় হাতের ইংরেজি মেনু-লেখা, বর্ণনা, বার্তা।
   const P=[
+    ["No account with this email/name — register first","এই ইমেইল/নামে কোনো অ্যাকাউন্ট নেই — আগে রেজিস্টার করো"],
+    ["Wrong PIN","PIN ভুল হয়েছে"],
     ["Driver: \"indian man in pattern shirt\" — Pixel_Monster, CC BY 4.0","চালক: \"indian man in pattern shirt\" — Pixel_Monster, CC BY 4.0"],
     ["Trees: \"bamboo tree\" — tojamerlin; \"Coconut Tree\", \"Platano Tree\" — gelmi.com.br; \"Oak tree\" — massive-graphisme; \"Tree GN\" — TechArtBGN; \"Tree\" — Epic_Tree_Store; \"Stylized Tree\" — yonimantz; \"Tree\" — farhad.Guli (all CC BY 4.0); \"Monstera Tree\" — sligocreatures (CC BY-NC 4.0); Banana trees: \"Banana Tree (Low Poly)\" — EmiyaSyahriel, \"Banana Tree\" — DJMiddi (CC BY 4.0)","গাছ: \"bamboo tree\" — tojamerlin; \"Coconut Tree\", \"Platano Tree\" — gelmi.com.br; \"Oak tree\" — massive-graphisme; \"Tree GN\" — TechArtBGN; \"Tree\" — Epic_Tree_Store; \"Stylized Tree\" — yonimantz; \"Tree\" — farhad.Guli (সব CC BY 4.0); \"Monstera Tree\" — sligocreatures (CC BY-NC 4.0); কলাগাছ: \"Banana Tree (Low Poly)\" — EmiyaSyahriel, \"Banana Tree\" — DJMiddi (CC BY 4.0)"],
     ["Ground / road / gap textures: \"[UPDATE] Dirt Road Through Forest\" — 99.Miles; \"Sand Dunes\" — Helindu; \"American Road Snow in Winter\" — jimbogies (all CC BY 4.0)","মাটি/রাস্তা/খাদের টেক্সচার: \"[UPDATE] Dirt Road Through Forest\" — 99.Miles; \"Sand Dunes\" — Helindu; \"American Road Snow in Winter\" — jimbogies (সব CC BY 4.0)"],
@@ -7619,7 +7621,10 @@ const V45=(function(){
     box.querySelectorAll(".v45AvB").forEach(b=>b.onclick=()=>run(async()=>{ const p=v17Profile(); const j=await post("/api/profile",{id:p.id,token:p.token,avatar:+b.dataset.i}); p.avatar=j.avatar; v17SetProfile(p); S.ok=""; rerender(); }));
     if(g("v45Rename")) g("v45Rename").onclick=()=>run(async()=>{ const p=v17Profile(); const j=await post("/api/profile",{id:p.id,token:p.token,name:g("v45_rename").value}); p.name=j.name; v17SetProfile(p); S.ok=L("নাম বদলানো হয়েছে ✓","Name changed ✓"); S.msg=""; rerender(); });
     if(g("v45Sync")) g("v45Sync").onclick=()=>run(async()=>{ await S.pull(); S.ok=L("সিঙ্ক হয়েছে ✓","Synced ✓"); rerender(); });
-    if(g("lbLogout")) g("lbLogout").onclick=()=>{ if(!confirm(L("এই ডিভাইস থেকে বের হবে? নিবন্ধিত অ্যাকাউন্টে আবার লগইন করা যাবে।","Log out on this device? You can log in again with your account."))) return; v17SetProfile(null); S.msg="";S.ok=""; rerender(); };
+    if(g("lbLogout")) g("lbLogout").onclick=async()=>{ const p=v17Profile(); const reg=p&&!p.guest;
+      if(!confirm(reg?L("বের হলে এই ডিভাইস থেকে কয়েন, আনলক, গাড়ি, রেকর্ড সব মুছে যাবে (ক্লাউডে সেভ করা থাকবে)। আবার লগইন করলে ফিরে পাবে। বের হবে?","Logging out clears coins, unlocks, vehicles and records from this device (they stay saved in the cloud). Log in again to get them back. Log out?"):L("গেস্ট হিসেবে বের হলে এই ডিভাইসের সব অগ্রগতি মুছে যাবে, আর ফেরত পাওয়া যাবে না। বের হবে?","Logging out as a guest erases all progress on this device and it cannot be recovered. Log out?"))) return;
+      if(reg){ try{ try{ trackEarn(); }catch(_){} await Promise.race([S.push(true),new Promise((_,rj)=>setTimeout(()=>rj(new Error("timeout")),6000))]); }catch(e){ if(!confirm(L("ক্লাউডে সেভ পাঠানো যায়নি! এখন বের হলে সাম্প্রতিক অগ্রগতি হারাতে পারো। তবুও বের হবে?","Could not save to the cloud! Logging out now may lose recent progress. Log out anyway?"))) return; } }
+      persist=function(){}; try{ localStorage.removeItem(SAVE_KEY); }catch(e){} v17SetProfile(null); location.reload(); };
   }
   const vr=v17Render; v17Render=async function(){ await vr.apply(this,arguments); S.mount(); };
   // লিডারবোর্ড খুললে সর্বশেষ কয়েন/সেভ পাঠানো
@@ -8072,7 +8077,7 @@ const V50=(function(){
         <div class="v50PicBox v52Ring">${avatarHtml("v50Pic")}<button type="button" class="v52Cam" id="v50Up" aria-label="upload">📷</button></div>
         <div class="v50Info"><div class="v50Name">${esc(name)} ${p&&!p.guest?`<span class="v39Tag r">${L("নিবন্ধিত ✓","Registered ✓")}</span>`:(p?`<span class="v39Tag g">${L("গেস্ট","Guest")}</span>`:"")}</div>
           <div class="v52Badge">${tier[2]} ${tier[0]} · RP ${Math.floor(save.raceRP||0)}</div>
-          <div class="v50PicBtns"><button type="button" class="lbBtn blue" id="v50Up2">📷 ${L("ছবি বদলাও","Change photo")}</button>${picOf()?`<button type="button" class="lbBtn gray" id="v50Del">🗑 ${L("ছবি সরাও","Remove")}</button>`:""}<input type="file" id="v50File" accept="image/*" hidden></div>
+          <div class="v50PicBtns"><button type="button" class="lbBtn blue" id="v50Up2">📷 ${L("ছবি বদলাও","Change photo")}</button>${picOf()?`<button type="button" class="lbBtn gray" id="v50Del">🗑 ${L("ছবি সরাও","Remove photo")}</button>`:""}<input type="file" id="v50File" accept="image/*" hidden></div>
           <div class="lbNote" id="v50Msg"></div></div></div>
       <div class="v52Tiles">${tile("🪙",Math.floor(save.coins||0),L("কয়েন","Coins"))}${tile("⭐",done,L("লেভেল পার","Levels done"))}${tile("🏆",Math.floor(save.trophies||0),L("ট্রফি","Trophies"))}${tile("🏁",save.raceWins||0,L("রেস জয়","Race wins"))}${tile("💰",Math.floor(save.earnedTotal||0),L("মোট আয়","Total earned"))}${tile(tier[2],Math.floor(save.raceRP||0),L("রেস পয়েন্ট","Race points"))}</div>
       <div class="lbBox v39Prof"></div>`;

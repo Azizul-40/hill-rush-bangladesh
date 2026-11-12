@@ -9,13 +9,13 @@ export async function onRequestPost({ request, env }) {
   const p = who.includes("@")
     ? await env.DB.prepare("SELECT id, name, pin_hash, fails, lock_until FROM players WHERE email = ?").bind(who.toLowerCase()).first()
     : await env.DB.prepare("SELECT id, name, pin_hash, fails, lock_until FROM players WHERE name_key = ?").bind(cleanName(who).toLowerCase()).first();
-  if (!p || !p.pin_hash) return bad("ইমেইল/নাম বা PIN মিলছে না", 401);
+  if (!p || !p.pin_hash) return bad("এই ইমেইল/নামে কোনো অ্যাকাউন্ট নেই — আগে রেজিস্টার করো", 404);
   const now = Date.now();
   if (p.lock_until > now) return bad("অনেকবার ভুল হয়েছে — কিছুক্ষণ পরে চেষ্টা করো", 429);
   if ((await pinHash(p.id, pin)) !== p.pin_hash) {
     const f = (p.fails || 0) + 1;
     await env.DB.prepare("UPDATE players SET fails=?, lock_until=? WHERE id=?").bind(f >= 5 ? 0 : f, f >= 5 ? now + 10 * 60 * 1000 : 0, p.id).run();
-    return bad("ইমেইল/নাম বা PIN মিলছে না", 401);
+    return bad("PIN ভুল হয়েছে", 401);
   }
   const token = randomHex(24);
   await env.DB.prepare("UPDATE players SET fails=0, lock_until=0 WHERE id=?").bind(p.id).run();

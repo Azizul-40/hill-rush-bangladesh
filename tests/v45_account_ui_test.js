@@ -60,6 +60,17 @@ const dir=process.argv[2];let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;cons
   await A.evaluate(()=>V45.pull());await A.waitForTimeout(500);
   const sA=await A.evaluate(()=>({maps:save.ownedMaps,coins:save.coins}));
   ok('ফোন ২-এ কেনা ম্যাপ ফোন ১-এ এলো',sA.maps.includes(1),sA);
+  // লগআউট: ডিভাইস থেকে সব মুছে যায়, আবার লগইনে ক্লাউড থেকে ফেরে
+  B.on('dialog',d=>d.accept());await openLb(B);await B.waitForTimeout(300);
+  await B.evaluate(()=>V45.push());await B.waitForTimeout(300);
+  await B.click('#lbLogout');await B.waitForTimeout(2500);
+  const lo=await B.evaluate(()=>({p:v17Profile(),coins:save.coins,maps:save.ownedMaps,done:Object.keys(save.completed).length,key:localStorage.getItem('hillrush_profile_v1')}));
+  ok('লগআউটে প্রোফাইল ও লোকাল সেভ (কয়েন/ম্যাপ/লেভেল) মুছে যায়',!lo.p&&lo.coins===250&&lo.maps.length<=1&&lo.done===0&&!lo.key,lo);
+  await openLb(B);await B.click('.v45Tabs button[data-a="login"]');await B.waitForTimeout(200);
+  await B.fill('#v45_login','AzizulBD');await B.fill('#v45_pin','4321');await B.click('#v45Login');await B.waitForTimeout(1500);
+  const re=await B.evaluate(()=>({coins:save.coins,done:Object.keys(save.completed).length,maps:save.ownedMaps}));
+  ok('আবার লগইনে (নাম দিয়ে) ক্লাউড থেকে সব ফিরে আসে',re.done===4&&re.maps.includes(1),re);
+  await B.fill('#v45_login','nobody@x.com').catch(()=>{});
   // PIN রিসেট
   const C=await mkPage();await openLb(C);await C.click('.v45Tabs button[data-a="login"]');await C.click('#v45Forgot');await C.waitForTimeout(200);
   await C.fill('#v45_email','azizul@test.com');await C.click('#v45SendR');await C.waitForTimeout(600);
@@ -69,7 +80,7 @@ const dir=process.argv[2];let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;cons
   await C.evaluate(()=>{save.earnedTotal=1234;});await C.evaluate(()=>v17Api('/api/submit',{method:'POST',body:JSON.stringify(v39SubmitBody({}))}));
   const lb=await C.evaluate(()=>v17Api('/api/leaderboard?type=overall').then(j=>j.rows));ok('লিডারবোর্ডে মোট আয় ও অ্যাভাটার',lb.some(r=>r.coins===1234&&r.avatar===3),lb);
   // নতুন গেস্ট থেকে আপগ্রেড
-  const D=await mkPage();await openLb(D);await D.click('.v45Tabs button[data-a="guest"]');await D.click('#v45Guest');await D.waitForTimeout(700);
+  const D=await mkPage();await openLb(D);await D.click('.v45Tabs button[data-a="guest"]');await D.click('#v45Guest');await D.waitForTimeout(2000);
   ok('গেস্ট প্রোফাইল',await D.evaluate(()=>{const p=v17Profile();return !!(p&&p.guest);}));
   ok('গেস্ট দেখায় রেজিস্টার ফর্ম',await D.isVisible('#v45Reg'));
   for(const p of [A,B,C,D])ok('page error নেই',p.__errs.length===0,p.__errs);
